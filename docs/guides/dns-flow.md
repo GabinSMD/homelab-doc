@@ -35,7 +35,8 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 
 ```
 ||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
-||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=172.16.0.0/12
+||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.20.0.1
+||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.16.0.0/12
 ||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
@@ -43,14 +44,23 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 
 | Regle | Client vu par AdGuard | Reponse DNS | Pourquoi |
 |---|---|---|---|
-| 1ere | LAN direct (`192.168.1.0/24`) | `192.168.1.28` | Client LAN utilisant l'IP RPi comme DNS |
-| 2eme | Docker bridge (`172.16.0.0/12`) | `192.168.1.28` | Tous les clients passant par le bridge Docker |
-| 3eme | Tailscale direct (`100.64.0.0/10`) | `100.97.239.90` | Futur : si AdGuard tourne hors Docker |
+| 1ere | LAN direct (`192.168.1.0/24`) | `192.168.1.28` (IP locale) | Client LAN qui bypass Docker (port 53 direct) |
+| 2eme | Docker bridge (`172.20.0.1`) | `100.97.239.90` (IP Tailscale) | IP exacte du bridge — match prioritaire |
+| 3eme | Docker range (`172.16.0.0/12`) | `100.97.239.90` (IP Tailscale) | Couvre tout bridge Docker |
+| 4eme | Tailscale direct (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale) | Si AdGuard tourne hors Docker a l'avenir |
 
 !!! warning "Subtilite importante : AdGuard en container Docker"
-    AdGuard tourne en **container Docker**. Toutes les requetes DNS (LAN et Tailscale) transitent par le bridge Docker et arrivent a AdGuard avec l'IP source `172.20.0.1` — **pas** l'IP reelle du client.
+    AdGuard tourne en **container Docker**. Les requetes DNS (LAN et Tailscale) transitent par le bridge Docker et arrivent a AdGuard avec l'IP source `172.20.0.1` — **pas** l'IP reelle du client.
 
-    C'est pourquoi la regle `client=172.16.0.0/12` est indispensable : elle couvre le cas reel ou AdGuard voit le bridge Docker comme client. La regle Tailscale `100.64.0.0/10` est la en prevision d'un futur deploiement hors Docker (LXC Proxmox par ex.).
+    Le probleme : les clients LAN et Tailscale apparaissent tous comme `172.20.0.1`.
+    Mais les clients LAN accedent aux services via `192.168.1.28` (IP locale) tandis que
+    les clients Tailscale ont besoin de `100.97.239.90` (IP Tailscale).
+
+    **La solution** : repondre l'IP Tailscale pour le bridge Docker. Ca fonctionne car :
+
+    - Les clients **LAN** recoivent `192.168.1.28` via la 1ere regle (match prioritaire sur `192.168.1.0/24` — quand le DNS est configure en IP directe sur le client)
+    - Les clients **Tailscale** recoivent `100.97.239.90` via la 2eme regle (requete vue comme `172.20.0.1`)
+    - Les clients LAN qui passent par le bridge Docker recoivent aussi `100.97.239.90` — ce qui fonctionne car l'IP Tailscale est routable localement sur le RPi
 
 ### Wildcard `home.gabin-simond.fr`
 
