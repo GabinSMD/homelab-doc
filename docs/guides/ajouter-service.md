@@ -83,13 +83,11 @@ Ou dans la config (`user_rules` dans `AdGuardHome.yaml`) :
 
 ```
 ||monservice.home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
-||monservice.home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.20.0.1
-||monservice.home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.16.0.0/12
 ||monservice.home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
-!!! info "Pourquoi quatre regles ?"
-    Voir [Comment fonctionne le DNS](dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail. En resume : AdGuard tourne en Docker, donc il voit tous les clients comme `172.20.0.1`. L'IP Tailscale est retournee par defaut, et seuls les clients LAN directs recoivent l'IP locale.
+!!! info "Pourquoi deux regles ?"
+    AdGuard tourne en `network_mode: host` et voit les vraies IPs clients. LAN recoit l'IP locale, Tailscale recoit l'IP Tailscale. Voir [Comment fonctionne le DNS](dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail.
 
 ## Etape 3 — Deployer
 
