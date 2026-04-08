@@ -80,6 +80,10 @@ nav:
   - Reseau:
     - Architecture cible: network/architecture-cible.md
     - VLANs: network/vlans.md
+  - Guides:
+    - Ajouter un service: guides/ajouter-service.md
+    - Comment fonctionne le DNS: guides/dns-flow.md
+    - TLS et certificats: guides/tls.md
   - Decisions techniques: decisions.md
   - Roadmap: roadmap.md
   - A propos: about.md
