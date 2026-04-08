@@ -1,21 +1,25 @@
-# Optimisations OS - DietPi sur RPi 4
+# Optimisations OS
+
+DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabilite SSD, la longevite du stockage et l'economie de ressources.
 
 ## Stabilite SSD (bridge USB-SATA ASMedia ASM1156)
 
-Le boitier Argon ONE M.2 utilise un bridge ASMedia ASM1156 (USB-to-SATA) qui est
-sujet a des deconnexions aleatoires sur RPi 4 a cause de la gestion d'energie PCIe.
+!!! danger "Probleme"
+    Le boitier Argon ONE M.2 utilise un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **deconnexions aleatoires** sur RPi 4 a cause de la gestion d'energie PCIe.
 
 ### Parametres kernel (`cmdline.txt`)
 
-```
+```bash
 pcie_aspm=off                       # Desactive PCIe ASPM (cause principale des decos)
 usbcore.autosuspend=-1              # Desactive USB autosuspend
 usb-storage.quirks=174c:1156:u      # Force usb-storage au lieu de UAS pour ce device
 ```
 
-### Regles udev (`/etc/udev/rules.d/50-argon-ssd.rules`)
+### Regles udev
 
-```udev
+`/etc/udev/rules.d/50-argon-ssd.rules` :
+
+```bash
 # Desactive autosuspend pour le bridge ASMedia
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="174c", ATTR{idProduct}=="1156", \
   ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
@@ -33,7 +37,7 @@ ACTION=="add|change", KERNEL=="sd[a-z]", ATTRS{idVendor}=="174c", ATTRS{idProduc
 
 ### fstab
 
-```fstab
+```bash
 # Tmpfs pour les logs (evite l'usure SD)
 tmpfs /tmp     tmpfs size=3929M,noatime,lazytime,nodev,nosuid,mode=1777
 tmpfs /var/log tmpfs size=50M,noatime,lazytime,nodev,nosuid
@@ -43,14 +47,14 @@ PARTUUID=503f5518-02 /               ext4 noatime,lazytime,rw                   
 PARTUUID=503f5518-01 /boot/firmware   vfat noatime,lazytime,rw                    0 2
 
 # SSD (nofail = boot meme si SSD absent, errors=remount-ro = protection donnees)
-UUID=b32ed1bb-5c25-4b68-9466-92537ea2f95c /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
+UUID=b32ed1bb-... /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
 ```
 
-Points cles :
-- `noatime,lazytime` sur toutes les partitions — reduit les ecritures
-- `nofail` sur le SSD — le systeme boot meme si le SSD n'est pas branche
-- `errors=remount-ro` — protege le filesystem en cas d'erreur I/O
-- Pas de swap (swappiness=1)
+!!! info "Points cles"
+    - `noatime,lazytime` sur toutes les partitions — reduit les ecritures
+    - `nofail` sur le SSD — le systeme boot meme si le SSD n'est pas branche
+    - `errors=remount-ro` — protege le filesystem en cas d'erreur I/O
+    - Pas de swap (swappiness=1)
 
 ## Headless / economie de ressources
 
@@ -73,7 +77,7 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 
 ## Docker
 
-### daemon.json (`/etc/docker/daemon.json`)
+### daemon.json
 
 ```json
 {
@@ -88,27 +92,24 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 - `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
 - `log-level: warn` — limite le bruit dans les logs
 
-## Reseau
+## Resume
 
-### /etc/network/interfaces
-
-```
-allow-hotplug eth0
-iface eth0 inet static
-  address 192.168.1.28
-  netmask 255.255.255.0
-  gateway 192.168.1.254
-```
-
-WiFi desactive au niveau overlay ET interface.
+| Optimisation | Effet |
+|---|---|
+| PCIe ASPM off | Empeche les deconnexions SSD |
+| USB autosuspend off | Double protection SSD |
+| UAS desactive | Force `usb-storage` (plus stable) |
+| SSD non-rotational | I/O scheduler optimise |
+| Logs en tmpfs | Pas d'usure SD |
+| Swap desactive | Pas d'usure SSD/SD |
+| GPU 16 Mo | Plus de RAM pour les services |
+| Headless | Framebuffers a 0 |
+| WiFi off | Economie energie, securite |
+| fstrim hebdo | Maintenance SSD |
 
 ## Limites connues
 
-- **TRIM non supporte** par le bridge ASMedia USB-SATA (`discard_max_bytes=0`).
-  Le timer `fstrim` tourne mais sans effet. Le garbage collection interne du SSD
-  compense, mais la performance peut se degrader legerement avec le temps sur un
-  SSD tres rempli.
-- **USB 3.0 plafonne a ~200 MB/s** sur RPi 4 (bus partage avec Ethernet Gigabit).
-  C'est le maximum atteignable, pas un probleme de config.
-- **`nr_requests=2`** — limitation du driver `usb-storage` (queue depth faible).
-  Non modifiable sans passer a UAS, qui est instable sur ce bridge.
+!!! note "Limitations hardware du bridge ASMedia"
+    - **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
+    - **USB 3.0 plafonne a ~200 MB/s** — bus partage avec Ethernet Gigabit sur RPi 4
+    - **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
