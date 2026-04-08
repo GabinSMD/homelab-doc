@@ -83,12 +83,14 @@ Ou dans la config (`user_rules` dans `AdGuardHome.yaml`) :
 
 ```
 ||monservice.home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
+||monservice.home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=172.16.0.0/12
 ||monservice.home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
-!!! info "Pourquoi deux regles ?"
-    - La premiere redirige les clients **LAN** (`192.168.1.0/24`) vers l'IP locale du RPi
-    - La seconde redirige les clients **Tailscale** (`100.64.0.0/10`) vers l'IP Tailscale
+!!! info "Pourquoi trois regles ?"
+    - **LAN** (`192.168.1.0/24`) — clients utilisant l'IP RPi comme DNS directement
+    - **Docker bridge** (`172.16.0.0/12`) — couvre tous les clients passant par Docker (LAN + Tailscale), car AdGuard tourne en container et voit le bridge comme source
+    - **Tailscale** (`100.64.0.0/10`) — prevision si AdGuard tourne hors Docker a l'avenir
 
 ## Etape 3 — Deployer
 

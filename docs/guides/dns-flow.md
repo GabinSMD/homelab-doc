@@ -35,18 +35,22 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 
 ```
 ||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
+||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=172.16.0.0/12
 ||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
 ### Que font ces regles ?
 
-| Regle | Client source | Reponse DNS | Pourquoi |
+| Regle | Client vu par AdGuard | Reponse DNS | Pourquoi |
 |---|---|---|---|
-| 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale RPi) | Acces direct via le LAN |
-| 2eme | Tailscale (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale RPi) | Clients VPN distants |
+| 1ere | LAN direct (`192.168.1.0/24`) | `192.168.1.28` | Client LAN utilisant l'IP RPi comme DNS |
+| 2eme | Docker bridge (`172.16.0.0/12`) | `192.168.1.28` | Tous les clients passant par le bridge Docker |
+| 3eme | Tailscale direct (`100.64.0.0/10`) | `100.97.239.90` | Futur : si AdGuard tourne hors Docker |
 
-!!! info "Pourquoi pas de regle pour les containers Docker ?"
-    Les containers utilisent le resolver DNS interne de Docker (`127.0.0.11`) qui forwarde vers les DNS du host — ils ne passent pas par AdGuard. De plus, les containers sur le reseau `proxy` peuvent joindre `192.168.1.28` directement (c'est le host).
+!!! warning "Subtilite importante : AdGuard en container Docker"
+    AdGuard tourne en **container Docker**. Toutes les requetes DNS (LAN et Tailscale) transitent par le bridge Docker et arrivent a AdGuard avec l'IP source `172.20.0.1` — **pas** l'IP reelle du client.
+
+    C'est pourquoi la regle `client=172.16.0.0/12` est indispensable : elle couvre le cas reel ou AdGuard voit le bridge Docker comme client. La regle Tailscale `100.64.0.0/10` est la en prevision d'un futur deploiement hors Docker (LXC Proxmox par ex.).
 
 ### Wildcard `home.gabin-simond.fr`
 
