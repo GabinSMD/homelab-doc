@@ -1,6 +1,6 @@
-# Homelab - Raspberry Pi 4
+# Homelab
 
-Documentation et sauvegarde de configuration du homelab.
+Documentation du homelab : architecture actuelle et cible.
 
 ## Hardware
 
@@ -81,3 +81,9 @@ Resume :
 - **Headless** — HDMI off, framebuffers a 0
 - **WiFi off** — economie energie, surface d'attaque reduite
 - **fstrim hebdomadaire** — maintenance SSD (note : TRIM non supporte par le bridge ASMedia, effet nul mais sans risque)
+
+---
+
+## Architecture cible (maison)
+
+Voir [target-architecture.md](target-architecture.md) pour le detail complet.
