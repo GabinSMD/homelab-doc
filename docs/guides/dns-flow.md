@@ -35,8 +35,7 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 
 ```
 ||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
-||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.20.0.1
-||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=172.0.0.0/8
+||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
 ### Que font ces regles ?
@@ -44,11 +43,10 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 | Regle | Client source | Reponse DNS | Pourquoi |
 |---|---|---|---|
 | 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale RPi) | Acces direct via le LAN |
-| 2eme | Docker bridge (`172.20.0.1`) | `100.97.239.90` (IP Tailscale) | Containers qui font des requetes DNS |
-| 3eme | Docker/Tailscale (`172.0.0.0/8`) | `100.97.239.90` (IP Tailscale) | Autres reseaux Docker internes |
+| 2eme | Tailscale (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale RPi) | Clients VPN distants |
 
-!!! info "Pourquoi pas la meme IP pour tous ?"
-    Les containers Docker et les clients Tailscale ne peuvent pas joindre `192.168.1.28` directement dans tous les cas. L'IP Tailscale (`100.97.239.90`) est routable depuis partout (LAN, Docker, VPN).
+!!! info "Pourquoi pas de regle pour les containers Docker ?"
+    Les containers utilisent le resolver DNS interne de Docker (`127.0.0.11`) qui forwarde vers les DNS du host — ils ne passent pas par AdGuard. De plus, les containers sur le reseau `proxy` peuvent joindre `192.168.1.28` directement (c'est le host).
 
 ### Wildcard `home.gabin-simond.fr`
 
