@@ -68,12 +68,18 @@ nav:
   - Infrastructure:
     - Hardware: infrastructure/hardware.md
     - Optimisations OS: infrastructure/os-optimizations.md
+    - Securite: infrastructure/security.md
     - Monitoring: infrastructure/monitoring.md
+    - Backups: infrastructure/backups.md
+    - Maintenance: infrastructure/maintenance.md
   - Services:
     - Stack Docker: services/docker-stack.md
     - Traefik: services/traefik.md
     - AdGuard Home: services/adguard.md
+    - Acces et URLs: services/acces.md
   - Reseau:
     - Architecture cible: network/architecture-cible.md
     - VLANs: network/vlans.md
+  - Decisions techniques: decisions.md
   - Roadmap: roadmap.md
+  - A propos: about.md
