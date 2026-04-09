@@ -11,7 +11,9 @@
 | Stockage OS | SD Card 64 Go (boot + OS) |
 | Stockage Data | SSD Intenso 480 Go via bridge USB-SATA ASMedia ASM1156 (USB 3.0) |
 | OS | DietPi v10.2 (Debian 12 Bookworm), kernel 6.12.x aarch64 |
-| IP | 192.168.1.28 |
+| IP LAN | 192.168.1.28 |
+| IP Tailscale | 100.97.239.90 |
+| SSH | `ssh root@homelab` (Tailscale SSH) |
 
 ### ZimaBoard x2 (cluster Proxmox)
 
@@ -19,10 +21,12 @@
 |---|---|---|
 | Stockage | eMMC 32 Go | eMMC 32 Go |
 | OS | Proxmox VE 9 (Debian Trixie) | Proxmox VE 9 (Debian Trixie) |
-| IP | 192.168.1.18 | 192.168.1.19 |
-| Acces | `pve1.home.gabin-simond.fr` | `pve2.home.gabin-simond.fr` |
+| IP LAN | 192.168.1.18 | 192.168.1.19 |
+| IP Tailscale | 100.98.58.121 | 100.69.6.13 |
+| Acces web | `pve1.home.gabin-simond.fr` | `pve2.home.gabin-simond.fr` |
+| SSH | `ssh root@pve1` | `ssh root@pve2` |
 
-Les deux ZimaBoards forment le cluster Proxmox **homelab**.
+Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe nativement.
 
 ## Materiel prevu
 

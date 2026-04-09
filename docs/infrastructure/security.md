@@ -53,14 +53,26 @@ Toutes les images Docker utilisent `security_opt: no-new-privileges:true` quand 
 
 ## Acces distant
 
-### Tailscale (VPN mesh)
+### Tailscale (VPN mesh + SSH)
 
 - Acces a tous les services via IP Tailscale — pas de port expose sur Internet
 - Pas de port forwarding sur la Freebox
 - ACLs dans la console Tailscale admin
 
-!!! info "Tailscale SSH (prevu)"
-    Remplacera les cles SSH classiques. Auth via le compte Tailscale, pas de cles a gerer, logs centralises.
+**Tailscale SSH** actif sur les 3 machines (homelab, pve1, pve2) :
+
+- Authentification via identite Tailscale (pas de cles SSH a gerer)
+- Certificats a rotation automatique
+- Aucun port 22 expose — tunnel WireGuard
+- Mode `check` : validation navigateur a chaque connexion (MFA)
+- Logs centralises dans la console Tailscale
+
+```bash
+# Connexion depuis n'importe quel device Tailscale
+ssh root@homelab    # RPi 4
+ssh root@pve1       # ZimaBoard 1
+ssh root@pve2       # ZimaBoard 2
+```
 
 ### TLS partout
 

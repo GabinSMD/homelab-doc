@@ -10,7 +10,8 @@
 - [x] Deployer [Vaultwarden](services/vaultwarden.md) (gestionnaire de mots de passe)
 - [x] Monitoring Beszel sur les 3 machines (RPi + pve1 + pve2)
 - [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
-- [ ] Activer Tailscale SSH (remplace les cles SSH classiques)
+- [x] Activer Tailscale SSH sur les 3 machines (RPi, pve1, pve2)
+- [x] Backups automatiques quotidiens (volumes Docker + configs → SD card + ntfy)
 - [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
 
 ## Phase 2 — Avant emmenagement
