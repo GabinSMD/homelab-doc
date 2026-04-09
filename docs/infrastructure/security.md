@@ -1,8 +1,40 @@
 # Securite
 
-Mesures de hardening appliquees sur le RPi 4 et principes pour l'infrastructure.
+Mesures de hardening appliquees et principes pour l'infrastructure.
 
-## Hardening DietPi / RPi 4
+## Authentification centralisee
+
+### Authelia (SSO)
+
+[Authelia](../services/authelia.md) fournit un portail d'authentification unique via OIDC :
+
+| Service | Methode SSO |
+|---|---|
+| Proxmox VE (pve1, pve2) | OIDC natif (`authelia` realm, defaut) |
+| Portainer | OAuth2 natif |
+| Beszel | OIDC via PocketBase |
+
+Les autres services (AdGuard, Wallos, WUD) conservent leur auth interne.
+
+### Vaultwarden (mots de passe)
+
+[Vaultwarden](../services/vaultwarden.md) stocke tous les credentials du homelab. Pas de SSO par design — c'est le filet de securite si Authelia tombe.
+
+!!! tip "Bonne pratique"
+    Tous les mots de passe services sont generes aleatoirement et stockes dans Vaultwarden. Aucun mot de passe reutilise entre services.
+
+### Fallback
+
+Chaque service critique conserve un acces de secours sans SSO :
+
+| Service | Fallback |
+|---|---|
+| Proxmox | `root@pam` (acces console) |
+| Portainer | Compte local admin |
+| Beszel | Compte local admin |
+| Vaultwarden | Master password (pas de SSO) |
+
+## Hardening RPi 4 / DietPi
 
 ### Surface d'attaque reduite
 
@@ -15,26 +47,36 @@ Mesures de hardening appliquees sur le RPi 4 et principes pour l'infrastructure.
 | Services minimaux | DietPi n'installe que le strict necessaire |
 | GPU minimal | 16 Mo — pas d'interface graphique |
 
-### SSH
-
-- Acces SSH actif (port 22)
-- Authentification par cle recommandee
-- `dietpi-kill_ssh` — service DietPi qui coupe les sessions SSH inactives
-
-!!! tip "A faire"
-    - [ ] Desactiver l'authentification par mot de passe SSH
-    - [ ] Changer le port SSH (ou utiliser uniquement Tailscale pour l'acces distant)
-    - [ ] Installer fail2ban
-
 ### Docker
 
 Toutes les images Docker utilisent `security_opt: no-new-privileges:true` quand c'est supporte — empeche l'escalade de privileges dans les conteneurs.
 
-### Acces distant
+## Acces distant
 
-- **Tailscale** — acces VPN mesh, pas de port expose sur Internet
-- **Traefik** — TLS sur tous les services internes (certificats Let's Encrypt)
-- Pas de port forwarding sur la box FAI
+### Tailscale (VPN mesh)
+
+- Acces a tous les services via IP Tailscale — pas de port expose sur Internet
+- Pas de port forwarding sur la Freebox
+- ACLs dans la console Tailscale admin
+
+!!! info "Tailscale SSH (prevu)"
+    Remplacera les cles SSH classiques. Auth via le compte Tailscale, pas de cles a gerer, logs centralises.
+
+### TLS partout
+
+- **Traefik** — certificats Let's Encrypt automatiques (DNS challenge Cloudflare) sur tous les services `*.home.gabin-simond.fr`
+- **Proxmox** — accessible via Traefik (cert valide) + fallback IP:8006 (cert auto-signe)
+- Pas de HTTP en clair expose
+
+## Secrets
+
+| Mesure | Detail |
+|---|---|
+| `.env` non versionne | Tokens API, credentials dans un fichier exclu de git |
+| Repo prive | `homelab-config` est prive sur GitHub |
+| Authelia config exclue | Secrets OIDC dans `.gitignore`, seuls les `.example` sont versionnes |
+| Cle OIDC privee | `oidc.pem` exclue du repo |
+| Pas de secrets dans les labels | Configs sensibles via env vars ou bind mounts |
 
 ## Architecture cible — securite reseau
 
@@ -63,14 +105,7 @@ graph TD
 
 ### Points cles
 
-- **IoT isole** — les objets connectes (cameras, capteurs) ne peuvent pas acceder au LAN personnel ni aux services
+- **IoT isole** — les objets connectes ne peuvent pas acceder au LAN personnel ni aux services
 - **Invites isoles** — acces internet uniquement, aucune visibilite sur le reseau interne
 - **Management restreint** — seul le VLAN 10 peut administrer les equipements
-- **Firewall dedie** — pas de VM, bare-metal OPNsense pour eviter les SPOF
-
-## Bonnes pratiques
-
-!!! warning "Secrets"
-    - Les variables d'environnement sensibles (tokens API, cles) sont dans un fichier `.env` **non versionne**
-    - Le repo `homelab-config` est **prive** sur GitHub
-    - Pas de secrets dans les labels Docker ou les fichiers de config committes
+- **Firewall dedie** — bare-metal OPNsense pour eviter les SPOF
