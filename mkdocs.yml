@@ -72,11 +72,13 @@ nav:
     - Monitoring: infrastructure/monitoring.md
     - Backups: infrastructure/backups.md
     - Maintenance: infrastructure/maintenance.md
+    - Troubleshooting: infrastructure/troubleshooting.md
   - Services:
     - Stack Docker: services/docker-stack.md
     - Traefik: services/traefik.md
     - AdGuard Home: services/adguard.md
     - Authelia (SSO): services/authelia.md
+    - Vaultwarden: services/vaultwarden.md
     - Acces et URLs: services/acces.md
   - Reseau:
     - Architecture cible: network/architecture-cible.md

@@ -5,7 +5,12 @@
 - [x] RPi 4 configure et operationnel
 - [x] Cablage Cat 8 tire dans les pieces principales
 - [x] Installer Proxmox VE sur les 2 ZimaBoard (voir [guide](guides/proxmox-zimaboard.md))
+- [x] Creer le cluster Proxmox **homelab** (pve1 + pve2)
+- [x] SSO centralise avec [Authelia](services/authelia.md) (OIDC pour Proxmox, Portainer, Beszel)
+- [x] Deployer [Vaultwarden](services/vaultwarden.md) (gestionnaire de mots de passe)
+- [x] Monitoring Beszel sur les 3 machines (RPi + pve1 + pve2)
 - [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
+- [ ] Activer Tailscale SSH (remplace les cles SSH classiques)
 - [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
 
 ## Phase 2 — Avant emmenagement

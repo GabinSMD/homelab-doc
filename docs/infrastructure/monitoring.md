@@ -5,13 +5,19 @@
 ```mermaid
 graph TD
     Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy.sh<br/>Notifications]
-    Beszel[Beszel + Agent] -->|dashboard| Web[Interface web]
+    Beszel[Beszel Server] -->|dashboard| Web[Interface web]
     WUD[WUD] -->|verifie| Docker[Images Docker]
     
     Script -->|surveille| SSD[SSD]
     Script -->|surveille| Temp[Temperature]
     Script -->|surveille| Power[Alimentation]
     Script -->|surveille| Containers[Containers]
+    Script -->|surveille| Disk[Espace disque]
+    Script -->|surveille| RAM[RAM + OOM]
+
+    Agent1[Beszel Agent RPi] -->|:45876| Beszel
+    Agent2[Beszel Agent pve1] -->|:45876| Beszel
+    Agent3[Beszel Agent pve2] -->|:45876| Beszel
 ```
 
 ## homelab_monitor.sh
@@ -26,6 +32,8 @@ Script bash executé **chaque minute** via cron. Surveille :
 | USB errors dans dmesg | Disconnect/offline | :octicons-alert-16: haute |
 | Temperature | > 70°C warning, > 80°C critique | :octicons-alert-16: variable |
 | Alimentation | Throttling / under-voltage | :octicons-alert-16: haute |
+| Espace disque SD/SSD | > 80% warning, > 95% critique | :octicons-alert-16: variable |
+| RAM + OOM kill | > 90% ou OOM detecte | :octicons-alert-16: critique |
 | Docker daemon | Ne repond plus | :octicons-alert-16: critique |
 | Containers | Stopped / unhealthy | :octicons-alert-16: haute |
 
@@ -50,6 +58,6 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 | Service | Role | Acces |
 |---|---|---|
-| **Beszel** + agent | Monitoring systeme (CPU, RAM, disque, reseau) | Dashboard web |
+| **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — RPi, pve1, pve2 | Dashboard web |
 | **WUD** | Surveillance mises a jour images Docker | Dashboard web |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |

@@ -14,8 +14,20 @@ Reference rapide de tous les services et leurs points d'acces.
 | **Beszel** | 8090 | `http://IP:8090` | `monitor.home.*.fr` |
 | **WUD** | 3001 | `http://IP:3001` | `wud.home.*.fr` |
 | **Authelia** (SSO) | 9091 | — | `auth.home.*.fr` |
+| **Vaultwarden** | 80 | — | `vault.home.*.fr` |
 | **Proxmox pve1** | 8006 | `https://192.168.1.18:8006` | `pve1.home.*.fr` |
 | **Proxmox pve2** | 8006 | `https://192.168.1.19:8006` | `pve2.home.*.fr` |
+
+## Authentification
+
+| Service | Methode | SSO Authelia |
+|---|---|---|
+| Proxmox | OIDC (`authelia` realm) | Oui |
+| Portainer | OAuth2 | Oui |
+| Beszel | OIDC (PocketBase) | Oui |
+| Vaultwarden | Master password | Non (par design) |
+| AdGuard | Login interne | Non |
+| Autres | Login interne ou aucun | Non |
 
 ## Services reseau
 

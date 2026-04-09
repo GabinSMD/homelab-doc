@@ -2,30 +2,36 @@
 
 ## Materiel actuel
 
+### Raspberry Pi 4 (services Docker)
+
 | Composant | Detail |
 |---|---|
 | Board | Raspberry Pi 4 Model B Rev 1.4 (8 Go RAM) |
 | Boitier | Argon ONE M.2 (avec ventilateur actif via `argononed`) |
 | Stockage OS | SD Card 64 Go (boot + OS) |
-| Stockage Data | SSD 480 Go via bridge USB-SATA ASMedia ASM1156 (USB 3.0, ~200 MB/s) |
+| Stockage Data | SSD Intenso 480 Go via bridge USB-SATA ASMedia ASM1156 (USB 3.0) |
+| OS | DietPi v10.2 (Debian 12 Bookworm), kernel 6.12.x aarch64 |
+| IP | 192.168.1.28 |
 
-## OS
+### ZimaBoard x2 (cluster Proxmox)
 
-| | |
-|---|---|
-| Distribution | DietPi v10.2 (base Debian 12 Bookworm) |
-| Kernel | 6.12.x aarch64 (64-bit) |
-| Mode | Headless (HDMI desactive, GPU 16 Mo) |
-| WiFi | Desactive (overlay `disable-wifi`) |
+| Composant | pve1 | pve2 |
+|---|---|---|
+| Stockage | eMMC 32 Go | eMMC 32 Go |
+| OS | Proxmox VE 9 (Debian Trixie) | Proxmox VE 9 (Debian Trixie) |
+| IP | 192.168.1.18 | 192.168.1.19 |
+| Acces | `pve1.home.gabin-simond.fr` | `pve2.home.gabin-simond.fr` |
+
+Les deux ZimaBoards forment le cluster Proxmox **homelab**.
 
 ## Materiel prevu
 
 | Machine | Specs | Role | Budget |
 |---|---|---|---|
-| ZimaBoard 2 x2 | 2x Ethernet chacun | Noeuds Proxmox VE (compute) | Deja en stock |
+| Switch 2.5GbE | keepLINK 9XHML-X 8p managed | Switch pour tests Phase 1 | ~62€ |
 | Appliance firewall | 4x 2.5GbE, fanless (Topton/CWWK N100) | OPNsense dedie | 100-180€ |
 | Minisforum N5 Max | Intel N100/N150, 16+ Go RAM | Proxmox VE (compute + storage / NAS) | 250-400€ |
-| Switch manageable 2.5GbE | 16+ ports, 802.1Q | Switch coeur | 150-300€ |
+| Switch 2.5GbE 16+ ports | 802.1Q managed | Switch coeur (Phase 2) | 150-300€ |
 | AP WiFi x2-3 | VLAN par SSID (Ubiquiti U6+ / TP-Link EAP) | WiFi segmente | 80-120€/AP |
 | UPS / Onduleur | Protection coupure secteur | Switch + firewall + NAS | 60-100€ |
 
