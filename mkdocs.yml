@@ -76,6 +76,7 @@ nav:
     - Stack Docker: services/docker-stack.md
     - Traefik: services/traefik.md
     - AdGuard Home: services/adguard.md
+    - Authelia (SSO): services/authelia.md
     - Acces et URLs: services/acces.md
   - Reseau:
     - Architecture cible: network/architecture-cible.md

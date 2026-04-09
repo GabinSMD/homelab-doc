@@ -13,6 +13,7 @@ Reference rapide de tous les services et leurs points d'acces.
 | **Wallos** | 8282 | `http://IP:8282` | `wallos.home.*.fr` |
 | **Beszel** | 8090 | `http://IP:8090` | `monitor.home.*.fr` |
 | **WUD** | 3001 | `http://IP:3001` | `wud.home.*.fr` |
+| **Authelia** (SSO) | 9091 | — | `auth.home.*.fr` |
 | **Proxmox pve1** | 8006 | `https://192.168.1.18:8006` | `pve1.home.*.fr` |
 | **Proxmox pve2** | 8006 | `https://192.168.1.19:8006` | `pve2.home.*.fr` |
 
