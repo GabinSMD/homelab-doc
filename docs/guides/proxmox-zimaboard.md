@@ -75,9 +75,29 @@ Ce script :
     En derniere etape, le script redemarre `pveproxy` pour appliquer le patch.
     La session web sera coupee — il suffit de recharger la page et se reconnecter.
 
-### 6. Acceder a l'interface web
+### 6. DNS et acces web
 
-Proxmox est accessible sur `https://<IP_DU_ZIMABOARD>:8006`.
+Chaque noeud est accessible de deux facons :
+
+| Noeud | Acces direct (fallback) | Acces via Traefik |
+|---|---|---|
+| pve1 | `https://192.168.1.18:8006` | `https://pve1.home.gabin-simond.fr` |
+| pve2 | `https://192.168.1.19:8006` | `https://pve2.home.gabin-simond.fr` |
+
+La configuration se fait a trois endroits :
+
+1. **DNS (AdGuard)** — rewrites vers le RPi (Traefik) :
+    - `pve1.home.gabin-simond.fr` → `192.168.1.28`
+    - `pve2.home.gabin-simond.fr` → `192.168.1.28`
+
+2. **Traefik** — fichier `traefik/dynamic/proxmox.yml` :
+    - Route le trafic vers `https://<IP_NODE>:8006`
+    - Certificat TLS Let's Encrypt via DNS challenge Cloudflare
+
+3. **Acces** — local et Tailscale uniquement (pas de DNS public)
+
+!!! tip "Fallback"
+    Si le RPi/Traefik est down, les noeuds restent accessibles via `https://IP:8006` (certificat auto-signe, warning navigateur).
 
 ## Scripts
 
