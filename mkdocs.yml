@@ -82,6 +82,7 @@ nav:
     - VLANs: network/vlans.md
   - Guides:
     - Ajouter un service: guides/ajouter-service.md
+    - Proxmox sur ZimaBoard: guides/proxmox-zimaboard.md
     - Comment fonctionne le DNS: guides/dns-flow.md
     - TLS et certificats: guides/tls.md
   - Decisions techniques: decisions.md

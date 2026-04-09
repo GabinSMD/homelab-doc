@@ -4,8 +4,8 @@
 
 - [x] RPi 4 configure et operationnel
 - [x] Cablage Cat 8 tire dans les pieces principales
-- [ ] Installer Proxmox VE sur les 2 ZimaBoard
-- [ ] Acheter switch manageable 2.5GbE (MokerLink 8p managed ~80€) pour tester
+- [x] Installer Proxmox VE sur les 2 ZimaBoard (voir [guide](guides/proxmox-zimaboard.md))
+- [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
 - [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
 
 ## Phase 2 — Avant emmenagement
