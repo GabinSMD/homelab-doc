@@ -36,10 +36,10 @@ python3 -m http.server 8888
 Depuis le shell de l'installeur Proxmox, activer le reseau puis appliquer le patch :
 
 ```bash
-ip link set eth0 up
-dhclient eth0
+ip link set enp1s0 up
+dhclient enp1s0
 wget -O- <IP_DU_RPI>:8888/proxmox-fix-emmc.sh | sh
-dhclient -r eth0
+dhclient -r enp1s0
 ```
 
 !!! note "Pourquoi `dhclient -r` ?"
