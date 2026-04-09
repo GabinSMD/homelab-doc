@@ -33,11 +33,17 @@ cd /mnt/ssd/homelab-config/scripts
 python3 -m http.server 8888
 ```
 
-Depuis le shell de l'installeur Proxmox :
+Depuis le shell de l'installeur Proxmox, activer le reseau puis appliquer le patch :
 
 ```bash
+ip link set eth0 up
+dhclient eth0
 wget -O- <IP_DU_RPI>:8888/proxmox-fix-emmc.sh | sh
+dhclient -r eth0
 ```
+
+!!! note "Pourquoi `dhclient -r` ?"
+    Liberer le bail DHCP apres le patch pour que l'installeur Proxmox puisse configurer le reseau lui-meme proprement.
 
 Le script patche `Proxmox::Sys::Block.pm` pour ajouter le support des devices `mmcblk`.
 
