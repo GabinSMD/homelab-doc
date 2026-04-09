@@ -59,13 +59,26 @@ wget -O- <IP_DU_RPI>:8888/proxmox-post-install.sh | bash
 
 Ce script :
 
-- **Desactive les repos enterprise** (qui necessitent un abonnement payant)
-- **Ajoute le repo `pve-no-subscription`** avec la cle GPG Proxmox
+- **Supprime les repos enterprise** (qui necessitent un abonnement payant)
+- **Nettoie les anciens fichiers `.list`** (evite le warning "old suite bookworm")
+- **Ajoute le repo `pve-no-subscription`** (format `.sources` avec `Signed-By`)
 - **Met a jour le systeme** (`apt update && apt dist-upgrade`)
+- **Supprime le popup "No valid subscription"** (patch du JS de l'interface web)
+
+!!! warning "Deconnexion de l'interface web"
+    En derniere etape, le script redemarre `pveproxy` pour appliquer le patch.
+    La session web sera coupee — il suffit de recharger la page et se reconnecter.
 
 ### 6. Acceder a l'interface web
 
 Proxmox est accessible sur `https://<IP_DU_ZIMABOARD>:8006`.
+
+## Scripts
+
+| Script | Emplacement | Role |
+|---|---|---|
+| `proxmox-fix-emmc.sh` | `homelab-config/scripts/` | Patch installeur pour support eMMC |
+| `proxmox-post-install.sh` | `homelab-config/scripts/` | Repos, update, suppression nag popup |
 
 ## Repetition
 
