@@ -243,15 +243,25 @@ Le shell demarre donc en mode non-interactif minimal, sans l'environnement habit
 Dans les parametres du host Termius :
 
 1. Tap **Startup Snippet** → creer un nouveau snippet
-2. Contenu du snippet : `exec bash -l`
+2. Contenu du snippet : `. /etc/profile; . ~/.bashrc`
 3. Selectionner ce snippet dans les parametres du host → sauvegarder
 
 C'est la methode recommandee depuis mobile — aucune commande a retenir, actif a chaque connexion.
 
+!!! warning "Ne pas utiliser `exec bash -l`"
+    `exec` remplace le shell courant par le nouveau processus. Quand `bash -l` termine son initialisation sans commande interactive, la session se ferme immediatement. Sourcer les fichiers directement (`. /etc/profile`) charge l'environnement sans remplacer le shell.
+
 **Option 2 : a la connexion (terminal classique)**
 
 ```bash
-ssh root@homelab -t bash -l
+ssh root@homelab
+. /etc/profile; . ~/.bashrc
+```
+
+Ou en une ligne :
+
+```bash
+ssh root@homelab -t 'bash -l'
 ```
 
 Le flag `-t` force un pseudo-TTY et `-l` invoque bash comme login shell — identique a une connexion OpenSSH classique.
