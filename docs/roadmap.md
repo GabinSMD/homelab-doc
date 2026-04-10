@@ -12,6 +12,8 @@
 - [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
 - [x] Activer Tailscale SSH sur les 3 machines (RPi, pve1, pve2)
 - [x] Backups automatiques quotidiens (volumes Docker + configs → SD card + ntfy)
+- [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
+- [x] Healthchecks Docker + autoheal (restart auto des containers unhealthy)
 - [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
 
 ## Phase 2 — Avant emmenagement

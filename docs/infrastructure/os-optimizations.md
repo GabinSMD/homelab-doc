@@ -92,6 +92,97 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 - `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
 - `log-level: warn` — limite le bruit dans les logs
 
+## Watchdog hardware (BCM2835)
+
+Le RPi 4 integre un watchdog hardware qui reboot automatiquement la machine si le kernel freeze.
+
+### Fonctionnement
+
+Le daemon `watchdog` alimente `/dev/watchdog` toutes les secondes. Si le kernel gele et que le daemon ne peut plus ecrire pendant 15 secondes, le timer hardware force un reboot electrique.
+
+### Configuration
+
+**`/boot/firmware/config.txt` :**
+
+```ini
+dtparam=watchdog=on
+```
+
+**`/etc/modules` :**
+
+```
+bcm2835_wdt
+```
+
+**`/etc/watchdog.conf` (extrait) :**
+
+```ini
+watchdog-device   = /dev/watchdog
+watchdog-timeout  = 15
+max-load-1        = 24
+interface         = eth0
+realtime          = yes
+priority          = 1
+```
+
+### Ce que le watchdog couvre et ne couvre PAS
+
+| Scenario | Couvert ? | Pourquoi |
+|---|---|---|
+| Kernel freeze / panic | Oui | Le daemon ne peut plus alimenter le timer |
+| Load moyenne > 24 | Oui | Le daemon detecte et reboot |
+| Interface eth0 down | Oui | Le daemon detecte et reboot |
+| Deconnexion SSD | **Non** | Le kernel tourne toujours, seul Docker est impacte |
+| Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
+| Temperature critique | **Non** | Couvert par homelab_monitor.sh |
+
+!!! warning "Le watchdog ne remplace pas le monitoring"
+    Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **premiere ligne** (quelque chose va mal mais le systeme tourne encore). Les deux sont complementaires.
+
+### Verification
+
+```bash
+# Etat du watchdog
+systemctl status watchdog
+cat /sys/class/watchdog/watchdog0/state    # "active" = alimente
+
+# Test (ATTENTION : reboot immediat en ~15s)
+echo c > /proc/sysrq-trigger              # Provoque un kernel panic
+```
+
+## Docker : healthchecks et autoheal
+
+### Healthchecks
+
+Les containers avec healthcheck sont surveilles par Docker. Si un check echoue 3 fois de suite, le container passe en `unhealthy`.
+
+| Container | Healthcheck | Methode |
+|---|---|---|
+| Traefik | `wget http://localhost:8080/ping` | Endpoint `/ping` active dans traefik.yml |
+| AdGuard | `wget http://localhost:3000` | Interface web |
+| Tailscale | `tailscale status` | CLI interne |
+| Wallos | `curl http://localhost:80` | Interface web |
+| Vaultwarden | Healthcheck integre a l'image | — |
+| Homepage | Healthcheck integre a l'image | — |
+| Authelia | Healthcheck integre a l'image | — |
+| WUD | Healthcheck integre a l'image | — |
+| Portainer | Aucun (image distroless) | Surveille par homelab_monitor.sh |
+| Beszel | Aucun (image distroless) | Surveille par homelab_monitor.sh |
+
+### Autoheal
+
+Le container `willfarrell/autoheal` surveille tous les containers toutes les 30 secondes. Si un container est `unhealthy`, il le restart automatiquement.
+
+```yaml
+autoheal:
+  image: willfarrell/autoheal
+  environment:
+    AUTOHEAL_CONTAINER_LABEL: all
+    AUTOHEAL_INTERVAL: 30
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+```
+
 ## Resume
 
 | Optimisation | Effet |
@@ -106,6 +197,9 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 | Headless | Framebuffers a 0 |
 | WiFi off | Economie energie, securite |
 | fstrim hebdo | Maintenance SSD |
+| Watchdog BCM2835 | Reboot auto si kernel freeze (15s) |
+| Healthchecks Docker | Detection containers zombie |
+| Autoheal | Restart auto des containers unhealthy |
 
 ## Limites connues
 

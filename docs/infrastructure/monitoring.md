@@ -61,3 +61,18 @@ TEMP_CRIT=80                      # Seuil critique °C
 | **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — RPi, pve1, pve2 | Dashboard web |
 | **WUD** | Surveillance mises a jour images Docker | Dashboard web |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
+| **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
+| **Autoheal** | Restart auto des containers Docker unhealthy | Container |
+
+## Architecture de resilience
+
+Trois couches complementaires, chacune couvre des scenarios differents :
+
+| Couche | Outil | Scenario | Action |
+|---|---|---|---|
+| 1. Monitoring | homelab_monitor.sh | SSD, temp, RAM, disque, containers | Alerte ntfy |
+| 2. Auto-repair | Autoheal | Container unhealthy | Restart container |
+| 3. Dernier recours | Watchdog hardware | Kernel freeze | Reboot complet |
+
+!!! info "Pas de chevauchement"
+    Le watchdog ne remplace PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se declenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.
