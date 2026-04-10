@@ -238,7 +238,15 @@ Le shell demarre donc en mode non-interactif minimal, sans l'environnement habit
 
 ### Fix — forcer un login shell
 
-**Option 1 : a la connexion (immédiat)**
+**Option 1 : Termius (mobile)**
+
+Dans les parametres du host Termius :
+
+> **Host settings → "Start command"** → `bash -l`
+
+C'est la methode recommandee depuis mobile — aucune commande a retenir, actif a chaque connexion.
+
+**Option 2 : a la connexion (terminal classique)**
 
 ```bash
 ssh root@homelab -t bash -l
@@ -246,7 +254,7 @@ ssh root@homelab -t bash -l
 
 Le flag `-t` force un pseudo-TTY et `-l` invoque bash comme login shell — identique a une connexion OpenSSH classique.
 
-**Option 2 : alias permanent (cote client)**
+**Option 3 : alias permanent (cote client desktop)**
 
 Dans `~/.ssh/config` sur la machine cliente :
 
