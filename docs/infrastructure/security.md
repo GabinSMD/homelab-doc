@@ -210,4 +210,9 @@ Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia
 | Auth | SSH ports custom (RPi:2806, pve1:2807, pve2:2808) | Toutes |
 | Chiffrement | TLS partout (Let's Encrypt) | RPi (Traefik) |
 | Chiffrement | WireGuard (Tailscale) | Toutes |
+| Auth | Authelia 2FA (TOTP) sur tous les services SSO | RPi |
+| Reseau | Security headers HTTPS (HSTS, CSP, X-Frame, Permissions-Policy) | RPi (Traefik) |
+| Systeme | Docker socket en read-only sur tous les containers | RPi |
+| Systeme | Comptes inutilises verrouilles (nologin + locked) | RPi |
+| Secrets | Permissions 600 sur .env et configs Authelia | RPi |
 | Secrets | .env non versionne, secrets exclus de git | RPi |
