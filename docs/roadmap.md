@@ -14,6 +14,9 @@
 - [x] Backups automatiques quotidiens (volumes Docker + configs → SD card + ntfy)
 - [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
 - [x] Healthchecks Docker + autoheal (restart auto des containers unhealthy)
+- [x] Auto-recovery SSD (remount + fsck + restart Docker apres deconnexion USB)
+- [x] LXC "guardian" sur pve1 (AdGuard secondaire + health check externe RPi)
+- [ ] Configurer DNS secondaire sur Freebox + Tailscale
 - [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
 
 ## Phase 2 — Avant emmenagement
@@ -39,5 +42,5 @@
 - [ ] Ajouter comme 3eme noeud Proxmox (compute + storage) → quorum natif
 - [ ] Configurer ZFS mirror pour le stockage
 - [ ] Mettre en place les backups (Proxmox Backup Server sur ZimaBoard → NAS)
-- [ ] Deployer AdGuard secondaire en LXC (redondance DNS)
+- [x] Deployer AdGuard secondaire en LXC (redondance DNS) — LXC 100 "guardian" sur pve1
 - [ ] UPS pour le coffret technique

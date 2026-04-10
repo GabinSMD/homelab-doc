@@ -48,6 +48,12 @@ Reference rapide de tous les services et leurs points d'acces.
 | **Tailscale** | VPN mesh — acces a tous les services via IP Tailscale |
 | **SSH** | Port 22, via Tailscale uniquement (recommande) |
 
+## LXC Proxmox
+
+| ID | Nom | Machine | IP | Role |
+|---|---|---|---|---|
+| 100 | guardian | pve1 | `192.168.1.30` | AdGuard secondaire + health check RPi |
+
 ## Reseaux Docker
 
 | Reseau | Type | Usage |
