@@ -168,3 +168,44 @@ graph TD
 - **Invites isoles** — acces internet uniquement, aucune visibilite sur le reseau interne
 - **Management restreint** — seul le VLAN 10 peut administrer les equipements
 - **Firewall dedie** — bare-metal OPNsense pour eviter les SPOF
+
+## Hardening Proxmox (pve1 + pve2)
+
+| Mesure | Detail |
+|---|---|
+| SSH cles uniquement | `PermitRootLogin prohibit-password`, `PasswordAuthentication no` |
+| fail2ban (pve1) | Jails SSH + Proxmox web (ban 1h / 3 tentatives) |
+| rpcbind desactive | Service inutile masque sur les deux noeuds |
+| unattended-upgrades (pve1) | Patches securite automatiques |
+| Tailscale SSH | Acces alternatif sans port 22 expose |
+
+!!! note "pve2 (Trixie / Debian 13)"
+    fail2ban n'est pas encore disponible dans les repos Trixie. Le firewall Proxmox integre (`pve-firewall`) compense. A installer des que le paquet est disponible.
+
+## Traefik — dashboard protege
+
+Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia ForwardAuth** :
+
+- Toute requete vers le dashboard est redirigee vers Authelia pour authentification
+- Le port 8080 n'est **plus expose** sur le host (uniquement interne pour le healthcheck)
+- Le middleware `authelia@docker` est defini dans les labels du container Authelia
+
+## Resume des mesures de securite
+
+| Couche | Mesure | Machines |
+|---|---|---|
+| Reseau | Firewall iptables (INPUT DROP) | RPi |
+| Reseau | Tailscale (pas de port forwarding) | Toutes |
+| Reseau | Port 8080 ferme | RPi |
+| Auth | SSH cles uniquement | Toutes |
+| Auth | fail2ban | RPi, pve1 |
+| Auth | Authelia SSO (OIDC) | Proxmox, Portainer, Beszel |
+| Auth | Authelia ForwardAuth | Traefik dashboard |
+| Auth | Vaultwarden (master password, pas SSO) | Independant |
+| Systeme | unattended-upgrades | RPi, pve1 |
+| Systeme | no-new-privileges (Docker) | RPi |
+| Systeme | rpcbind desactive | pve1, pve2 |
+| Systeme | Surface d'attaque reduite (WiFi, BT, HDMI off) | RPi |
+| Chiffrement | TLS partout (Let's Encrypt) | RPi (Traefik) |
+| Chiffrement | WireGuard (Tailscale) | Toutes |
+| Secrets | .env non versionne, secrets exclus de git | RPi |
