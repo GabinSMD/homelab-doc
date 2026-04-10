@@ -47,9 +47,56 @@ Chaque service critique conserve un acces de secours sans SSO :
 | Services minimaux | DietPi n'installe que le strict necessaire |
 | GPU minimal | 16 Mo — pas d'interface graphique |
 
+### SSH (RPi + pve1 + pve2)
+
+| Mesure | Detail |
+|---|---|
+| Authentification par cle uniquement | `PasswordAuthentication no` |
+| Root par cle uniquement | `PermitRootLogin prohibit-password` |
+| Max tentatives | `MaxAuthTries 3` |
+| Port custom (RPi) | Port 2806 (pas 22) |
+| X11 forwarding desactive | `X11Forwarding no` |
+
+Fallback : Tailscale SSH reste disponible meme si OpenSSH est bloque.
+
+### Firewall iptables (RPi)
+
+Policy `INPUT DROP` — seuls les ports necessaires sont autorises :
+
+| Port | Service | Acces |
+|---|---|---|
+| 2806 | SSH | Tous (cle requise) |
+| 53 | DNS (AdGuard) | Tous |
+| 80, 443 | HTTP/HTTPS (Traefik) | Tous |
+| 3000 | AdGuard web UI | LAN + Tailscale uniquement |
+| 8080 | Traefik dashboard | LAN + Tailscale uniquement |
+| 9443, 8000 | Portainer | LAN + Tailscale uniquement |
+| 3100 | Homepage | LAN + Tailscale uniquement |
+| 8090 | Beszel | LAN + Tailscale uniquement |
+| 3001 | WUD | LAN + Tailscale uniquement |
+| 8282 | Wallos | LAN + Tailscale uniquement |
+| 45876 | Beszel Agent | LAN + Tailscale uniquement |
+
+Les interfaces Docker (`docker0`, `br-*`) et Tailscale (`tailscale0`) sont autorisees en INPUT et FORWARD.
+
+Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
+
+### fail2ban
+
+| Parametre | Valeur |
+|---|---|
+| Jail SSH | Port 2806, ban 1h apres 3 tentatives |
+| IPs ignorees | `127.0.0.1/8`, `192.168.1.0/24`, `100.64.0.0/10` |
+
+### Mises a jour automatiques
+
+`unattended-upgrades` installe les correctifs de securite Debian automatiquement. Reboot auto a 4h du matin si necessaire (apres les backups a 3h).
+
 ### Docker
 
 Toutes les images Docker utilisent `security_opt: no-new-privileges:true` quand c'est supporte — empeche l'escalade de privileges dans les conteneurs.
+
+Les images sont mises a jour regulierement (`docker compose pull` + `up -d`). WUD surveille les nouvelles versions disponibles.
 
 ## Acces distant
 
