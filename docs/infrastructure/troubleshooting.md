@@ -211,6 +211,47 @@ Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `
 
 Voir [Comment fonctionne le DNS](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
 
+## Tailscale SSH — atterrissage dans le container Alpine au lieu du RPi
+
+### Symptome
+
+En se connectant via `ssh root@homelab` (port 22), le shell affiche :
+
+- Motd Alpine Linux (`setup-alpine`, `wiki.alpinelinelinux.org`)
+- Shell `ash` au lieu de `bash`
+- Historique `.ash_history` dans `/root`
+- Utilisateur = identite Tailscale (ex: `gabin-simond`) et non `root`
+- Aucune trace de DietPi, Docker ou des services du homelab
+
+### Cause
+
+L'image Docker `tailscale/tailscale` est basee sur **Alpine Linux**. Quand Tailscale SSH est gere par le container (et non par le daemon host), la connexion `ssh root@homelab` atterrit dans le container Alpine — pas sur le RPi.
+
+Le container Tailscale intercepte la connexion sur le port 22 Tailscale et mappe l'identite Tailscale a un utilisateur local du container.
+
+### Fix — contourner le container via OpenSSH
+
+Utiliser l'**IP Tailscale du RPi avec le port SSH custom** (OpenSSH du host, pas Tailscale SSH) :
+
+```bash
+ssh -p 2806 root@100.97.239.90
+```
+
+Dans Termius, modifier le host :
+
+| Champ | Valeur incorrecte | Valeur correcte |
+|---|---|---|
+| IP or Hostname | `homelab` | `100.97.239.90` |
+| Port | 22 (Default) | `2806` |
+| Username | root | `root` |
+| Auth | — | Cle SSH |
+
+Cette connexion va directement sur **OpenSSH de DietPi** via le tunnel WireGuard Tailscale, sans passer par le container.
+
+### Fix permanent (optionnel) — desactiver Tailscale SSH dans le container
+
+Si Tailscale SSH doit rester actif, le configurer pour qu'il tourne sur le **host** plutot que dans le container. Dans `docker-compose.yml`, supprimer la variable `TS_EXTRA_ARGS` si elle active SSH, ou desactiver SSH dans la politique Tailscale pour le tag `homelab` container.
+
 ## Tailscale SSH — shell minimaliste a la connexion
 
 ### Symptome
