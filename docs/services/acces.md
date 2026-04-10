@@ -52,7 +52,7 @@ Reference rapide de tous les services et leurs points d'acces.
 
 | ID | Nom | Machine | IP | Role |
 |---|---|---|---|---|
-| 100 | guardian | pve1 | `192.168.1.30` | AdGuard secondaire + health check RPi |
+| 100 | guardian | pve1 | `192.168.1.30` / `100.74.145.26` (Tailscale) | AdGuard secondaire + health check RPi |
 
 ## Reseaux Docker
 

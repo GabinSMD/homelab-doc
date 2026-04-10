@@ -63,6 +63,8 @@ TEMP_CRIT=80                      # Seuil critique °C
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |
+| **SSD auto-recovery** | Remount + fsck + restart Docker apres deconnexion USB | Script (monitor) |
+| **Guardian health check** | Surveille le RPi depuis pve1 (ping + Traefik + DNS) | LXC 100 / ntfy |
 
 ## Architecture de resilience
 

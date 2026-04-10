@@ -58,6 +58,22 @@ mount /mnt/ssd
 systemctl start docker
 ```
 
+### Auto-recovery (homelab_monitor.sh)
+
+Le script `homelab_monitor.sh` integre une **recovery automatique** en cas de deconnexion SSD :
+
+1. Detecte que `/mnt/ssd` n'est plus monte, illisible, ou read-only
+2. Attend que le device reapparaisse par UUID (jusqu'a 30s)
+3. Stop Docker
+4. `fsck.ext4 -y` sur le device
+5. Remonte `/mnt/ssd`
+6. Redemarre Docker
+7. Notification ntfy "SSD RECOVERED" ou "RECOVERY FAILED"
+
+**Rate limit** : max 3 tentatives par heure. Si les 3 echouent, alerte "SSD Recovery EPUISE — intervention manuelle requise."
+
+La procedure manuelle ci-dessus reste utile si l'auto-recovery echoue ou si le SSD ne reapparait pas.
+
 ### Investigation en cours
 
 Le support Argon a recommande :

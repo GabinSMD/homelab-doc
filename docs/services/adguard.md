@@ -52,6 +52,15 @@ Les clients recoivent les deux adresses DNS via DHCP :
 
 Si le RPi tombe, les clients basculent sur le secondaire en quelques secondes. Le secondaire resout `*.home.gabin-simond.fr` vers le RPi — les services redeviennent accessibles des que le RPi reboote (watchdog ~15s + Docker ~30-60s).
 
+### Acces Tailscale (clients distants)
+
+Le LXC guardian a **Tailscale installe** (IP : `100.74.145.26`). Les clients VPN distants peuvent utiliser ce DNS secondaire.
+
+Configuration Tailscale admin (login.tailscale.com > DNS) :
+
+- DNS 1 : `100.97.239.90` (RPi)
+- DNS 2 : `100.74.145.26` (guardian)
+
 !!! warning "Ne pas utiliser de DNS Rewrites statiques"
     Voir [DNS flow](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) — uniquement les `user_rules` conditionnelles sur les deux instances.
 
