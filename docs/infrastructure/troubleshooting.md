@@ -242,7 +242,9 @@ Le shell demarre donc en mode non-interactif minimal, sans l'environnement habit
 
 Dans les parametres du host Termius :
 
-> **Host settings → "Start command"** → `bash -l`
+1. Tap **Startup Snippet** → creer un nouveau snippet
+2. Contenu du snippet : `exec bash -l`
+3. Selectionner ce snippet dans les parametres du host → sauvegarder
 
 C'est la methode recommandee depuis mobile — aucune commande a retenir, actif a chaque connexion.
 
