@@ -211,6 +211,81 @@ Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `
 
 Voir [Comment fonctionne le DNS](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
 
+## Tailscale SSH — shell minimaliste a la connexion
+
+### Symptome
+
+En se connectant via `ssh root@homelab` (Tailscale SSH), le shell est different de celui obtenu via OpenSSH (`ssh -p 2806 root@192.168.1.28`) :
+
+- Pas de banniere DietPi
+- `PATH` incomplet (commandes introuvables)
+- Prompt basique sans couleurs
+- Variables d'environnement manquantes (`LANG`, `TERM`, etc.)
+
+### Cause
+
+**Tailscale SSH est une implementation SSH distincte d'OpenSSH.** Il n'utilise pas `/etc/ssh/sshd_config` et n'invoque pas le shell comme un *login shell*. Concretement :
+
+| Mecanisme | OpenSSH (port 2806) | Tailscale SSH |
+|---|---|---|
+| `/etc/profile` | Charge (login shell) | **Non charge** |
+| `~/.bash_profile` | Charge | **Non charge** |
+| `PAM / pam_exec` | Actif (DietPi banner) | **Non actif** |
+| `/etc/ssh/sshrc` | Execute | **Non execute** |
+| Mode `check` (MFA) | Non | Validation navigateur |
+
+Le shell demarre donc en mode non-interactif minimal, sans l'environnement habituel de DietPi.
+
+### Fix — forcer un login shell
+
+**Option 1 : a la connexion (immédiat)**
+
+```bash
+ssh root@homelab -t bash -l
+```
+
+Le flag `-t` force un pseudo-TTY et `-l` invoque bash comme login shell — identique a une connexion OpenSSH classique.
+
+**Option 2 : alias permanent (cote client)**
+
+Dans `~/.ssh/config` sur la machine cliente :
+
+```
+Host homelab
+    RequestTTY yes
+    RemoteCommand bash -l
+```
+
+**Option 3 : configurer Tailscale SSH pour toujours utiliser un login shell**
+
+Dans la politique SSH Tailscale (console admin > Access controls), modifier le bloc `ssh` pour specifier le shell :
+
+```json
+{
+  "action": "check",
+  "src": ["autogroup:member"],
+  "dst": ["tag:homelab"],
+  "users": ["root"],
+  "checkPeriod": "120h"
+}
+```
+
+Ou directement sur le serveur, s'assurer que le shell par defaut de `root` est bien `/bin/bash` :
+
+```bash
+chsh -s /bin/bash root
+grep root /etc/passwd   # doit afficher .../root:/bin/bash
+```
+
+### Verification
+
+Apres correction, les deux methodes doivent donner le meme resultat :
+
+```bash
+ssh root@homelab "echo $SHELL; echo $PATH"
+ssh -p 2806 root@192.168.1.28 "echo $SHELL; echo $PATH"
+```
+
 ## Portainer — mot de passe perdu
 
 ### Procedure de reset
