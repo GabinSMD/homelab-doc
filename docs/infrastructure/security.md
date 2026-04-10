@@ -94,9 +94,27 @@ Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
 
 ### Docker
 
-Toutes les images Docker utilisent `security_opt: no-new-privileges:true` quand c'est supporte — empeche l'escalade de privileges dans les conteneurs.
+| Mesure | Detail |
+|---|---|
+| `no-new-privileges` | Global dans `daemon.json` + par service dans compose |
+| `icc: false` | Inter-container communication desactivee sur le bridge par defaut |
+| Docker socket en `ro` | Tous les containers montent `/var/run/docker.sock:ro` |
+| Pas de ports directs | Tous les services passent par Traefik HTTPS (443), aucun port expose directement |
+| Images a jour | `docker compose pull` + WUD surveille les nouvelles versions |
 
-Les images sont mises a jour regulierement (`docker compose pull` + `up -d`). WUD surveille les nouvelles versions disponibles.
+### Surface d'attaque RPi (ports ouverts)
+
+| Port | Service | Acces |
+|---|---|---|
+| 53 | DNS (AdGuard) | Tous |
+| 80 | HTTP → redirige 443 | Tous |
+| 443 | HTTPS (Traefik, seul point d'entree) | Tous |
+| 853 | DNS-over-TLS | Tous |
+| 2806 | SSH (cle uniquement) | Tous |
+| 3000 | AdGuard web UI | LAN + Tailscale |
+| 45876 | Beszel Agent | LAN + Tailscale |
+
+7 ports ouverts. Tous les autres services (Portainer, Beszel, Homepage, WUD, Wallos) sont accessibles **uniquement via Traefik HTTPS + Authelia 2FA**.
 
 ## Acces distant
 

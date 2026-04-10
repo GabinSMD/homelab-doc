@@ -62,13 +62,17 @@ systemctl start docker
 
 Le script `homelab_monitor.sh` integre une **recovery automatique** en cas de deconnexion SSD :
 
-1. Detecte que `/mnt/ssd` n'est plus monte, illisible, ou read-only
-2. Attend que le device reapparaisse par UUID (jusqu'a 30s)
-3. Stop Docker
-4. `fsck.ext4 -y` sur le device
-5. Remonte `/mnt/ssd`
-6. Redemarre Docker
-7. Notification ntfy "SSD RECOVERED" ou "RECOVERY FAILED"
+1. **Stop Docker** en premier (libere les file handles sur le SSD)
+2. **Double unmount** (`umount -f` + `umount -l`) pour nettoyer les mounts stale
+3. Attend que le device reapparaisse **par UUID** jusqu'a 60s + 3s de stabilisation
+4. `fsck.ext4 -y` sur le **nouveau** device (pas l'ancien)
+5. Verifie le code retour fsck (abort si >= 4)
+6. Remonte `/mnt/ssd` via fstab (UUID)
+7. Redemarre Docker, attend 10s pour les containers
+8. Notification ntfy "SSD RECOVERED" ou "RECOVERY FAILED"
+
+!!! info "Changement de device name (sda → sdb)"
+    Le bridge ASMedia re-enumere le SSD avec un nouveau nom apres chaque deconnexion (`sda` → `sdb` → `sdc`). La recovery utilise l'UUID (pas le nom de device) pour retrouver le SSD quel que soit son nouveau nom. Le fstab utilise aussi l'UUID.
 
 **Rate limit** : max 3 tentatives par heure. Si les 3 echouent, alerte "SSD Recovery EPUISE — intervention manuelle requise."
 
@@ -78,9 +82,11 @@ La procedure manuelle ci-dessus reste utile si l'auto-recovery echoue ou si le S
 
 Le support Argon a recommande :
 
-1. Tester avec un cable USB 3.0 A-A court au lieu du dongle integre
+1. ~~Tester avec un cable USB 3.0 A-A court au lieu du dongle integre~~ **Teste** — meme probleme de deconnexion qu'avec le dongle
 2. Tester avec un SSD different (fanxiang S201 128 Go commande)
-3. Verifier les logs pour ecarter un probleme logiciel (elimine — aucun processus particulier au moment du disconnect)
+3. ~~Verifier les logs pour ecarter un probleme logiciel~~ **Elimine** — aucun processus particulier au moment du disconnect
+
+**Conclusion provisoire** : le bridge ASMedia ASM1156 est la cause, ni le cable ni le dongle. Le SSD de remplacement sera le test definitif.
 
 Donnees SMART : `UDMA_CRC_Error_Count = 4` (erreurs de communication SATA), pas de secteurs realloues.
 
