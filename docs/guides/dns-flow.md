@@ -45,6 +45,11 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 | 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale) | Clients du reseau local |
 | 2eme | Tailscale (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale) | Clients VPN distants |
 
+!!! danger "Ne pas utiliser les DNS Rewrites statiques"
+    La section **DNS Rewrites** d'AdGuard (Filters > DNS Rewrites) ne doit **pas** contenir d'entrees pour `*.home.gabin-simond.fr`.
+    Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
+    Elles ecraseraient les regles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, meme aux clients Tailscale — rendant les services inaccessibles via VPN.
+
 !!! success "AdGuard en `network_mode: host`"
     AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
 

@@ -173,6 +173,22 @@ Le log indique l'URI attendue par le client → copier cette URI exacte dans la 
 | Portainer | `https://portainer.home.gabin-simond.fr/` (avec slash) |
 | Beszel | `https://monitor.home.gabin-simond.fr/api/oauth2-redirect` |
 
+## Services inaccessibles via Tailscale VPN
+
+### Symptome
+
+Certains services (ex: `auth.home.gabin-simond.fr`, `vault.home.gabin-simond.fr`) ne chargent pas depuis un client Tailscale, alors qu'ils fonctionnent en local.
+
+### Cause
+
+Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent les `user_rules` conditionnelles. Les rewrites statiques sont appliquees en premier et renvoient toujours l'IP LAN (`192.168.1.28`), meme aux clients Tailscale qui ont besoin de l'IP Tailscale (`100.97.239.90`).
+
+### Fix
+
+Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` gere deja tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
+
+Voir [Comment fonctionne le DNS](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
+
 ## Portainer — mot de passe perdu
 
 ### Procedure de reset
