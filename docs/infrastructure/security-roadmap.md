@@ -21,9 +21,37 @@ Etat au **2026-04-13**. Priorite : `impact / effort`.
 
 Bloque par achat hardware. Voir [network/architecture-cible.md](../network/architecture-cible.md).
 
-#### Chiffrement au repos (ZFS)
+#### Chiffrement au repos (ZFS) — SKIP DOCUMENTE
 
-Bloque par reinstall ZFS-on-root (galahad/lancelot tournent sur ext4 actuellement). Migration zpool live = trop risque, a caler sur prochaine reinstall planifiee.
+Voir [decisions.md](../decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
+
+#### Egress firewall (penny + galahad + lancelot)
+
+Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exfiltrer vers nimporte quelle destination internet.
+
+**Action** : whitelist outbound (DNS Cloudflare, GitHub.com pour pulls, Backblaze B2, ntfy.sh, Tailscale relays DERP, Let's Encrypt CA pour Traefik renew, Authelia federations).
+
+**Risque** : casser silencieusement Let's Encrypt renew, B2 backup, ntfy alerts si whitelist incomplete. Tester en mode `LOG` puis `DROP`.
+
+**Effort** : 2-3h dont 1h validation post-deploy.
+
+#### Healthchecks Beszel + Portainer + beszel-agent
+
+3 services sans healthcheck explicite -> autoheal ne peut pas restart si zombie. Ajouter `HEALTHCHECK` per-image.
+
+**Effort** : 30 min.
+
+#### WUD authentification interne (anonyme actuellement)
+
+Ferme par ForwardAuth Authelia cote externe (2026-04-13), mais l'API WUD interne reste anonyme. Si un container compromis sur reseau `proxy` peut atteindre wud:3001, lecture libre. Activer auth basic ou Authelia OIDC interne.
+
+**Effort** : 1h.
+
+#### PVE firewall logging
+
+Cluster.fw : `-log nolog` partout -> aucune visibilite sur tentatives bloquees. Mettre `-log warning` ou `info` pour audit.
+
+**Effort** : 15 min.
 
 #### YubiKey sur cles SSH client
 
@@ -87,6 +115,18 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Homepage (etait sans auth)
     - AdGuard primaire (etait bcrypt seul)
     - AdGuard secondaire guardian (route adguard-guardian.home.*)
+    - **WUD** (etait expose anonyme + Traefik sans auth — ferme 2026-04-13)
+
+??? success "Authelia session config explicite"
+    - `expiration: 4h`
+    - `inactivity: 30m`
+    - `remember_me: 1M`
+
+??? success "Traefik TLS hardening"
+    - minVersion TLS 1.2 (TLS 1.3 default actif)
+    - Cipher suites Mozilla intermediate (ChaCha20+AES-GCM ECDHE only)
+    - Curves X25519/P256/P384
+    - sniStrict (rejette SNI non-route)
 
 ??? success "Reseau"
     - Firewall iptables penny (INPUT DROP)

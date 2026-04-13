@@ -110,6 +110,27 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
+## ZFS encryption at-rest — skip pour le homelab
+
+**Contexte** : la roadmap securite listait "chiffrement ZFS at-rest" en P2.
+
+**Decision** : skip.
+
+**Pourquoi** :
+
+- Modele de menace homelab domicile : risque vol physique faible (cambriolage normal cible cash/electro, pas un ZimaBoard).
+- Donnees vraiment sensibles = Vaultwarden master password — deja chiffre Argon2id par design.
+- Backups B2 deja chiffres client-side (restic AES-256).
+- ZFS encryption protege uniquement disque eteint OU saisie/RMA. Pas un attaquant root, pas une compromission reseau.
+- Cout : reinstall complete Proxmox en ZFS-on-root + boot non-unattended (passphrase au boot = casse `homelab_monitor.sh`, watchdog auto-recovery, restart via WoL).
+- Workaround clef USB physique = fragilise (clef perdue = donnees perdues).
+
+**A reconsiderer si** : demenagement avec serveurs en transit, ou stockage donnees client/medical/financier.
+
+**Alternative gain superieur** : YubiKey FIDO2 SSH (vrai gain — supprime le risque "cle SSH volee = root immediat").
+
+---
+
 ## Wallos supprime
 
 **Contexte** : Wallos (tracker d'abonnements) installe initialement, peu utilise.
