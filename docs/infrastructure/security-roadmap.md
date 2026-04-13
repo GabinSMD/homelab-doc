@@ -23,15 +23,7 @@ Bloque par achat hardware. Voir [network/architecture-cible.md](../network/archi
 
 #### Chiffrement au repos (ZFS)
 
-A caler avec reinstall Trixie galahad. Cle ZFS dans TPM ZimaBoard si dispo, sinon USB physiquement separee.
-
-#### Cosign verification (binary install bloque sandbox)
-
-Script pret : `scripts/cosign-verify.sh`. Install manuel cosign requis :
-```bash
-wget https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -O /usr/local/bin/cosign
-chmod +x /usr/local/bin/cosign
-```
+Bloque par reinstall ZFS-on-root (galahad/lancelot tournent sur ext4 actuellement). Migration zpool live = trop risque, a caler sur prochaine reinstall planifiee.
 
 #### YubiKey sur cles SSH client
 
@@ -39,15 +31,9 @@ chmod +x /usr/local/bin/cosign
 
 **Effort** : 1h (user side).
 
-#### Mot de passe GRUB (galahad + lancelot)
+#### Mot de passe GRUB (galahad + lancelot) — DEFERE
 
-Suggestion Lynis BOOT-5122. Empeche boot single-user / modif kernel cmdline sans password.
-
-**Risque** : si oublie -> reboot a distance casse. Impact eleve si console physique inaccessible.
-
-#### Hardening systemd-units (galahad + lancelot)
-
-Suggestion Lynis BOOT-5264. Run `systemd-analyze security` par service, ajuster `[Service]` (NoNewPrivileges, ProtectSystem, PrivateTmp, etc).
+Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/grub.d/10_linux loupe, aucune entry boot sans password) >> gain marginal (attaquant avec acces physique peut deja booter USB). User-side seulement.
 
 ---
 
@@ -121,6 +107,13 @@ Suggestion Lynis BOOT-5264. Run `systemd-analyze security` par service, ajuster 
     - Plus aucun port direct expose (tout via Traefik HTTPS)
     - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, WUD
     - **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
+    - **Cosign installe** (apt Trixie) — verifie : aucune des 3 images critiques n'est signed upstream, attendre evolution
+
+??? success "Systemd-units hardening"
+    - fail2ban : exposure 9.6 -> 4.7 (OK 🙂) sur penny+galahad+lancelot
+    - ssh : exposure 9.6 -> 8.1 sur penny+galahad+lancelot
+    - lynis : exposure 9.6 -> ~5
+    - Docker/cron/getty : non hardened (besoin privileges, casserait service)
 
 ??? success "Audit / detection"
     - Lynis + cron hebdo + ntfy (penny 76, galahad 68, lancelot 69)
