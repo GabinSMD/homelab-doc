@@ -10,13 +10,30 @@ Pour la roadmap des actions restantes, voir [security-roadmap.md](security-roadm
 
 ## Scores Lynis
 
-| Machine | Score | Date | Notes |
-|---|---|---|---|
-| penny | **76/100** | 2026-04-13 | Debian 12 / DietPi / RPi4 |
-| galahad | **68/100** | 2026-04-13 | Debian 13 / Proxmox 9 |
-| lancelot | **69/100** | 2026-04-13 | Debian 13 / Proxmox 9 |
+| Machine | Score | Date | Δ | Notes |
+|---|---|---|---|---|
+| penny | **77/100** | 2026-04-13 (re-run) | +1 | Debian 12 / DietPi / RPi4 — kptr_restrict + read_only Beszel/WUD |
+| galahad | **68/100** | 2026-04-13 (re-run) | 0 | Debian 13 / Proxmox 9 |
+| lancelot | **70/100** | 2026-04-13 (re-run) | +1 | Debian 13 / Proxmox 9 — auditd reactive |
 
 Lynis weekly cron : dimanche 5h, push ntfy avec priorite variable selon le score.
+
+### Suggestions Lynis restantes (commun aux 3 hosts)
+
+Quick wins non encore appliques (chacun gagne 1-3 points) :
+
+| ID | Action | Hosts |
+|---|---|---|
+| DEB-0810 | `apt install apt-listbugs` | tous |
+| DEB-0280 | `apt install libpam-tmpdir` | galahad |
+| DEB-0831 | `apt install needrestart` | galahad |
+| AUTH-9262 | `apt install libpam-passwdqc` (PAM password strength) | tous |
+| AUTH-9286 | `PASS_MIN_DAYS 1`, `PASS_MAX_DAYS 365`, `PASS_WARN_AGE 14` dans `/etc/login.defs` | tous |
+| AUTH-9230 | `ENCRYPT_METHOD YESCRYPT` + `SHA_CRYPT_MIN_ROUNDS 65536` dans `/etc/login.defs` | tous |
+| AUTH-9328 | `UMASK 027` dans `/etc/login.defs` | tous |
+| BOOT-5122 | Mot de passe GRUB (plus invasif, peut bloquer reboot a distance) | galahad+lancelot |
+| BOOT-5264 | `systemd-analyze security` par service, hardening systemd-units | galahad+lancelot |
+| KRNL-5788 | symlink `/vmlinuz` (cosmetique) | galahad+lancelot |
 
 ---
 

@@ -9,7 +9,7 @@ Etat au **2026-04-13**. Priorite : `impact / effort`.
 
 ## En cours / a faire
 
-### P1 — Important
+### P1 — Important (1-3h chacun)
 
 #### Migration galahad vers Trixie
 
@@ -18,6 +18,25 @@ Etat au **2026-04-13**. Priorite : `impact / effort`.
 **Risque** : migration cluster 1 node a la fois, ~1h downtime.
 
 **Effort** : 2-3h.
+
+#### Lynis quick wins (gain estime +5-10 points score)
+
+Apt installs sur galahad+lancelot+penny :
+```bash
+apt install -y libpam-tmpdir needrestart apt-listbugs libpam-passwdqc
+```
+
+Edits `/etc/login.defs` :
+```ini
+ENCRYPT_METHOD YESCRYPT
+SHA_CRYPT_MIN_ROUNDS 65536
+PASS_MIN_DAYS 1
+PASS_MAX_DAYS 365
+PASS_WARN_AGE 14
+UMASK 027
+```
+
+**Effort** : 30 min (4 hosts). Voir [hardening.md#scores-lynis](hardening.md#scores-lynis) pour le detail des suggestions.
 
 ---
 
@@ -45,6 +64,16 @@ chmod +x /usr/local/bin/cosign
 
 **Effort** : 1h (user side).
 
+#### Mot de passe GRUB (galahad + lancelot)
+
+Suggestion Lynis BOOT-5122. Empeche boot single-user / modif kernel cmdline sans password.
+
+**Risque** : si oublie -> reboot a distance casse. Impact eleve si console physique inaccessible.
+
+#### Hardening systemd-units (galahad + lancelot)
+
+Suggestion Lynis BOOT-5264. Run `systemd-analyze security` par service, ajuster `[Service]` (NoNewPrivileges, ProtectSystem, PrivateTmp, etc).
+
 ---
 
 ### P3 — Nice to have
@@ -54,6 +83,7 @@ chmod +x /usr/local/bin/cosign
 - IDS reseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
 - Renommer LXC `guardian` -> nom fonctionnel (`dns-failover`) — coherence naming.
 - Renommer Tailscale hosts `pve1`/`pve2` -> `galahad`/`lancelot` (UI tailscale, user side).
+- Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique).
 
 ---
 
