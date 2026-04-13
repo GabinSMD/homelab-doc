@@ -191,7 +191,7 @@ Le log indique l'URI attendue par le client → copier cette URI exacte dans la 
 
 | Service | redirect_uri |
 |---|---|
-| Proxmox | `https://pve1.home.gabin-simond.fr` (et pve2) |
+| Proxmox | `https://galahad.home.gabin-simond.fr` (et lancelot) |
 | Portainer | `https://portainer.home.gabin-simond.fr/` (avec slash) |
 | Beszel | `https://monitor.home.gabin-simond.fr/api/oauth2-redirect` |
 

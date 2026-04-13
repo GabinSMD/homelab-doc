@@ -81,14 +81,14 @@ Chaque noeud est accessible de deux facons :
 
 | Noeud | Acces direct (fallback) | Acces via Traefik |
 |---|---|---|
-| pve1 | `https://192.168.1.18:8006` | `https://pve1.home.gabin-simond.fr` |
-| pve2 | `https://192.168.1.19:8006` | `https://pve2.home.gabin-simond.fr` |
+| galahad | `https://192.168.1.18:8006` | `https://galahad.home.gabin-simond.fr` |
+| lancelot | `https://192.168.1.19:8006` | `https://lancelot.home.gabin-simond.fr` |
 
 La configuration se fait a trois endroits :
 
 1. **DNS (AdGuard)** — rewrites vers le RPi (Traefik) :
-    - `pve1.home.gabin-simond.fr` → `192.168.1.28`
-    - `pve2.home.gabin-simond.fr` → `192.168.1.28`
+    - `galahad.home.gabin-simond.fr` → `192.168.1.28`
+    - `lancelot.home.gabin-simond.fr` → `192.168.1.28`
 
 2. **Traefik** — fichier `traefik/dynamic/proxmox.yml` :
     - Route le trafic vers `https://<IP_NODE>:8006`

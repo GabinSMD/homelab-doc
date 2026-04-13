@@ -40,7 +40,7 @@ kernel.kptr_restrict=2
 
 #### Migration galahad vers Trixie
 
-**Gain** : iso avec lancelot, debloque `audispd-plugins`, aligne les 2 nodes.
+**Gain** : iso avec lancelot, memes versions paquets, operations simplifiees. N'aide **pas** auditd (voir ci-dessous).
 
 **Risque** : migration cluster 1 node a la fois, ~1h downtime.
 
@@ -48,7 +48,9 @@ kernel.kptr_restrict=2
 
 #### auditd sur lancelot
 
-**Status** : bloque par manque de `audispd-plugins` sur Trixie. Debloquera apres migration galahad vers Trixie.
+**Probleme** : auditd refuse de demarrer sur lancelot (dependencies kernel / context). Masque actuellement. Meme cause sur galahad une fois migre vers Trixie.
+
+**Piste** : utiliser `laurel` ou `go-audit` comme userspace reader alternatif (pas de dependency kernel).
 
 ---
 
@@ -128,6 +130,7 @@ A caler avec reinstall Trixie galahad. Cle ZFS dans TPM ZimaBoard si dispo, sino
     - `no-new-privileges: true` global
     - ICC disabled sur bridge par defaut
     - Plus aucun port direct expose (tout via Traefik HTTPS)
+    - `read_only: true` + tmpfs sur Traefik + Homepage (teste 2026-04-13)
 
 ??? success "Audit / detection"
     - Lynis + cron hebdo + ntfy (penny 76, galahad 68, lancelot 69)
@@ -150,7 +153,8 @@ A caler avec reinstall Trixie galahad. Cle ZFS dans TPM ZimaBoard si dispo, sino
     - DNS redondant primaire/secondaire
 
 ??? success "Migrations terminees"
-    - Vaultwarden : penny SD card → LXC 102 `vault` sur lancelot (decommission container penny prevue 2026-04-27)
+    - Vaultwarden : penny SD card → LXC 102 `vault` sur lancelot → migre sur galahad (isolement observability, 2026-04-13)
+    - Decommission container Vaultwarden penny prevu 2026-04-27
     - Proxmox cluster : pve1/pve2 → galahad/lancelot
     - Tailscale : container → host natif (SSH natif)
     - Wallos : supprime (pas d'utilite)

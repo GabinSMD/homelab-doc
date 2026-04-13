@@ -17,14 +17,14 @@
 
 ### ZimaBoard x2 (cluster Proxmox)
 
-| Composant | pve1 | pve2 |
+| Composant | galahad | lancelot |
 |---|---|---|
 | Stockage | eMMC 32 Go | eMMC 32 Go |
 | OS | Proxmox VE 9 (Debian Trixie) | Proxmox VE 9 (Debian Trixie) |
 | IP LAN | 192.168.1.18 | 192.168.1.19 |
 | IP Tailscale | 100.98.58.121 | 100.69.6.13 |
-| Acces web | `pve1.home.gabin-simond.fr` | `pve2.home.gabin-simond.fr` |
-| SSH | `ssh root@pve1` | `ssh root@pve2` |
+| Acces web | `galahad.home.gabin-simond.fr` | `lancelot.home.gabin-simond.fr` |
+| SSH | `ssh root@galahad` | `ssh root@lancelot` |
 
 Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe nativement.
 

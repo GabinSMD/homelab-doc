@@ -20,7 +20,7 @@ Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `observabi
 | **autoheal** | `willfarrell/autoheal` | Redemarre les containers unhealthy | socket |
 
 Tailscale : **sur l'host** (pas en container) — SSH natif active.
-Vaultwarden : **migre** sur LXC 102 `vault` (lancelot, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
+Vaultwarden : **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
 
 ## Architecture
 

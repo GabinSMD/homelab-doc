@@ -88,6 +88,7 @@ nav:
   - Reseau:
     - Architecture cible: network/architecture-cible.md
     - VLANs: network/vlans.md
+    - Tailscale ACLs: network/tailscale-acls.md
   - Guides:
     - Ajouter un service: guides/ajouter-service.md
     - Proxmox sur ZimaBoard: guides/proxmox-zimaboard.md

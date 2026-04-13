@@ -233,8 +233,17 @@ Clients socket direct : **Portainer uniquement** (admin tool necessite acces com
 | WUD | ALL | (aucune) |
 | socket-proxy | ALL (par design) | (gere par le proxy) |
 | AdGuard | non applicable | DHCP + host network necessite plus |
-| Wallos | non applicable | chmod /tmp au demarrage |
 | Portainer | non applicable | admin tool |
+
+### read_only (rootfs immuable)
+
+| Container | read_only | Tmpfs | Note |
+|---|---|---|---|
+| Traefik | ✅ OK | `/tmp`, `/run` | teste 2026-04-13 |
+| Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
+| Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'etat |
+| Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
+| Beszel, WUD | ⚠️ non teste | — | candidats potentiels |
 
 ### Ports directs supprimes
 

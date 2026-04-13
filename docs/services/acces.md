@@ -14,7 +14,7 @@ Reference rapide — tous les services et leurs points d'acces.
 | **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
 | **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE) | LXC observability / lancelot |
 | **WUD** | `wud.home.*` | Aucune | penny |
-| **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / lancelot |
+| **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / galahad |
 | **Proxmox galahad** | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) |
 | **Proxmox lancelot** | `lancelot.home.*` | OIDC Authelia / root@pam | lancelot (bare metal) |
 | **Docs** | `homelab.gabin-simond.fr` | Aucune (publique) | hors infra (Cloudflare Pages / hebergement) |
@@ -48,7 +48,9 @@ Tout le reste est DROP.
 |---|---|---|---|---|
 | 100 | guardian | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
 | 101 | observability | lancelot | `192.168.1.31` | Loki + Grafana |
-| 102 | vault | lancelot | `192.168.1.32` | Vaultwarden |
+| 102 | vault | galahad | `192.168.1.32` | Vaultwarden |
+
+Note d'isolement : `vault` et `observability` sont sur des hosts differents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 
 ## Reseaux Docker (penny)
 

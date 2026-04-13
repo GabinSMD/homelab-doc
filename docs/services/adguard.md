@@ -35,7 +35,7 @@ DNS et DHCP avec ad-blocking pour tout le reseau.
 | Instance | Machine | IP | Role |
 |---|---|---|---|
 | **Primaire** | RPi 4 (Docker, host network) | `192.168.1.28` | DNS principal, ad-blocking |
-| **Secondaire** | LXC 100 "guardian" sur pve1 | `192.168.1.30` | DNS de secours, ad-blocking |
+| **Secondaire** | LXC 100 "guardian" sur galahad | `192.168.1.30` | DNS de secours, ad-blocking |
 
 Les deux instances ont la meme configuration : memes upstream (Quad9 DoH), memes blocklists, memes `user_rules` conditionnelles.
 

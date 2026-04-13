@@ -153,10 +153,12 @@ Acces a tous les services via IP Tailscale (`100.64.0.0/10`). **Aucun port Freeb
 - Aucun port 22 expose
 
 ```bash
-ssh gabins@homelab    # penny via Tailscale
-ssh gabins@pve1       # galahad (Tailscale hostname pas encore renomme)
-ssh gabins@pve2       # lancelot (idem)
+ssh gabins@homelab    # penny via Tailscale (MagicDNS)
+ssh gabins@pve1       # galahad — Tailscale hostname pas encore renomme
+ssh gabins@pve2       # lancelot — idem
 ```
+
+Note : les IP Tailscale restent stables (100.98.58.121 pour galahad, 100.69.6.13 pour lancelot). A faire : renommer les hotes Tailscale en `galahad`/`lancelot` dans [login.tailscale.com](https://login.tailscale.com).
 
 ### TLS partout
 

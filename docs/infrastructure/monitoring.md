@@ -15,9 +15,9 @@ graph TD
     Script -->|surveille| Disk[Espace disque]
     Script -->|surveille| RAM[RAM + OOM]
 
-    Agent1[Beszel Agent RPi] -->|:45876| Beszel
-    Agent2[Beszel Agent pve1] -->|:45876| Beszel
-    Agent3[Beszel Agent pve2] -->|:45876| Beszel
+    Agent1[Beszel Agent penny] -->|:45876| Beszel
+    Agent2[Beszel Agent galahad] -->|:45876| Beszel
+    Agent3[Beszel Agent lancelot] -->|:45876| Beszel
 ```
 
 ## homelab_monitor.sh
@@ -58,13 +58,13 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 | Service | Role | Acces |
 |---|---|---|
-| **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — RPi, pve1, pve2 | Dashboard web |
+| **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — penny, galahad, lancelot | Dashboard web |
 | **WUD** | Surveillance mises a jour images Docker | Dashboard web |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |
 | **SSD auto-recovery** | Remount + fsck + restart Docker apres deconnexion USB | Script (monitor) |
-| **Guardian health check** | Surveille le RPi depuis pve1 (ping + Traefik + DNS) | LXC 100 / ntfy |
+| **Guardian health check** | Surveille penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
 
 ## Architecture de resilience
 
