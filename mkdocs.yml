@@ -69,6 +69,7 @@ nav:
     - Hardware: infrastructure/hardware.md
     - Optimisations OS: infrastructure/os-optimizations.md
     - Securite: infrastructure/security.md
+    - Roadmap securite: infrastructure/security-roadmap.md
     - Monitoring: infrastructure/monitoring.md
     - Backups: infrastructure/backups.md
     - Maintenance: infrastructure/maintenance.md
