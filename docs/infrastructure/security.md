@@ -2,6 +2,49 @@
 
 Mesures de hardening appliquees et principes pour l'infrastructure.
 
+## Politique de credentials
+
+### Usernames
+
+| Type de compte | Format | Exemple |
+|---|---|---|
+| Administrateur humain | `gabins` | Compte nominatif unique partout |
+| Service automatise | `svc-<fonction>` | `svc-homepage`, `svc-backup` |
+| Fallback OS | `root` | Pas modifiable, cle SSH uniquement |
+
+- Jamais de compte `admin`, `gabin` ou `pi` : deviner un nom a peu de valeur mais simplifie les attaques automatisees.
+- `gabins` (pas `gabin`) : legere variation pour casser les scripts qui ciblent le prenom exact.
+
+### Mots de passe
+
+| Niveau | Services | Longueur | Rotation |
+|---|---|---|---|
+| **Critique** | Proxmox root@pam, Authelia, Vaultwarden master, SSH, VPN | 32 caracteres | A la compromission |
+| **Eleve** | AdGuard, Portainer, Traefik | 32 caracteres | A la compromission |
+| **OIDC** | Secrets clients (Proxmox, Portainer, Beszel) | 64 caracteres hex | 12 mois max |
+
+- Tous les mots de passe sont generes par `openssl rand -base64 48 | head -c 32`.
+- Stockage exclusif dans Vaultwarden.
+- Jamais de mot de passe en clair dans un script, un `.env` versionne, ou un message.
+
+### Authentification forte
+
+| Service | Methode |
+|---|---|
+| Authelia | TOTP obligatoire (policy `two_factor`) |
+| Proxmox | OIDC via Authelia + TOTP sur root@pam |
+| SSH | Cle Ed25519 uniquement (PasswordAuthentication no) |
+| Vaultwarden | Master password + TOTP |
+| Tailscale | WireGuard + identite SSO |
+
+### Cycle de vie
+
+- **Compromission** : compte desactive, mot de passe regenere, cles SSH revoquees, sessions terminees.
+- **Audit** : revue trimestrielle des comptes actifs.
+- **Break glass** : pas de compte dedie. Fallback = acces console physique + vault hors-ligne (export chiffre sur cle USB).
+
+Voir aussi : [Naming des machines](../services/naming.md) pour les hostnames du pantheon.
+
 ## Authentification centralisee
 
 ### Authelia (SSO)
@@ -234,3 +277,59 @@ Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia
 | Systeme | Comptes inutilises verrouilles (nologin + locked) | RPi |
 | Secrets | Permissions 600 sur .env et configs Authelia | RPi |
 | Secrets | .env non versionne, secrets exclus de git | RPi |
+
+## Firewall Proxmox
+
+Actif au niveau cluster sur galahad et lancelot.
+
+### Configuration
+
+`/etc/pve/firewall/cluster.fw` (synchronise entre les nodes) :
+
+```ini
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: ACCEPT
+policy_forward: ACCEPT
+
+[RULES]
+IN ACCEPT -p icmp -log nolog
+IN ACCEPT -p tcp -dport 8006 -source 192.168.1.0/24 -log nolog
+IN ACCEPT -p tcp -dport 8006 -source 100.64.0.0/10 -log nolog
+IN ACCEPT -p tcp -dport 2807 -log nolog
+IN ACCEPT -p tcp -dport 2808 -log nolog
+IN ACCEPT -source 192.168.1.0/24 -p tcp -dport 3128 -log nolog
+IN ACCEPT -i tailscale0 -log nolog
+```
+
+### Ce qui est ouvert
+
+- **ICMP** : ping
+- **8006** : interface web Proxmox, LAN + Tailscale uniquement
+- **2807** (galahad), **2808** (lancelot) : SSH avec cle
+- **3128** : cluster corosync
+- **tailscale0** : interface entiere Tailscale autorisee
+
+Tout le reste est DROP.
+
+### Activation
+
+```bash
+# Sur chaque node
+pve-firewall compile
+pve-firewall start
+pve-firewall status  # doit afficher "enabled/running"
+```
+
+## lancelot (Trixie) — protection brute-force
+
+fail2ban et CrowdSec ne sont pas disponibles dans les repos Debian 13 (Trixie) au moment de l'installation. Defense en profondeur alternative :
+
+- **PasswordAuthentication no** : pas de vecteur brute-force SSH (cle uniquement)
+- **Port SSH custom** (2808) : evite les scanners automatises qui ciblent le port 22
+- **MaxAuthTries 3** : limite les tentatives par connexion
+- **Firewall Proxmox** : policy INPUT DROP, seuls les ports necessaires sont autorises
+- **Unattended-upgrades** : patches de securite automatiques
+
+fail2ban sera installe des qu'il sera disponible dans les repos Trixie (ou via backports).

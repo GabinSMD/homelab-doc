@@ -74,6 +74,7 @@ nav:
     - Maintenance: infrastructure/maintenance.md
     - Troubleshooting: infrastructure/troubleshooting.md
   - Services:
+    - Naming: services/naming.md
     - Stack Docker: services/docker-stack.md
     - Traefik: services/traefik.md
     - AdGuard Home: services/adguard.md
