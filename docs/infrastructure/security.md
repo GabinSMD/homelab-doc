@@ -2,6 +2,65 @@
 
 Mesures de hardening appliquees et principes pour l'infrastructure.
 
+## Modele de menace
+
+Ce qu'on defend, contre qui, jusqu'ou.
+
+### Acteurs consideres
+
+| Acteur | Capacite | Mesures |
+|---|---|---|
+| **Script kiddies internet** | Scans automatises, brute-force | Pas de port forward, Tailscale only, fail2ban, SSH cles |
+| **FAI / man-in-the-middle** | Interception trafic transit | TLS partout, WireGuard mesh, DNSSEC |
+| **Voisin sur LAN compromis** | Acces reseau local | Firewall iptables DROP, services admin restreints LAN+TS |
+| **Vol physique** | Acces physique au RPi/SSD | **PARTIEL** — backups off-site OK, chiffrement disque pas encore (Phase 4) |
+| **Insider / famille** | Acces invite WiFi | A couvrir avec OPNsense + VLANs (Phase 2) |
+| **Supply chain Docker** | Image malveillante | WUD surveille les versions, mais pas de signature verification (todo) |
+| **Compromission cle SSH** | sudo NOPASSWD = root immediat | **Mitigation** : passphrase + YubiKey ssh-agent (todo cote client) |
+| **Phishing TOTP** | Adversary-in-the-middle | **Mitigation** : WebAuthn FIDO2 (YubiKey) actif sur Authelia |
+
+### Hors-perimetre
+
+- Etat-nation / APT cible
+- Piratage du provider Cloudflare/Let's Encrypt/Tailscale
+- Vol du compte Vaultwarden master (single point of failure assume)
+
+## Politique de rotation et revocation
+
+| Element | Rotation | Procedure de revocation |
+|---|---|---|
+| **Mots de passe OS root** | A la compromission | Console physique + chpasswd |
+| **Mot de passe gabins** | A la compromission | SSH via Tailscale, chpasswd |
+| **Cles SSH** | Par appareil compromis | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque machine |
+| **Tokens API (Cloudflare, Tailscale)** | 12 mois max | Generer nouveau dans UI provider, rotater dans .env, restart services |
+| **Secrets OIDC (Authelia clients)** | 12 mois max | Regenerer + hash pbkdf2, mettre a jour Authelia + service consommateur |
+| **Authelia internal secrets** | A la compromission uniquement | Migration DB necessaire (encryption_key) |
+| **Vaultwarden master** | Au choix | Via Vaultwarden UI |
+
+## Revocation Tailscale
+
+Procedure pour un appareil vole/perdu/compromis :
+
+1. **Console Tailscale** (login.tailscale.com) > Machines
+2. Selectionner l'appareil > **Disable** (acces immediatement coupe)
+3. Si l'appareil est defintivement perdu : **Remove** (suppression definitive)
+4. Optionnel : invalider toutes les cles et forcer reauth :
+   - **Settings > Keys > Auth keys > Revoke**
+   - Toutes les machines doivent re-authentifier (sauf celles avec key expiry disabled)
+
+## Backups off-site
+
+| Cible | Frequence | Outil | Chiffrement | Cout |
+|---|---|---|---|---|
+| Backblaze B2 | Quotidien (cron 3h) | `homelab_backup.sh` + `rclone sync` | Cote B2 (server-side) | <1€/mois |
+| SD card locale | Quotidien (cron 3h) | `homelab_backup.sh` (tar.gz) | Non | Gratuit |
+
+**Ce qui est sauvegarde** : Vaultwarden DB, Authelia DB, AdGuard config, Traefik certs, Homepage config, scripts, .env (chiffre cote B2).
+
+**Test de restore** : Vaultwarden DB integrite verifiee (`PRAGMA integrity_check`). Voir [backups.md](./backups.md) pour la procedure complete.
+
+
+
 ## Politique de credentials
 
 ### Usernames
@@ -285,6 +344,11 @@ Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia
 | Reseau | DNSSEC validation | penny + guardian (AdGuard) |
 | Reseau | CAA records DNS (Let's Encrypt + iodef) | Cloudflare zone |
 | Backup | Vaultwarden DB testee (PRAGMA integrity_check OK) | penny |
+| Auth | WebAuthn FIDO2 (YubiKey) actif | Authelia |
+| Reseau | docker-socket-proxy (endpoints whitelist) | penny |
+| Systeme | cap_drop ALL + cap_add minimal | Vaultwarden, Authelia |
+| Systeme | read_only impossible (Authelia ecrit /app) | — |
+| Systeme | Reseau `socket` interne (no internet) | socket-proxy clients |
 
 ## Firewall Proxmox
 
