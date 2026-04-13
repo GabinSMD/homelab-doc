@@ -214,9 +214,33 @@ IN ACCEPT -i tailscale0 -log nolog
 |---|---|---|
 | fail2ban | Actif (SSH + Proxmox jails) | Actif (SSH + Proxmox jails) |
 | unattended-upgrades | Actif | Actif |
-| auditd | Actif | Masque (incompatible kernel context) |
+| auditd | Actif | Actif (reactive 2026-04-13 — retrait des watch Docker absents host) |
 | lynis weekly | Cron dimanche 5h | Cron dimanche 5h |
 | rpcbind | Disabled + masked | Disabled + masked |
+
+---
+
+## Reseaux Docker — isolation et ICC
+
+| Reseau | Type | ICC | Containers | Note |
+|---|---|---|---|---|
+| `proxy` | bridge | enabled | traefik, authelia, portainer, homepage, wud, beszel | ICC enabled by design pour Traefik -> backends. **Implication** : tout container compromis sur ce reseau peut joindre les autres en HTTP interne (ex: homepage -> wud:3001 anonyme, traefik:8080 admin API). |
+| `socket` | bridge `internal: true` | enabled | socket-proxy, traefik, homepage, wud, autoheal | Pas d'acces internet. ICC limite a la API socket-proxy whitelistee. |
+| `host` | host | N/A | adguard, beszel-agent, tailscale | Stack reseau de l'host |
+
+### Mitigations en place
+
+| Vecteur | Mitigation |
+|---|---|
+| Acces externe (Internet/LAN) sur services backend | Tous via Traefik HTTPS + Authelia (ForwardAuth ou OIDC) |
+| Acces interne anonyme WUD | Connu, accepte (recon-only). Authelia gates externe. |
+| Container compromis -> Docker API | socket-proxy whitelistee (CONTAINERS/NETWORKS/EVENTS/IMAGES, pas EXEC/SECRETS/VOLUMES) |
+| Container compromis -> Authelia internals | Sessions chiffrees + storage encryption_key |
+
+### A faire (P2)
+
+- ICC=false sur reseau `proxy` : cassrait Traefik routing -> necessite split en sous-reseaux (1 par backend, partage avec Traefik).
+- WUD auth interne : tente bcrypt 2026-04-13, WUD rejette les creds malgre validation hash. A retest quand WUD documente mieux ou via reverse proxy basic auth devant.
 
 ---
 
