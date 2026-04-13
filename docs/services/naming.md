@@ -78,12 +78,20 @@ Les services Docker, containers, LXC, subdomains et comptes restent **fonctionne
 
 ## Hostnames systeme
 
+### Machines physiques (pantheon)
+
 | Machine | Hostname | IP LAN | IP Tailscale |
 |---|---|---|---|
 | RPi 4 | `penny` | 192.168.1.28 | 100.97.239.90 |
 | ZimaBoard 1 | `galahad` | 192.168.1.18 | 100.98.58.121 |
 | ZimaBoard 2 | `lancelot` | 192.168.1.19 | 100.69.6.13 |
-| LXC 100 | `guardian` | 192.168.1.30 | 100.74.145.26 |
+
+### Containers / LXC (noms fonctionnels)
+
+| Type | Hostname | Host | IP LAN | IP Tailscale | Role |
+|---|---|---|---|---|---|
+| LXC 100 | `guardian` | galahad | 192.168.1.30 | 100.74.145.26 | AdGuard secondaire + health check externe |
+| LXC 101 | `observability` | lancelot | 192.168.1.31 | — | Loki + Grafana |
 
 ## Futurs ajouts
 

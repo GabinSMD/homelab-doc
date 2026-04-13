@@ -159,13 +159,23 @@ docker run -d --name vw-dr-test -v "$DRILL_DIR/restore:/data" -p 8089:80 vaultwa
 
 **Decision** : Grafana Alloy plutot que Promtail (plus recent, remplace Promtail + Grafana Agent + OTel Collector).
 
-**Architecture prevue** :
-- LXC dedie sur lancelot : Loki + Grafana
-- Grafana Alloy sur penny, galahad, lancelot, guardian
-- Sources : journald, docker logs, Traefik access logs, Authelia, audit logs
-- Retention 30 jours minimum
+**Architecture** :
+- LXC 101 `observability` sur lancelot (192.168.1.31) : Loki + Grafana
+- Grafana Alloy sur penny, galahad, lancelot
+- Sources :
+  - penny : journald + Docker logs + fail2ban + monitor script
+  - galahad + lancelot : journald + audit.log + Proxmox logs + fail2ban
+- Retention 30 jours
+- Acces Grafana : `https://grafana.home.gabin-simond.fr` via Traefik + Authelia 2FA
 
-**Status** : [ ] A faire (prochain sprint)
+**Status** : [x] Done (13 avril 2026)
+
+**Dashboards a creer** :
+- [ ] Auth failures (fail2ban, Authelia, sshd)
+- [ ] Traefik access logs (4xx/5xx)
+- [ ] audit events (auditd: sudo, SSH config changes, firewall)
+- [ ] Container restarts (autoheal)
+- [ ] Proxmox events
 
 ### 7. Durcir les `compose` services critiques
 
