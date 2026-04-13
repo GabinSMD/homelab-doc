@@ -70,6 +70,7 @@ nav:
     - Optimisations OS: infrastructure/os-optimizations.md
     - Securite: infrastructure/security.md
     - Roadmap securite: infrastructure/security-roadmap.md
+    - Break-glass: infrastructure/break-glass.md
     - Monitoring: infrastructure/monitoring.md
     - Backups: infrastructure/backups.md
     - Maintenance: infrastructure/maintenance.md
