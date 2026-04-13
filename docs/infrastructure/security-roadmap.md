@@ -8,13 +8,56 @@ Base : etat de `security.md` au commit `8fe1ed3` (13 avril 2026).
 
 ## Deja fait
 
-- [x] Threat model explicite documente
+### Observabilite / documentation
+- [x] Threat model explicite documente (`security.md`)
 - [x] Politique de rotation / revocation documentee
 - [x] Procedure de revocation Tailscale
+- [x] Break-glass procedure complete (`break-glass.md`)
+- [x] DR drill Vaultwarden execute (RTO 7s)
+- [x] Verification scope token Cloudflare (1 zone uniquement)
+
+### Backups
 - [x] Backups off-site B2 + SD card locale
-- [x] WebAuthn FIDO2 actif sur Authelia
-- [x] `docker-socket-proxy` avec endpoints whitelist
-- [x] `cap_drop: ALL` + reseau `socket` isole (Vaultwarden, Authelia)
+- [x] **Chiffrement client-side restic** (AES-256, cle hors-Vaultwarden)
+- [x] Retention 7d/4w/6m avec prune automatique
+
+### Authentification
+- [x] WebAuthn FIDO2 actif sur Authelia (YubiKey support)
+- [x] Authelia 2FA TOTP + WebAuthn
+- [x] SSH cles uniquement, ports custom, MaxAuthTries 3
+- [x] Compte `gabins` + sudo NOPASSWD (remplace root interactif)
+- [x] SSH hardening Lynis (`AllowTcpForwarding no`, `Compression no`, `MaxSessions 2`, `LogLevel VERBOSE`, `UseDNS no`)
+
+### Reseau
+- [x] Firewall iptables (INPUT DROP) sur penny
+- [x] Firewall Proxmox cluster (galahad + lancelot)
+- [x] sysctl hardening (rp_filter, SYN flood, source route, martians)
+- [x] Rate limit Traefik sur Authelia (10 req/s)
+- [x] DNSSEC validation (AdGuard primaire + guardian)
+- [x] CAA records Cloudflare (Let's Encrypt + iodef)
+- [x] Security headers HTTPS (HSTS, CSP, X-Frame, Referrer, Permissions)
+
+### Containers
+- [x] `docker-socket-proxy` avec endpoints whitelist + reseau `socket` isole
+- [x] `cap_drop: ALL` sur Vaultwarden, Authelia, Traefik, Homepage, WUD, Beszel
+- [x] `no-new-privileges: true` global (`daemon.json`)
+- [x] Docker socket en read-only (backup pour Portainer)
+- [x] ICC disabled sur bridge par defaut
+
+### Audit / detection
+- [x] **Lynis installe** (penny + galahad) avec weekly cron + ntfy
+- [x] Score hardening: **penny 76/100, galahad 68/100**
+- [x] **auditd** configure (penny + galahad) — auth, sudo, SSH config, crontabs, firewall, Docker socket
+- [x] fail2ban actif (penny + galahad) avec IPs LAN/Tailscale ignorees
+- [x] unattended-upgrades actif (penny + galahad)
+- [x] rpcbind desactive (galahad + lancelot)
+
+### Sirveillance
+- [x] Watchdog hardware BCM2835 (penny)
+- [x] Autoheal (restart containers unhealthy)
+- [x] Auto-recovery SSD (device rename detection)
+- [x] Guardian LXC (health check externe penny depuis lancelot)
+- [x] DNS redondant primaire/secondaire
 
 ---
 
@@ -99,66 +142,66 @@ docker run -d --name vw-dr-test -v "$DRILL_DIR/restore:/data" -p 8089:80 vaultwa
 
 ### 4. Lynis audit baseline + cron hebdomadaire
 
-**Action** : installer sur penny, galahad, lancelot. Run initial + `/etc/lynis/custom.prf` par host. Cron hebdo push vers ntfy.
-
-**Livrable** : score baseline + `lynis-weekly.sh` + doc `auditing.md`.
-
-**Effort** : 2-3h initial + 1h par host pour tuner.
-
-**Status** : [ ] A faire
+**Status** : [x] Done (13 avril 2026)
+- penny : 76/100
+- galahad : 68/100
+- lancelot : non dispo (Trixie, package manquant)
+- Cron weekly 5h dimanche avec ntfy
 
 ### 5. auditd + sysctl additionnels
 
-Post-Lynis. Installer auditd, regles ciblees (auth events, sudo, SSH config), sysctl additionnels (`kernel.yama.ptrace_scope=2`, `kernel.kptr_restrict=2`, `kernel.dmesg_restrict=1`, `fs.protected_hardlinks=1`).
+**Status** : [x] Partiel
+- [x] auditd installe sur penny + galahad avec regles custom (auth, sudo, SSH, crontabs, firewall, Docker socket)
+- [ ] lancelot : bloque par manque de `audispd-plugins` sur Trixie (debloquera apres migration galahad vers Trixie)
+- [ ] Sysctl additionnels (`yama.ptrace_scope=2`, `kptr_restrict=2`) — a completer
 
-**Effort** : 2-3h. Ne pas aller trop loin sur les regles audit au debut — le bruit tue le signal.
+### 6. Loki + Grafana Alloy (centralisation logs)
 
-**Status** : [ ] A faire
+**Decision** : Grafana Alloy plutot que Promtail (plus recent, remplace Promtail + Grafana Agent + OTel Collector).
 
-### 6. Loki + Promtail centralisation logs
+**Architecture prevue** :
+- LXC dedie sur lancelot : Loki + Grafana
+- Grafana Alloy sur penny, galahad, lancelot, guardian
+- Sources : journald, docker logs, Traefik access logs, Authelia, audit logs
+- Retention 30 jours minimum
 
-**Action** : LXC sur lancelot avec Loki + Grafana. Promtail sur les 3 hosts. Retention 30j. Dashboards : auth failures, 4xx/5xx Traefik, fail2ban bans.
-
-**Effort** : demi-journee.
-
-**Gain** : passer de "je pense qu'on a eu un scan" a "47 requetes 401 le 12 avril entre 03h et 04h depuis .cz".
-
-**Status** : [ ] A faire
+**Status** : [ ] A faire (prochain sprint)
 
 ### 7. Durcir les `compose` services critiques
 
-Etendre `cap_drop ALL` et `read_only` aux autres services (Traefik, Homepage, WUD, etc.) par priorite.
-
-**Effort** : 1h par service + test.
-
-**Status** : [ ] A faire (partiel : Vaultwarden + Authelia done)
+**Status** : [x] Partiel (6/11 services)
+- [x] Vaultwarden, Authelia : `cap_drop ALL` + `cap_add` minimal
+- [x] Traefik, Homepage, WUD, Beszel : `cap_drop ALL`
+- [ ] AdGuard : impossible (DHCP + host network)
+- [ ] Wallos : impossible (chmod /tmp au demarrage)
+- [ ] Portainer : garde socket direct (admin tool)
+- [ ] `read_only: true` : Authelia KO (ecrit /app/.healthcheck.env). A creuser pour Traefik et Homepage.
 
 ### 8. Migration Vaultwarden en LXC dedie
 
 **Probleme** : Vaultwarden sur SD card penny = maillon faible sur stockage peu fiable.
 
-**Action** : LXC Debian 12 sur **lancelot** (pas galahad, pour eviter co-localisation avec master quorum). Migration DB + attachments. Update Traefik upstream. Snapshots Proxmox quotidiens + backup B2 horaire.
+**Action** : LXC Debian 13 sur **lancelot** (pas galahad, eviter co-localisation avec master quorum).
 
-**Effort** : 2-3h incluant test de login depuis tous les devices. Penny garde en fallback inactif 2 semaines avant decommission.
+**Effort** : 2-3h incluant test login.
 
 **Gain** : SSD ZFS redondant, snapshots hyperviseur, decouplage SPOF penny.
 
 **Status** : [ ] A faire
 
-### 9. Break-glass documentation formelle (promu de P3)
+### 9. Break-glass documentation formelle
 
-**Pourquoi P1** : un sinistre ne previent pas. La procedure de reconstruction est un multiplicateur de force.
+**Status** : [x] Done (13 avril 2026) — `docs/infrastructure/break-glass.md`
 
-**Contenu** :
-- Sequence de reconstruction si penny + galahad meurent en meme temps
-- Depuis quelle backup, avec quelle cle, dans quel ordre
-- RTO cible documente
-- Scripts de bootstrap si applicable
-- Contacts critiques (B2, Cloudflare, Tailscale, FAI)
+### 10. Migration galahad vers Proxmox 9 (Trixie)
 
-**Effort** : 2h.
+**Ajoute P1** — iso avec lancelot, debloque auditd et les paquets manquants.
 
-**Status** : [ ] A faire
+**Risque** : migration cluster 1 node a la fois, ~1h downtime par node.
+
+**Effort** : 2-3h.
+
+**Status** : [ ] En cours
 
 ---
 
