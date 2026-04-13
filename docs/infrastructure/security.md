@@ -53,7 +53,7 @@ Voir aussi : [Naming des machines](../services/naming.md) pour les hostnames du 
 
 | Service | Methode SSO |
 |---|---|
-| Proxmox VE (pve1, pve2) | OIDC natif (`authelia` realm, defaut) |
+| Proxmox VE (galahad, lancelot) | OIDC natif (`authelia` realm, defaut) |
 | Portainer | OAuth2 natif |
 | Beszel | OIDC via PocketBase |
 
@@ -77,7 +77,7 @@ Chaque service critique conserve un acces de secours sans SSO :
 | Beszel | Compte local admin |
 | Vaultwarden | Master password (pas de SSO) |
 
-## Hardening RPi 4 / DietPi
+## Hardening penny (RPi 4 / DietPi)
 
 ### Surface d'attaque reduite
 
@@ -90,19 +90,21 @@ Chaque service critique conserve un acces de secours sans SSO :
 | Services minimaux | DietPi n'installe que le strict necessaire |
 | GPU minimal | 16 Mo — pas d'interface graphique |
 
-### SSH (RPi + pve1 + pve2)
+### SSH
 
 | Mesure | Detail |
 |---|---|
 | Authentification par cle uniquement | `PasswordAuthentication no` |
-| Root par cle uniquement | `PermitRootLogin prohibit-password` |
+| Compte primaire | `gabins` (sudo NOPASSWD) sur toutes les machines |
+| Root SSH penny/guardian | `PermitRootLogin no` (desactive) |
+| Root SSH galahad/lancelot | `PermitRootLogin prohibit-password` (cle uniquement, requis par Proxmox) |
 | Max tentatives | `MaxAuthTries 3` |
-| Port custom (RPi) | Port 2806 (pas 22) |
+| Ports custom | penny:2806, galahad:2807, lancelot:2808 |
 | X11 forwarding desactive | `X11Forwarding no` |
 
 Fallback : Tailscale SSH reste disponible meme si OpenSSH est bloque.
 
-### Firewall iptables (RPi)
+### Firewall iptables (penny)
 
 Policy `INPUT DROP` — seuls les ports necessaires sont autorises :
 
@@ -145,7 +147,7 @@ Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
 | Pas de ports directs | Tous les services passent par Traefik HTTPS (443), aucun port expose directement |
 | Images a jour | `docker compose pull` + WUD surveille les nouvelles versions |
 
-### Surface d'attaque RPi (ports ouverts)
+### Surface d.attaque penny (ports ouverts)
 
 | Port | Service | Acces |
 |---|---|---|
@@ -167,7 +169,7 @@ Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
 - Pas de port forwarding sur la Freebox
 - ACLs dans la console Tailscale admin
 
-**Tailscale SSH** actif sur les 3 machines (homelab, pve1, pve2) :
+**Tailscale SSH** actif sur les 3 machines (homelab, galahad, lancelot) :
 
 - Authentification via identite Tailscale (pas de cles SSH a gerer)
 - Certificats a rotation automatique
@@ -177,9 +179,9 @@ Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
 
 ```bash
 # Connexion depuis n'importe quel device Tailscale
-ssh root@homelab    # RPi 4
-ssh root@pve1       # ZimaBoard 1
-ssh root@pve2       # ZimaBoard 2
+ssh gabins@penny    # RPi 4
+ssh gabins@galahad       # ZimaBoard 1
+ssh gabins@lancelot       # ZimaBoard 2
 ```
 
 ### TLS partout
@@ -230,17 +232,17 @@ graph TD
 - **Management restreint** — seul le VLAN 10 peut administrer les equipements
 - **Firewall dedie** — bare-metal OPNsense pour eviter les SPOF
 
-## Hardening Proxmox (pve1 + pve2)
+## Hardening Proxmox (galahad + lancelot)
 
 | Mesure | Detail |
 |---|---|
 | SSH cles uniquement | `PermitRootLogin prohibit-password`, `PasswordAuthentication no` |
-| fail2ban (pve1) | Jails SSH + Proxmox web (ban 1h / 3 tentatives) |
+| fail2ban (galahad) | Jails SSH + Proxmox web (ban 1h / 3 tentatives) |
 | rpcbind desactive | Service inutile masque sur les deux noeuds |
-| unattended-upgrades (pve1) | Patches securite automatiques |
+| unattended-upgrades (galahad) | Patches securite automatiques |
 | Tailscale SSH | Acces alternatif sans port 22 expose |
 
-!!! note "pve2 (Trixie / Debian 13)"
+!!! note "lancelot (Trixie / Debian 13)"
     fail2ban n'est pas encore disponible dans les repos Trixie. Le firewall Proxmox integre (`pve-firewall`) compense. A installer des que le paquet est disponible.
 
 ## Traefik — dashboard protege
@@ -255,28 +257,30 @@ Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia
 
 | Couche | Mesure | Machines |
 |---|---|---|
-| Reseau | Firewall iptables (INPUT DROP) | RPi |
+| Reseau | Firewall iptables (INPUT DROP) | penny |
 | Reseau | Tailscale (pas de port forwarding) | Toutes |
-| Reseau | Port 8080 ferme | RPi |
+| Reseau | Port 8080 ferme | penny |
 | Auth | SSH cles uniquement | Toutes |
-| Auth | fail2ban | RPi, pve1 |
+| Auth | fail2ban | penny, galahad |
 | Auth | Authelia SSO (OIDC) | Proxmox, Portainer, Beszel |
 | Auth | Authelia ForwardAuth | Traefik dashboard |
 | Auth | Vaultwarden (master password, pas SSO) | Independant |
-| Systeme | unattended-upgrades | RPi, pve1 |
-| Systeme | no-new-privileges (Docker) | RPi |
-| Systeme | rpcbind desactive | pve1, pve2 |
-| Systeme | Surface d'attaque reduite (WiFi, BT, HDMI off) | RPi |
+| Systeme | unattended-upgrades | penny, galahad |
+| Systeme | no-new-privileges (Docker) | penny |
+| Systeme | rpcbind desactive | galahad, lancelot |
+| Systeme | Surface d'attaque reduite (WiFi, BT, HDMI off) | penny |
 | Reseau | sysctl hardening (rp_filter, SYN flood, source route, martians) | Toutes |
-| Auth | SSH ports custom (RPi:2806, pve1:2807, pve2:2808) | Toutes |
-| Chiffrement | TLS partout (Let's Encrypt) | RPi (Traefik) |
+| Auth | SSH ports custom (penny:2806, galahad:2807, lancelot:2808) | Toutes |
+| Chiffrement | TLS partout (Let's Encrypt) | penny (Traefik) |
 | Chiffrement | WireGuard (Tailscale) | Toutes |
-| Auth | Authelia 2FA (TOTP) sur tous les services SSO | RPi |
-| Reseau | Security headers HTTPS (HSTS, CSP, X-Frame, Permissions-Policy) | RPi (Traefik) |
-| Systeme | Docker socket en read-only sur tous les containers | RPi |
-| Systeme | Comptes inutilises verrouilles (nologin + locked) | RPi |
-| Secrets | Permissions 600 sur .env et configs Authelia | RPi |
-| Secrets | .env non versionne, secrets exclus de git | RPi |
+| Auth | Authelia 2FA (TOTP) sur tous les services SSO | penny |
+| Reseau | Security headers HTTPS (HSTS, CSP, X-Frame, Permissions-Policy) | penny (Traefik) |
+| Systeme | Docker socket en read-only sur tous les containers | penny |
+| Systeme | Comptes inutilises verrouilles (nologin + locked) | penny |
+| Secrets | Permissions 600 sur .env et configs Authelia | penny |
+| Secrets | .env non versionne, secrets exclus de git | penny |
+| Auth | Compte `gabins` + sudo NOPASSWD | Toutes |
+| Reseau | Firewall Proxmox cluster (INPUT DROP) | galahad, lancelot |
 
 ## Firewall Proxmox
 
