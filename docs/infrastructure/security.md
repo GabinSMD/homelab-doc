@@ -281,6 +281,10 @@ Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia
 | Secrets | .env non versionne, secrets exclus de git | penny |
 | Auth | Compte `gabins` + sudo NOPASSWD | Toutes |
 | Reseau | Firewall Proxmox cluster (INPUT DROP) | galahad, lancelot |
+| Reseau | Rate limit Traefik sur Authelia (10 req/s) | penny |
+| Reseau | DNSSEC validation | penny + guardian (AdGuard) |
+| Reseau | CAA records DNS (Let's Encrypt + iodef) | Cloudflare zone |
+| Backup | Vaultwarden DB testee (PRAGMA integrity_check OK) | penny |
 
 ## Firewall Proxmox
 
