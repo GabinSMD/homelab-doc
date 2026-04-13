@@ -83,6 +83,7 @@ nav:
     - AdGuard Home: services/adguard.md
     - Authelia (SSO): services/authelia.md
     - Vaultwarden: services/vaultwarden.md
+    - Grafana (logs): services/grafana.md
     - Acces et URLs: services/acces.md
   - Reseau:
     - Architecture cible: network/architecture-cible.md

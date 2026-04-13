@@ -75,19 +75,48 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Monitoring : Beszel plutot que Grafana/Prometheus
+## Monitoring : Beszel (metriques) + Grafana/Loki (logs) — complementaires
 
-**Contexte** : Monitoring systeme pour un petit homelab.
+**Contexte** : Observabilite pour un petit homelab (1-10 hosts).
 
-**Decision** : Beszel
+**Decision** : Beszel pour les metriques, Grafana+Loki pour les logs. **Pas de Prometheus / node_exporter**.
 
 **Pourquoi** :
 
-- Leger (un seul binaire + agent)
-- Dashboard integre, pas besoin de configurer Grafana + Prometheus + exporters
-- Adapte a un petit homelab (1-10 machines)
+- Beszel seul couvre 100% des besoins metriques systeme (CPU, RAM, disk, net, containers) — pas de valeur ajoutee a reinstaller Prometheus + node_exporter.
+- Grafana+Loki couvre ce que Beszel ne fait pas : recherche dans les logs applicatifs, events auditd, echecs d'auth, analyse Traefik access logs.
+- Les deux outils ont chacun leur dashboard : `monitor.home...` (Beszel) et `logs.home...` (Grafana).
+- Sans doublon, chaque outil reste leger.
 
-**Alternative rejetee** : Grafana + Prometheus — puissant mais overkill pour quelques machines. Stack lourde (Prometheus, node_exporter, Grafana), configuration complexe, et consomme plus de ressources.
+**Decouplage delibere** : Grafana tourne dans un LXC dedie (`observability` sur lancelot), pas sur penny. Benefice : si penny tombe, on peut analyser les logs depuis l'infra Proxmox; inversement, un crash observability n'affecte pas les services.
+
+**Alternative rejetee** : stack Prometheus+node_exporter+Grafana pour les metriques — redondant avec Beszel, plus lourd, plus complexe a maintenir.
+
+---
+
+## Grafana 100% OIDC — aucun compte admin local
+
+**Contexte** : Grafana livre un compte `admin` par defaut avec mot de passe static. Politique credentials du homelab : **zero compte admin local**, tout via Authelia.
+
+**Decision** :
+
+- `GF_AUTH_DISABLE_LOGIN_FORM=true` + `GF_AUTH_BASIC_ENABLED=false` : impossible de se connecter autrement qu'en OIDC.
+- `GF_AUTH_OAUTH_AUTO_LOGIN=true` : redirection directe vers Authelia.
+- Role mapping : groupe `admins` Authelia → `GrafanaAdmin`.
+- Compte legacy `admin` : `is_disabled=1` + password efface en DB SQLite.
+- Pas de break-glass dedie : Grafana = service non critique (lecture de logs). Si Authelia tombe, on repasse en mode basic temporairement via edition du compose.
+
+**Pourquoi** : respecter la politique uniformement. Grafana n'est pas un service critique → pas de break-glass.
+
+---
+
+## Wallos supprime
+
+**Contexte** : Wallos (tracker d'abonnements) installe initialement, peu utilise.
+
+**Decision** : Supprime (container + volumes + routes Traefik + entree Homepage).
+
+**Pourquoi** : surface d'attaque additionnelle pour un usage marginal. Suppression > maintenance.
 
 ---
 

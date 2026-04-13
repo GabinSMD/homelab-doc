@@ -1,407 +1,195 @@
 # Securite
 
-Mesures de hardening appliquees et principes pour l'infrastructure.
+Doctrine securite : **qui on defend contre quoi, jusqu'ou**, et **comment les credentials sont gerees**.
+
+Pour les mesures techniques par couche (sysctl, firewall rules, SSH, containers) : [hardening.md](hardening.md).
+Pour les actions restantes : [security-roadmap.md](security-roadmap.md).
+Pour la procedure en cas d'incident : [break-glass.md](break-glass.md).
+
+---
 
 ## Modele de menace
 
-Ce qu'on defend, contre qui, jusqu'ou.
-
-### Acteurs consideres
-
 | Acteur | Capacite | Mesures |
 |---|---|---|
-| **Script kiddies internet** | Scans automatises, brute-force | Pas de port forward, Tailscale only, fail2ban, SSH cles |
-| **FAI / man-in-the-middle** | Interception trafic transit | TLS partout, WireGuard mesh, DNSSEC |
-| **Voisin sur LAN compromis** | Acces reseau local | Firewall iptables DROP, services admin restreints LAN+TS |
-| **Vol physique** | Acces physique au RPi/SSD | **PARTIEL** — backups off-site OK, chiffrement disque pas encore (Phase 4) |
-| **Insider / famille** | Acces invite WiFi | A couvrir avec OPNsense + VLANs (Phase 2) |
-| **Supply chain Docker** | Image malveillante | WUD surveille les versions, mais pas de signature verification (todo) |
-| **Compromission cle SSH** | sudo NOPASSWD = root immediat | **Mitigation** : passphrase + YubiKey ssh-agent (todo cote client) |
-| **Phishing TOTP** | Adversary-in-the-middle | **Mitigation** : WebAuthn FIDO2 (YubiKey) actif sur Authelia |
+| Script kiddies internet | Scans automatises, brute-force | Pas de port forward, Tailscale only, fail2ban, SSH cles uniquement |
+| FAI / MITM | Interception trafic | TLS partout, WireGuard mesh (Tailscale), DNSSEC |
+| Voisin LAN compromis | Acces reseau local | Firewall iptables DROP, services admin limites LAN+TS, Authelia 2FA |
+| Vol physique RPi/SSD | Acces direct au disque | Backups off-site OK — chiffrement disque **a faire** (Phase OPNsense) |
+| Invite / famille | WiFi domestique | A couvrir avec OPNsense + VLANs (Phase 2) |
+| Supply chain Docker | Image malveillante | WUD surveille versions — signature verification **a faire** (P2) |
+| Compromission cle SSH | sudo NOPASSWD = root immediat | Passphrase + YubiKey ssh-agent — **a deployer cote client** (P2) |
+| Phishing TOTP (AITM) | Replay credentials | WebAuthn FIDO2 (YubiKey) actif sur Authelia |
 
-### Hors-perimetre
+**Hors perimetre** : APT etat-nation, compromission providers (Cloudflare / LE / Tailscale), vol master Vaultwarden (SPOF assume).
 
-- Etat-nation / APT cible
-- Piratage du provider Cloudflare/Let's Encrypt/Tailscale
-- Vol du compte Vaultwarden master (single point of failure assume)
-
-## Politique de rotation et revocation
-
-| Element | Rotation | Procedure de revocation |
-|---|---|---|
-| **Mots de passe OS root** | A la compromission | Console physique + chpasswd |
-| **Mot de passe gabins** | A la compromission | SSH via Tailscale, chpasswd |
-| **Cles SSH** | Par appareil compromis | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque machine |
-| **Tokens API (Cloudflare, Tailscale)** | 12 mois max | Generer nouveau dans UI provider, rotater dans .env, restart services |
-| **Secrets OIDC (Authelia clients)** | 12 mois max | Regenerer + hash pbkdf2, mettre a jour Authelia + service consommateur |
-| **Authelia internal secrets** | A la compromission uniquement | Migration DB necessaire (encryption_key) |
-| **Vaultwarden master** | Au choix | Via Vaultwarden UI |
-
-## Revocation Tailscale
-
-Procedure pour un appareil vole/perdu/compromis :
-
-1. **Console Tailscale** (login.tailscale.com) > Machines
-2. Selectionner l'appareil > **Disable** (acces immediatement coupe)
-3. Si l'appareil est defintivement perdu : **Remove** (suppression definitive)
-4. Optionnel : invalider toutes les cles et forcer reauth :
-   - **Settings > Keys > Auth keys > Revoke**
-   - Toutes les machines doivent re-authentifier (sauf celles avec key expiry disabled)
-
-## Backups off-site
-
-| Cible | Frequence | Outil | Chiffrement | Cout |
-|---|---|---|---|---|
-| Backblaze B2 | Quotidien (cron 3h) | `homelab_backup.sh` + `rclone sync` | Cote B2 (server-side) | <1€/mois |
-| SD card locale | Quotidien (cron 3h) | `homelab_backup.sh` (tar.gz) | Non | Gratuit |
-
-**Ce qui est sauvegarde** : Vaultwarden DB, Authelia DB, AdGuard config, Traefik certs, Homepage config, scripts, .env (chiffre cote B2).
-
-**Test de restore** : Vaultwarden DB integrite verifiee (`PRAGMA integrity_check`). Voir [backups.md](./backups.md) pour la procedure complete.
-
-
+---
 
 ## Politique de credentials
 
-### Usernames
+### Comptes humains
 
-| Type de compte | Format | Exemple |
-|---|---|---|
-| Administrateur humain | `gabins` | Compte nominatif unique partout |
-| Service automatise | `svc-<fonction>` | `svc-homepage`, `svc-backup` |
-| Fallback OS | `root` | Pas modifiable, cle SSH uniquement |
+**Un seul compte nominatif partout** : `gabins`.
 
-- Jamais de compte `admin`, `gabin` ou `pi` : deviner un nom a peu de valeur mais simplifie les attaques automatisees.
-- `gabins` (pas `gabin`) : legere variation pour casser les scripts qui ciblent le prenom exact.
+- Jamais `admin`, `pi`, ou `gabin` : noms previsibles = cibles automatisees.
+- `gabins` (avec `s`) : legere variation pour casser les scripts.
+- Format futur : `<prenom><initiale_nom>` (ex: `gabins`).
+
+Comptes legacy (`admin`, `gabin`) : **tous supprimes** la ou ils existaient (Grafana admin desactive, Proxmox gabin@authelia retire, etc.).
+
+### Comptes de service
+
+Format `svc-<fonction>` : `svc-homepage`, `svc-backup`. Pas de mot de passe utilisateur — tokens API ou cles SSH exclusivement.
+
+Exceptions admises (pas SSO) :
+- **`root@pam`** sur Proxmox : inevitable (compte systeme). Protection : SSH cle + fail2ban + ACL `gabins@authelia` Administrator prime.
+- **`gabins` AdGuard (bcrypt local)** : AdGuard ne supporte pas OIDC. Mitigation prevue : ForwardAuth Authelia devant.
 
 ### Mots de passe
 
 | Niveau | Services | Longueur | Rotation |
 |---|---|---|---|
-| **Critique** | Proxmox root@pam, Authelia, Vaultwarden master, SSH, VPN | 32 caracteres | A la compromission |
-| **Eleve** | AdGuard, Portainer, Traefik | 32 caracteres | A la compromission |
-| **OIDC** | Secrets clients (Proxmox, Portainer, Beszel) | 64 caracteres hex | 12 mois max |
+| Critique | Authelia, Vaultwarden master, Proxmox root@pam | 32 chars | A la compromission |
+| Eleve | AdGuard local, Portainer fallback | 32 chars | A la compromission |
+| OIDC clients | Secrets OIDC (Proxmox, Portainer, Beszel, Grafana) | 256 bits | 12 mois max |
 
-- Tous les mots de passe sont generes par `openssl rand -base64 48 | head -c 32`.
-- Stockage exclusif dans Vaultwarden.
-- Jamais de mot de passe en clair dans un script, un `.env` versionne, ou un message.
+Generation : `openssl rand -base64 48 | head -c 32`.
+Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne ou un message.
 
 ### Authentification forte
 
 | Service | Methode |
 |---|---|
-| Authelia | TOTP obligatoire (policy `two_factor`) |
-| Proxmox | OIDC via Authelia + TOTP sur root@pam |
-| SSH | Cle Ed25519 uniquement (PasswordAuthentication no) |
+| Authelia | TOTP (obligatoire) + WebAuthn FIDO2 YubiKey |
+| Proxmox galahad/lancelot | OIDC Authelia (two_factor) |
+| Portainer | OIDC Authelia (two_factor) |
+| Grafana | OIDC Authelia (two_factor) + PKCE S256 |
+| Beszel | OIDC Authelia (one_factor — readonly monitoring) |
+| SSH | Cle Ed25519 uniquement, passphrase + YubiKey cote client (P2) |
 | Vaultwarden | Master password + TOTP |
-| Tailscale | WireGuard + identite SSO |
+| Tailscale | WireGuard + SSO identity |
 
-### Cycle de vie
+### Rotation / revocation
 
-- **Compromission** : compte desactive, mot de passe regenere, cles SSH revoquees, sessions terminees.
-- **Audit** : revue trimestrielle des comptes actifs.
-- **Break glass** : pas de compte dedie. Fallback = acces console physique + vault hors-ligne (export chiffre sur cle USB).
-
-Voir aussi : [Naming des machines](../services/naming.md) pour les hostnames du pantheon.
-
-## Authentification centralisee
-
-### Authelia (SSO)
-
-[Authelia](../services/authelia.md) fournit un portail d'authentification unique via OIDC :
-
-| Service | Methode SSO |
-|---|---|
-| Proxmox VE (galahad, lancelot) | OIDC natif (`authelia` realm, defaut) |
-| Portainer | OAuth2 natif |
-| Beszel | OIDC via PocketBase |
-
-Les autres services (AdGuard, Wallos, WUD) conservent leur auth interne.
-
-### Vaultwarden (mots de passe)
-
-[Vaultwarden](../services/vaultwarden.md) stocke tous les credentials du homelab. Pas de SSO par design — c'est le filet de securite si Authelia tombe.
-
-!!! tip "Bonne pratique"
-    Tous les mots de passe services sont generes aleatoirement et stockes dans Vaultwarden. Aucun mot de passe reutilise entre services.
-
-### Fallback
-
-Chaque service critique conserve un acces de secours sans SSO :
-
-| Service | Fallback |
-|---|---|
-| Proxmox | `root@pam` (acces console) |
-| Portainer | Compte local admin |
-| Beszel | Compte local admin |
-| Vaultwarden | Master password (pas de SSO) |
-
-## Hardening penny (RPi 4 / DietPi)
-
-### Surface d'attaque reduite
-
-| Mesure | Detail |
-|---|---|
-| WiFi desactive | Overlay `disable-wifi` dans config.txt |
-| Bluetooth desactive | Pas de stack BT installee |
-| HDMI desactive | `hdmi_ignore_hotplug=1`, `max_framebuffers=0` |
-| Audio desactive | `dtparam=audio=off` |
-| Services minimaux | DietPi n'installe que le strict necessaire |
-| GPU minimal | 16 Mo — pas d'interface graphique |
-
-### SSH
-
-| Mesure | Detail |
-|---|---|
-| Authentification par cle uniquement | `PasswordAuthentication no` |
-| Compte primaire | `gabins` (sudo NOPASSWD) sur toutes les machines |
-| Root SSH penny/guardian | `PermitRootLogin no` (desactive) |
-| Root SSH galahad/lancelot | `PermitRootLogin prohibit-password` (cle uniquement, requis par Proxmox) |
-| Max tentatives | `MaxAuthTries 3` |
-| Ports custom | penny:2806, galahad:2807, lancelot:2808 |
-| X11 forwarding desactive | `X11Forwarding no` |
-
-Fallback : Tailscale SSH reste disponible meme si OpenSSH est bloque.
-
-### Firewall iptables (penny)
-
-Policy `INPUT DROP` — seuls les ports necessaires sont autorises :
-
-| Port | Service | Acces |
+| Element | Rotation | Procedure |
 |---|---|---|
-| 2806 | SSH | Tous (cle requise) |
-| 53 | DNS (AdGuard) | Tous |
-| 80, 443 | HTTP/HTTPS (Traefik) | Tous |
-| 3000 | AdGuard web UI | LAN + Tailscale uniquement |
-| 8080 | Traefik dashboard | LAN + Tailscale uniquement |
-| 9443, 8000 | Portainer | LAN + Tailscale uniquement |
-| 3100 | Homepage | LAN + Tailscale uniquement |
-| 8090 | Beszel | LAN + Tailscale uniquement |
-| 3001 | WUD | LAN + Tailscale uniquement |
-| 8282 | Wallos | LAN + Tailscale uniquement |
-| 45876 | Beszel Agent | LAN + Tailscale uniquement |
+| Mot de passe gabins (OS) | A la compromission | SSH via Tailscale, `passwd` |
+| Cles SSH | Par appareil | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
+| Tokens API (Cloudflare, Tailscale, B2) | 12 mois max | UI provider -> nouveau token -> `.env` -> restart service |
+| Secrets OIDC | 12 mois max | `openssl rand -base64 32` -> hash pbkdf2 -> update Authelia + service |
+| Authelia internals (jwt/session/storage) | A la compromission uniquement | Migration DB necessaire si `encryption_key` change |
+| Master Vaultwarden | Au choix | UI Vaultwarden |
 
-Les interfaces Docker (`docker0`, `br-*`) et Tailscale (`tailscale0`) sont autorisees en INPUT et FORWARD.
+### Revocation Tailscale
 
-Regles persistees via `iptables-persistent` (`/etc/iptables/rules.v4`).
+1. [login.tailscale.com](https://login.tailscale.com) > Machines
+2. Selectionner appareil > **Disable** (acces immediat coupe)
+3. Si perdu definitivement : **Remove**
+4. Reauth globale : **Settings > Keys > Auth keys > Revoke**
 
-### fail2ban
+---
 
-| Parametre | Valeur |
-|---|---|
-| Jail SSH | Port 2806, ban 1h apres 3 tentatives |
-| IPs ignorees | `127.0.0.1/8`, `192.168.1.0/24`, `100.64.0.0/10` |
+## Inventaire des secrets a stocker dans Vaultwarden
 
-### Mises a jour automatiques
+### Authentification primaire
 
-`unattended-upgrades` installe les correctifs de securite Debian automatiquement. Reboot auto a 4h du matin si necessaire (apres les backups a 3h).
+- Master Authelia `gabins` — plain password
+- Backup codes TOTP Authelia (si generes)
+- YubiKey backup codes
 
-### Docker
+### Internals Authelia
 
-| Mesure | Detail |
-|---|---|
-| `no-new-privileges` | Global dans `daemon.json` + par service dans compose |
-| `icc: false` | Inter-container communication desactivee sur le bridge par defaut |
-| Docker socket en `ro` | Tous les containers montent `/var/run/docker.sock:ro` |
-| Pas de ports directs | Tous les services passent par Traefik HTTPS (443), aucun port expose directement |
-| Images a jour | `docker compose pull` + WUD surveille les nouvelles versions |
+- `jwt_secret` (reset password)
+- `session.secret`
+- `storage.encryption_key`
+- `identity_providers.oidc.hmac_secret`
+- OIDC JWKS private key (`oidc.pem`)
 
-### Surface d.attaque penny (ports ouverts)
+### Clients OIDC (secret en clair — les hash pbkdf2 restent dans `configuration.yml`)
 
-| Port | Service | Acces |
-|---|---|---|
-| 53 | DNS (AdGuard) | Tous |
-| 80 | HTTP → redirige 443 | Tous |
-| 443 | HTTPS (Traefik, seul point d'entree) | Tous |
-| 853 | DNS-over-TLS | Tous |
-| 2806 | SSH (cle uniquement) | Tous |
-| 3000 | AdGuard web UI | LAN + Tailscale |
-| 45876 | Beszel Agent | LAN + Tailscale |
+- `proxmox` client secret
+- `portainer` client secret
+- `grafana` client secret
+- `beszel` client secret
 
-7 ports ouverts. Tous les autres services (Portainer, Beszel, Homepage, WUD, Wallos) sont accessibles **uniquement via Traefik HTTPS + Authelia 2FA**.
+### OS / Infra
 
-## Acces distant
+- `root@pam` Proxmox galahad + lancelot
+- Passphrases cles SSH (par machine)
+- bcrypt AdGuard gabins
+- Portainer admin (fallback)
 
-### Tailscale (VPN mesh + SSH)
+### Externals
 
-- Acces a tous les services via IP Tailscale — pas de port expose sur Internet
-- Pas de port forwarding sur la Freebox
-- ACLs dans la console Tailscale admin
+- Cloudflare API token (`CF_DNS_API_TOKEN`)
+- Tailscale auth key (`TS_AUTHKEY`)
+- Backblaze B2 credentials (`B2_ACCOUNT_ID`, `B2_ACCOUNT_KEY`)
+- ntfy topic URL
 
-**Tailscale SSH** actif sur les 3 machines (homelab, galahad, lancelot) :
+### Homepage widgets (readonly service accounts)
 
-- Authentification via identite Tailscale (pas de cles SSH a gerer)
-- Certificats a rotation automatique
-- Aucun port 22 expose — tunnel WireGuard
-- Mode `check` : validation navigateur a chaque connexion (MFA)
-- Logs centralises dans la console Tailscale
+- `HOMEPAGE_VAR_PVE_TOKEN_ID` + `_SECRET`
+- `HOMEPAGE_VAR_PORTAINER_KEY`
+- `HOMEPAGE_VAR_BESZEL_USER` + `_PASS`
+- `HOMEPAGE_VAR_ADGUARD_USER` + `_PASS`
+
+### Hors Vault (volontaire — eviter la dependance circulaire)
+
+- **Restic backup password** : cle USB physique + copie papier. Si Vault perdu + restic perdu = backups illisibles.
+- **Master password Vaultwarden** : dans la tete + papier en coffre.
+
+---
+
+## Access distant
+
+### Tailscale mesh
+
+Acces a tous les services via IP Tailscale (`100.64.0.0/10`). **Aucun port Freebox forwarde** — tout passe par le tunnel WireGuard.
+
+**Tailscale SSH** actif sur homelab / galahad / lancelot :
+- Auth par identite Tailscale (pas de cles a gerer)
+- Mode `check` : validation navigateur a chaque connexion (MFA implicite)
+- Certificats rotated automatiquement
+- Aucun port 22 expose
 
 ```bash
-# Connexion depuis n'importe quel device Tailscale
-ssh gabins@penny    # RPi 4
-ssh gabins@galahad       # ZimaBoard 1
-ssh gabins@lancelot       # ZimaBoard 2
+ssh gabins@homelab    # penny via Tailscale
+ssh gabins@pve1       # galahad (Tailscale hostname pas encore renomme)
+ssh gabins@pve2       # lancelot (idem)
 ```
 
 ### TLS partout
 
-- **Traefik** — certificats Let's Encrypt automatiques (DNS challenge Cloudflare) sur tous les services `*.home.gabin-simond.fr`
-- **Proxmox** — accessible via Traefik (cert valide) + fallback IP:8006 (cert auto-signe)
-- Pas de HTTP en clair expose
+Traefik termine le TLS avec certificats Let's Encrypt (DNS challenge Cloudflare) sur `*.home.gabin-simond.fr`.
 
-## Secrets
+CAA records actifs : `letsencrypt.org` uniquement + `iodef mailto:`.
 
-| Mesure | Detail |
-|---|---|
-| `.env` non versionne | Tokens API, credentials dans un fichier exclu de git |
-| Repo prive | `homelab-config` est prive sur GitHub |
-| Authelia config exclue | Secrets OIDC dans `.gitignore`, seuls les `.example` sont versionnes |
-| Cle OIDC privee | `oidc.pem` exclue du repo |
-| Pas de secrets dans les labels | Configs sensibles via env vars ou bind mounts |
+---
 
-## Architecture cible — securite reseau
+## SSO Authelia — resume
 
-### Segmentation VLANs
+| Service | Methode | Policy | Consent |
+|---|---|---|---|
+| Proxmox galahad/lancelot | OIDC natif | two_factor | pre-configured 1y |
+| Portainer | OIDC natif | two_factor | pre-configured 1y |
+| Grafana | OIDC natif + PKCE | two_factor | pre-configured 1y |
+| Beszel | OIDC natif + PKCE | one_factor | pre-configured 1y |
+| Traefik dashboard | ForwardAuth Authelia | two_factor (default) | N/A |
+| AdGuard UI | ForwardAuth — **a ajouter** | — | — |
+| Homepage | **Aucune auth actuellement — a ajouter** | — | — |
 
-La segmentation en VLANs est la principale mesure de securite reseau prevue :
+Voir [services/authelia.md](../services/authelia.md) pour les configs.
 
-```mermaid
-graph TD
-    Internet -->|WAN| FW[OPNsense]
-    FW -->|regles strictes| MGMT[VLAN 10<br/>Management]
-    FW -->|regles strictes| SVC[VLAN 20<br/>Services]
-    FW -->|regles strictes| LAN[VLAN 30<br/>LAN perso]
-    FW -->|regles strictes| IOT[VLAN 40<br/>IoT]
-    FW -->|regles strictes| GUEST[VLAN 50<br/>Invites]
-    
-    IOT -.->|isole| LAN
-    GUEST -.->|isole| SVC
-    
-    style FW fill:#e74c3c,color:#fff
-    style IOT fill:#f39c12,color:#fff
-    style GUEST fill:#95a5a6,color:#fff
-```
+---
 
-**Principe de moindre privilege** — chaque VLAN n'a acces qu'a ce dont il a strictement besoin. Voir la [page VLANs](../network/vlans.md) pour le detail des regles firewall.
+## Backups off-site
 
-### Points cles
+| Cible | Frequence | Outil | Chiffrement |
+|---|---|---|---|
+| Backblaze B2 | Quotidien (3h) | `homelab_backup.sh` + restic | AES-256 client-side |
+| SD card locale | Quotidien (3h) | `homelab_backup.sh` (tar.gz) | Non |
 
-- **IoT isole** — les objets connectes ne peuvent pas acceder au LAN personnel ni aux services
-- **Invites isoles** — acces internet uniquement, aucune visibilite sur le reseau interne
-- **Management restreint** — seul le VLAN 10 peut administrer les equipements
-- **Firewall dedie** — bare-metal OPNsense pour eviter les SPOF
+Retention restic : 7 daily / 4 weekly / 6 monthly + prune auto.
+DR drill Vaultwarden : **RTO 7 secondes** (valide 2026-04-13). A repeter trimestriellement.
 
-## Hardening Proxmox (galahad + lancelot)
-
-| Mesure | Detail |
-|---|---|
-| SSH cles uniquement | `PermitRootLogin prohibit-password`, `PasswordAuthentication no` |
-| fail2ban (galahad) | Jails SSH + Proxmox web (ban 1h / 3 tentatives) |
-| rpcbind desactive | Service inutile masque sur les deux noeuds |
-| unattended-upgrades (galahad) | Patches securite automatiques |
-| Tailscale SSH | Acces alternatif sans port 22 expose |
-
-!!! note "lancelot (Trixie / Debian 13)"
-    fail2ban n'est pas encore disponible dans les repos Trixie. Le firewall Proxmox integre (`pve-firewall`) compense. A installer des que le paquet est disponible.
-
-## Traefik — dashboard protege
-
-Le dashboard Traefik (`traefik.home.gabin-simond.fr`) est protege par **Authelia ForwardAuth** :
-
-- Toute requete vers le dashboard est redirigee vers Authelia pour authentification
-- Le port 8080 n'est **plus expose** sur le host (uniquement interne pour le healthcheck)
-- Le middleware `authelia@docker` est defini dans les labels du container Authelia
-
-## Resume des mesures de securite
-
-| Couche | Mesure | Machines |
-|---|---|---|
-| Reseau | Firewall iptables (INPUT DROP) | penny |
-| Reseau | Tailscale (pas de port forwarding) | Toutes |
-| Reseau | Port 8080 ferme | penny |
-| Auth | SSH cles uniquement | Toutes |
-| Auth | fail2ban | penny, galahad |
-| Auth | Authelia SSO (OIDC) | Proxmox, Portainer, Beszel |
-| Auth | Authelia ForwardAuth | Traefik dashboard |
-| Auth | Vaultwarden (master password, pas SSO) | Independant |
-| Systeme | unattended-upgrades | penny, galahad |
-| Systeme | no-new-privileges (Docker) | penny |
-| Systeme | rpcbind desactive | galahad, lancelot |
-| Systeme | Surface d'attaque reduite (WiFi, BT, HDMI off) | penny |
-| Reseau | sysctl hardening (rp_filter, SYN flood, source route, martians) | Toutes |
-| Auth | SSH ports custom (penny:2806, galahad:2807, lancelot:2808) | Toutes |
-| Chiffrement | TLS partout (Let's Encrypt) | penny (Traefik) |
-| Chiffrement | WireGuard (Tailscale) | Toutes |
-| Auth | Authelia 2FA (TOTP) sur tous les services SSO | penny |
-| Reseau | Security headers HTTPS (HSTS, CSP, X-Frame, Permissions-Policy) | penny (Traefik) |
-| Systeme | Docker socket en read-only sur tous les containers | penny |
-| Systeme | Comptes inutilises verrouilles (nologin + locked) | penny |
-| Secrets | Permissions 600 sur .env et configs Authelia | penny |
-| Secrets | .env non versionne, secrets exclus de git | penny |
-| Auth | Compte `gabins` + sudo NOPASSWD | Toutes |
-| Reseau | Firewall Proxmox cluster (INPUT DROP) | galahad, lancelot |
-| Reseau | Rate limit Traefik sur Authelia (10 req/s) | penny |
-| Reseau | DNSSEC validation | penny + guardian (AdGuard) |
-| Reseau | CAA records DNS (Let's Encrypt + iodef) | Cloudflare zone |
-| Backup | Vaultwarden DB testee (PRAGMA integrity_check OK) | penny |
-| Auth | WebAuthn FIDO2 (YubiKey) actif | Authelia |
-| Reseau | docker-socket-proxy (endpoints whitelist) | penny |
-| Systeme | cap_drop ALL + cap_add minimal | Vaultwarden, Authelia |
-| Systeme | read_only impossible (Authelia ecrit /app) | — |
-| Systeme | Reseau `socket` interne (no internet) | socket-proxy clients |
-
-## Firewall Proxmox
-
-Actif au niveau cluster sur galahad et lancelot.
-
-### Configuration
-
-`/etc/pve/firewall/cluster.fw` (synchronise entre les nodes) :
-
-```ini
-[OPTIONS]
-enable: 1
-policy_in: DROP
-policy_out: ACCEPT
-policy_forward: ACCEPT
-
-[RULES]
-IN ACCEPT -p icmp -log nolog
-IN ACCEPT -p tcp -dport 8006 -source 192.168.1.0/24 -log nolog
-IN ACCEPT -p tcp -dport 8006 -source 100.64.0.0/10 -log nolog
-IN ACCEPT -p tcp -dport 2807 -log nolog
-IN ACCEPT -p tcp -dport 2808 -log nolog
-IN ACCEPT -source 192.168.1.0/24 -p tcp -dport 3128 -log nolog
-IN ACCEPT -i tailscale0 -log nolog
-```
-
-### Ce qui est ouvert
-
-- **ICMP** : ping
-- **8006** : interface web Proxmox, LAN + Tailscale uniquement
-- **2807** (galahad), **2808** (lancelot) : SSH avec cle
-- **3128** : cluster corosync
-- **tailscale0** : interface entiere Tailscale autorisee
-
-Tout le reste est DROP.
-
-### Activation
-
-```bash
-# Sur chaque node
-pve-firewall compile
-pve-firewall start
-pve-firewall status  # doit afficher "enabled/running"
-```
-
-## lancelot (Trixie) — protection brute-force
-
-fail2ban et CrowdSec ne sont pas disponibles dans les repos Debian 13 (Trixie) au moment de l'installation. Defense en profondeur alternative :
-
-- **PasswordAuthentication no** : pas de vecteur brute-force SSH (cle uniquement)
-- **Port SSH custom** (2808) : evite les scanners automatises qui ciblent le port 22
-- **MaxAuthTries 3** : limite les tentatives par connexion
-- **Firewall Proxmox** : policy INPUT DROP, seuls les ports necessaires sont autorises
-- **Unattended-upgrades** : patches de securite automatiques
-
-fail2ban sera installe des qu'il sera disponible dans les repos Trixie (ou via backports).
+Voir [backups.md](backups.md) pour la procedure complete.

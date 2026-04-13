@@ -1,62 +1,59 @@
 # Acces et URLs
 
-Reference rapide de tous les services et leurs points d'acces.
+Reference rapide — tous les services et leurs points d'acces.
 
-## Services web
+## Services web (via Traefik)
 
-| Service | Port | Acces local | Acces Traefik |
+| Service | URL publique (home.gabin-simond.fr) | Auth | Host |
 |---|---|---|---|
-| **Traefik** (dashboard) | 8080 | `http://IP:8080` | `traefik.home.*.fr` |
-| **AdGuard Home** | 3000 | `http://IP:3000` | `adguard.home.*.fr` |
-| **Portainer** | 9443 | `https://IP:9443` | `portainer.home.*.fr` |
-| **Homepage** | 3100 | `http://IP:3100` | `home.*.fr` |
-| **Wallos** | 8282 | `http://IP:8282` | `wallos.home.*.fr` |
-| **Beszel** | 8090 | `http://IP:8090` | `monitor.home.*.fr` |
-| **WUD** | 3001 | `http://IP:3001` | `wud.home.*.fr` |
-| **Authelia** (SSO) | 9091 | — | `auth.home.*.fr` |
-| **Vaultwarden** | 80 | — | `vault.home.*.fr` |
-| **Proxmox pve1** | 8006 | `https://192.168.1.18:8006` | `pve1.home.*.fr` |
-| **Proxmox pve2** | 8006 | `https://192.168.1.19:8006` | `pve2.home.*.fr` |
+| **Homepage** | `home.*` | **Aucune** (a proteger) | penny |
+| **Traefik dashboard** | `traefik.home.*` | ForwardAuth Authelia | penny |
+| **AdGuard Home** | `adguard.home.*` | bcrypt local (ForwardAuth a ajouter) | penny (host net) |
+| **Authelia (SSO)** | `auth.home.*` | MFA TOTP + YubiKey | penny |
+| **Portainer** | `portainer.home.*` | OIDC Authelia | penny |
+| **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
+| **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE) | LXC observability / lancelot |
+| **WUD** | `wud.home.*` | Aucune | penny |
+| **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / lancelot |
+| **Proxmox galahad** | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) |
+| **Proxmox lancelot** | `lancelot.home.*` | OIDC Authelia / root@pam | lancelot (bare metal) |
+| **Docs** | `homelab.gabin-simond.fr` | Aucune (publique) | hors infra (Cloudflare Pages / hebergement) |
 
-## Authentification
+## Services reseau (ports ouverts)
 
-| Service | Methode | SSO Authelia |
-|---|---|---|
-| Proxmox | OIDC (`authelia` realm) | Oui |
-| Portainer | OAuth2 | Oui |
-| Beszel | OIDC (PocketBase) | Oui |
-| Vaultwarden | Master password | Non (par design) |
-| AdGuard | Login interne | Non |
-| Autres | Login interne ou aucun | Non |
-
-## Services reseau
-
-| Service | Port | Protocole | Usage |
+| Service | Port | Protocole | Scope firewall |
 |---|---|---|---|
-| **AdGuard DNS** | 53 | TCP/UDP | DNS resolver pour le LAN |
-| **AdGuard DoT** | 853 | TCP | DNS-over-TLS |
-| **AdGuard DHCP** | 67 | UDP | DHCP (optionnel) |
-| **Traefik HTTP** | 80 | TCP | Redirige vers HTTPS |
-| **Traefik HTTPS** | 443 | TCP | Reverse proxy TLS |
-| **Portainer Edge** | 8000 | TCP | Portainer Edge agent |
-| **Beszel Agent** | 45876 | TCP | Monitoring agent |
+| AdGuard DNS | 53 | TCP/UDP | Tous |
+| AdGuard DoT | 853 | TCP | Tous |
+| Traefik HTTP → HTTPS | 80 | TCP | Tous |
+| Traefik HTTPS | 443 | TCP | Tous |
+| SSH penny | 2806 | TCP | Tous (cle obligatoire) |
+| SSH galahad | 2807 | TCP | Tous (cle obligatoire) |
+| SSH lancelot | 2808 | TCP | Tous (cle obligatoire) |
+| AdGuard UI | 3000 | TCP | LAN + Tailscale |
+| Beszel Agent | 45876 | TCP | LAN + Tailscale |
+
+Tout le reste est DROP.
 
 ## Acces distant
 
 | Methode | Detail |
 |---|---|
-| **Tailscale** | VPN mesh — acces a tous les services via IP Tailscale |
-| **SSH** | Port 22, via Tailscale uniquement (recommande) |
+| Tailscale | VPN mesh, acces a tous les services via IP Tailscale (`100.64.0.0/10`) |
+| Tailscale SSH | Mode `check` (navigateur MFA), certs auto-rotated, pas de port 22 expose |
 
 ## LXC Proxmox
 
-| ID | Nom | Machine | IP | Role |
+| ID | Nom | Host | IP LAN | Role |
 |---|---|---|---|---|
-| 100 | guardian | pve1 | `192.168.1.30` / `100.74.145.26` (Tailscale) | AdGuard secondaire + health check RPi |
+| 100 | guardian | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
+| 101 | observability | lancelot | `192.168.1.31` | Loki + Grafana |
+| 102 | vault | lancelot | `192.168.1.32` | Vaultwarden |
 
-## Reseaux Docker
+## Reseaux Docker (penny)
 
 | Reseau | Type | Usage |
 |---|---|---|
-| `proxy` | bridge | Services proxifies par Traefik |
-| `host` | host | Tailscale, Beszel Agent |
+| `proxy` | bridge | Services reverse-proxies par Traefik |
+| `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, WUD, autoheal) |
+| `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
