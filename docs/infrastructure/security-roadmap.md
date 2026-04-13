@@ -11,22 +11,6 @@ Etat au **2026-04-13**. Priorite : `impact / effort`.
 
 ### P1 — Important
 
-#### AdGuard derriere Authelia ForwardAuth
-
-**Probleme** : UI AdGuard (`adguard.home.gabin-simond.fr`) actuellement protegee uniquement par son bcrypt local. AdGuard ne supporte pas OIDC natif.
-
-**Action** : middleware `authelia@docker` sur le router Traefik `adguard`. Double barriere (Authelia SSO puis AdGuard login).
-
-**Effort** : 15 min.
-
-#### Homepage derriere Authelia ForwardAuth
-
-**Probleme** : dashboard accessible sur LAN/Tailscale sans auth, expose tokens via widgets.
-
-**Action** : ajouter `authelia@docker` au router Traefik homepage.
-
-**Effort** : 10 min.
-
 #### Sysctl additionnels
 
 **A completer** sur penny, galahad, lancelot :
@@ -131,6 +115,19 @@ A caler avec reinstall Trixie galahad. Cle ZFS dans TPM ZimaBoard si dispo, sino
     - ICC disabled sur bridge par defaut
     - Plus aucun port direct expose (tout via Traefik HTTPS)
     - `read_only: true` + tmpfs sur Traefik + Homepage (teste 2026-04-13)
+    - Pinning digests `@sha256:...` sur Vaultwarden, Authelia, Traefik (supply chain)
+
+??? success "ForwardAuth Authelia (services sans OIDC natif)"
+    - Traefik dashboard
+    - Homepage (etait sans auth)
+    - AdGuard primaire (etait bcrypt seul)
+    - AdGuard secondaire guardian (nouveau route adguard-guardian.home.*)
+
+??? success "Rotation secrets"
+    - 4 clients OIDC rotates 2026-04-13 (proxmox, portainer, grafana, beszel)
+    - AdGuard bcrypt rotated 2026-04-13 (penny + guardian)
+    - Pre-commit hook anti-leak (scripts/pre-commit-secret-scan.sh)
+    - Plains stockes dans Vaultwarden
 
 ??? success "Audit / detection"
     - Lynis + cron hebdo + ntfy (penny 76, galahad 68, lancelot 69)
