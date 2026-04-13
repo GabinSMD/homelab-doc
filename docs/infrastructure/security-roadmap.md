@@ -9,34 +9,9 @@ Etat au **2026-04-13**. Priorite : `impact / effort`.
 
 ## En cours / a faire
 
-### P1 — Important (1-3h chacun)
+### P1 — Important
 
-#### Migration galahad vers Trixie
-
-**Gain** : iso avec lancelot, memes versions paquets, operations simplifiees.
-
-**Risque** : migration cluster 1 node a la fois, ~1h downtime.
-
-**Effort** : 2-3h.
-
-#### Lynis quick wins (gain estime +5-10 points score)
-
-Apt installs sur galahad+lancelot+penny :
-```bash
-apt install -y libpam-tmpdir needrestart apt-listbugs libpam-passwdqc
-```
-
-Edits `/etc/login.defs` :
-```ini
-ENCRYPT_METHOD YESCRYPT
-SHA_CRYPT_MIN_ROUNDS 65536
-PASS_MIN_DAYS 1
-PASS_MAX_DAYS 365
-PASS_WARN_AGE 14
-UMASK 027
-```
-
-**Effort** : 30 min (4 hosts). Voir [hardening.md#scores-lynis](hardening.md#scores-lynis) pour le detail des suggestions.
+**Plus aucun item bloquant en P1**. La migration galahad -> Trixie etait deja faite (constat 2026-04-13). Les Lynis quick wins (login.defs + apt installs PAM) ont ete appliques 2026-04-13.
 
 ---
 
@@ -111,6 +86,8 @@ Suggestion Lynis BOOT-5264. Run `systemd-analyze security` par service, ajuster 
     - Comptes `gabins` partout, plus de `gabin` legacy
     - Sudo NOPASSWD (cle SSH = auth forte)
     - SSH hardening Lynis (`AllowTcpForwarding no`, etc.)
+    - **Login.defs hardened** (UMASK 027, ENCRYPT_METHOD YESCRYPT, SHA_CRYPT_MIN_ROUNDS 65536, PASS_MIN/MAX/WARN) sur penny+galahad+lancelot
+    - **PAM password strength** (libpam-passwdqc), libpam-tmpdir, needrestart, apt-listbugs sur 3 hosts
 
 ??? success "OIDC SSO (Authelia)"
     - Proxmox galahad + lancelot (Administrator sur gabins@authelia)
@@ -174,5 +151,6 @@ Suggestion Lynis BOOT-5264. Run `systemd-analyze security` par service, ajuster 
     - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement observability, 2026-04-13)
     - Decommission container Vaultwarden penny prevu 2026-04-27
     - Proxmox cluster : pve1/pve2 -> galahad/lancelot
+    - **Galahad + lancelot deja sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster
     - Tailscale : container -> host natif (SSH natif)
     - Wallos : supprime
