@@ -75,13 +75,13 @@ Les containers sur `proxy` qui doivent resoudre `*.home.gabin-simond.fr` (pour c
 | `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, Watchtower, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
 
+Pour les implications securite (ICC, surface d'attaque inter-containers), voir [hardening — reseaux Docker](../securite/hardening.md#reseaux-docker--isolation-et-icc).
+
 ## Socket proxy — isolation Docker API
 
-Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par necessite admin). Tout passe par `socket-proxy`. Watchtower utilise aussi le proxy pour verifier et pull les images.
+Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par necessite admin). Tout passe par `socket-proxy` sur le reseau `socket` (internal, pas d'internet).
 
-- **Endpoints autorises** : CONTAINERS, NETWORKS, SERVICES, TASKS, EVENTS, IMAGES, INFO, VERSION, PING, POST
-- **Endpoints DROPPED** : AUTH, SECRETS, EXEC, VOLUMES, BUILD, COMMIT, CONFIGS, DISTRIBUTION, NODES, PLUGINS, SESSION, SWARM, SYSTEM
-- Reseau `socket` marque `internal: true` — pas d'acces internet depuis ce reseau
+Pour la liste detaillee des endpoints autorises/bloques et l'analyse de surface d'attaque, voir [hardening — socket proxy](../securite/hardening.md#socket-proxy).
 
 ## LXC Proxmox
 
