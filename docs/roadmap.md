@@ -11,13 +11,13 @@
 - [x] Monitoring Beszel sur les 3 machines (RPi + galahad + lancelot)
 - [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
 - [x] Activer Tailscale SSH sur les 3 machines (RPi, galahad, lancelot)
-- [x] Backups automatiques quotidiens (volumes Docker + configs → SD card + ntfy)
+- [x] Backups automatiques quotidiens (restic → Backblaze B2 chiffre AES-256 + ntfy)
 - [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
 - [x] Healthchecks Docker + autoheal (restart auto des containers unhealthy)
 - [x] Auto-recovery SSD (remount + fsck + restart Docker apres deconnexion USB)
-- [x] LXC "guardian" sur galahad (AdGuard secondaire + health check externe RPi)
-- [ ] Configurer DNS secondaire sur Freebox + Tailscale
-- [ ] Se familiariser avec Proxmox (LXC, VM, cluster)
+- [x] LXC "dns-failover" sur galahad (AdGuard secondaire + health check externe RPi)
+- [x] Configurer DNS secondaire (dns-failover LXC 100 sur galahad + Tailscale DNS)
+- [x] Se familiariser avec Proxmox (cluster galahad + lancelot operationnel, LXC deployes)
 
 ## Phase 2 — Avant emmenagement
 
@@ -42,5 +42,5 @@
 - [ ] Ajouter comme 3eme noeud Proxmox (compute + storage) → quorum natif
 - [ ] Configurer ZFS mirror pour le stockage
 - [ ] Mettre en place les backups (Proxmox Backup Server sur ZimaBoard → NAS)
-- [x] Deployer AdGuard secondaire en LXC (redondance DNS) — LXC 100 "guardian" sur galahad
+- [x] Deployer AdGuard secondaire en LXC (redondance DNS) — LXC 100 "dns-failover" sur galahad
 - [ ] UPS pour le coffret technique

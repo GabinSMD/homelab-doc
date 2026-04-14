@@ -127,7 +127,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Homepage (etait sans auth)
     - AdGuard primaire (etait bcrypt seul)
     - AdGuard secondaire dns-failover (route dns-failover.home.*)
-    - **WUD** (etait expose anonyme + Traefik sans auth — ferme 2026-04-13)
+    - **WUD** (etait expose anonyme — remplace par Watchtower headless 2026-04-14)
 
 ??? success "Authelia session config explicite"
     - `expiration: 4h`
@@ -155,11 +155,11 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ??? success "Containers"
     - docker-socket-proxy + reseau `socket` isole
-    - `cap_drop: ALL` sur Authelia, Traefik, Homepage, WUD, Beszel
+    - `cap_drop: ALL` sur Authelia, Traefik, Homepage, Watchtower, Beszel
     - `no-new-privileges: true` global
     - ICC disabled sur bridge par defaut
     - Plus aucun port direct expose (tout via Traefik HTTPS)
-    - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, WUD
+    - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, Watchtower
     - **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
     - **Cosign installe** (apt Trixie) — verifie : aucune des 3 images critiques n'est signed upstream, attendre evolution
     - Healthchecks Beszel + Portainer + beszel-agent : non applicable (images scratch/distroless, aucun outil CLI disponible)
@@ -189,7 +189,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Watchdog hardware BCM2835 (penny)
     - Autoheal (restart containers unhealthy)
     - Auto-recovery SSD (device rename detection)
-    - Guardian LXC (health check externe penny depuis lancelot)
+    - dns-failover LXC (health check externe penny depuis galahad)
     - DNS redondant primaire/secondaire
 
 ??? success "Supply chain code"

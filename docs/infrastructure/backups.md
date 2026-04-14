@@ -71,8 +71,8 @@ graph LR
 
 | LXC | Contenu | Host | Criticite |
 |---|---|---|---|
-| 100 (guardian) | AdGuard secondaire | galahad | Moyenne |
-| 101 (observability) | Loki + Grafana | lancelot | Faible |
+| 100 (dns-failover) | AdGuard secondaire | galahad | Moyenne |
+| 101 (logs) | Loki + Grafana | lancelot | Faible |
 | 102 (vault) | Vaultwarden | galahad | **Critique** |
 
 ### Via vzdump (quotidien, 1h du matin)

@@ -12,7 +12,7 @@ Pour la roadmap des actions restantes, voir [security-roadmap.md](security-roadm
 
 | Machine | Score | Date | Δ | Notes |
 |---|---|---|---|---|
-| penny | **77/100** | 2026-04-13 (re-run) | +1 | Debian 12 / DietPi / RPi4 — kptr_restrict + read_only Beszel/WUD |
+| penny | **77/100** | 2026-04-13 (re-run) | +1 | Debian 12 / DietPi / RPi4 — kptr_restrict + read_only Beszel/Watchtower |
 | galahad | **68/100** | 2026-04-13 (re-run) | 0 | Debian 13 / Proxmox 9 |
 | lancelot | **70/100** | 2026-04-13 (re-run) | +1 | Debian 13 / Proxmox 9 — auditd reactive |
 
@@ -132,15 +132,7 @@ blacklist tipc
 
 ### Watchdog hardware
 
-```ini
-# /etc/watchdog.conf
-watchdog-device  = /dev/watchdog
-watchdog-timeout = 15
-max-load-1       = 24
-interface        = eth0
-```
-
-`bcm2835_wdt` dans `/etc/modules`. Reboot automatique si kernel freeze en 15s.
+Voir [os-optimizations.md](os-optimizations.md#watchdog-hardware-bcm2835) pour la configuration complete. Timeout 15s, module `bcm2835_wdt`.
 
 ### Comptes
 
@@ -167,18 +159,9 @@ Rules dans `/etc/audit/rules.d/homelab.rules` :
 
 Actif, reboot auto a 4h si necessaire (apres backups 3h). Upgrades securite Debian uniquement.
 
-### Docker daemon (`/etc/docker/daemon.json`)
+### Docker daemon
 
-```json
-{
-    "data-root": "/mnt/ssd/docker",
-    "log-driver": "journald",
-    "log-level": "warn",
-    "debug": false,
-    "icc": false,
-    "no-new-privileges": true
-}
-```
+Voir [os-optimizations.md](os-optimizations.md#daemonjson) pour la configuration complete. Points securite : `icc: false` (inter-container OFF), `no-new-privileges: true`.
 
 ---
 
@@ -233,14 +216,13 @@ IN ACCEPT -i tailscale0 -log nolog
 | Vecteur | Mitigation |
 |---|---|
 | Acces externe (Internet/LAN) sur services backend | Tous via Traefik HTTPS + Authelia (ForwardAuth ou OIDC) |
-| Acces interne anonyme WUD | Connu, accepte (recon-only). Authelia gates externe. |
+| Acces interne ancien WUD | Resolu — WUD remplace par Watchtower (headless, pas d'API/UI). |
 | Container compromis -> Docker API | socket-proxy whitelistee (CONTAINERS/NETWORKS/EVENTS/IMAGES, pas EXEC/SECRETS/VOLUMES) |
 | Container compromis -> Authelia internals | Sessions chiffrees + storage encryption_key |
 
 ### A faire (P2)
 
-- ICC=false sur reseau `proxy` : cassrait Traefik routing -> necessite split en sous-reseaux (1 par backend, partage avec Traefik).
-- WUD auth interne : tente bcrypt 2026-04-13, WUD rejette les creds malgre validation hash. A retest quand WUD documente mieux ou via reverse proxy basic auth devant.
+- ICC=false sur reseau `proxy` : casserait Traefik routing -> necessite split en sous-reseaux (1 par backend, partage avec Traefik).
 
 ---
 
@@ -258,7 +240,7 @@ IN ACCEPT -i tailscale0 -log nolog
 - `POST: 1` (pour autoheal)
 - Bloque : `EXEC`, `SECRETS`, `BUILD`, `VOLUMES`, `CONFIGS`, `SWARM`, `NODES`, `AUTH`, `SYSTEM`
 
-Clients socket-proxy : Traefik, Homepage, WUD, autoheal.
+Clients socket-proxy : Traefik, Homepage, Watchtower, autoheal.
 
 Clients socket direct : **Portainer uniquement** (admin tool necessite acces complet).
 
@@ -271,7 +253,7 @@ Clients socket direct : **Portainer uniquement** (admin tool necessite acces com
 | Traefik | ALL | `NET_BIND_SERVICE` |
 | Homepage | ALL | (aucune, read-only) |
 | Beszel | ALL | (aucune) |
-| WUD | ALL | (aucune) |
+| Watchtower | ALL | (aucune) |
 | socket-proxy | ALL (par design) | (gere par le proxy) |
 | AdGuard | non applicable | DHCP + host network necessite plus |
 | Portainer | non applicable | admin tool |
@@ -284,15 +266,14 @@ Clients socket direct : **Portainer uniquement** (admin tool necessite acces com
 | Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
 | Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'etat |
 | Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
-| Beszel, WUD | ⚠️ non teste | — | candidats potentiels |
+| Beszel, Watchtower | ⚠️ non teste | — | candidats potentiels |
 
 ### Ports directs supprimes
 
 Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports directs **supprimes** :
 - Portainer : 8000, 9443
 - Homepage : 3100
-- Wallos : 8282
-- WUD : 3001
+- Watchtower : pas de port (headless)
 - Beszel : 8090
 - Traefik dashboard : 8080 (accessible uniquement via reseau `socket` pour healthcheck)
 
@@ -302,76 +283,12 @@ Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart l
 
 ---
 
-## Authelia
+## Voir aussi
 
-### Policy
-
-- `default_policy: two_factor` — TOTP obligatoire sur tous les services.
-- WebAuthn FIDO2 active (YubiKey support) avec `attachment: cross-platform`.
-- `user_verification: preferred`.
-
-### Secrets rotation
-
-- `jwt_secret`, `session.secret`, `hmac_secret` : genere par `openssl rand -hex 32`, rotation a la compromission.
-- `storage.encryption_key` : rotation necessite migration DB (Authelia CLI).
-- OIDC client secrets : hash pbkdf2, rotation 12 mois.
-
-### OIDC clients
-
-- `proxmox` : Proxmox VE realms (OIDC natif)
-- `portainer` : OAuth2 (attention : `client_secret_post` supporte)
-- `beszel` : OIDC
-
----
-
-## Traefik
-
-### Middlewares globaux
-
-Appliques sur `websecure` par defaut :
-
-- `security-headers` (HSTS, CSP, X-Frame, Referrer, Permissions)
-
-### Middlewares specifiques
-
-- `auth-rate-limit` : 10 req/s burst 20 sur `auth.home.gabin-simond.fr`
-- `authelia` (ForwardAuth) : sur Traefik dashboard et services critiques
-
-### TLS
-
-- Let's Encrypt via DNS challenge Cloudflare
-- CAA records DNS : Let's Encrypt + iodef
-- Pas de HTTP en clair expose (redirect 80 -> 443)
-
----
-
-## Backups
-
-### Restic (client-side AES-256)
-
-- Repo : `b2:gabin-homelab-backups:restic`
-- Cle : `/root/.restic-env` (chmod 600)
-- Cle backup : Vaultwarden + cle USB hors-ligne
-- Quotidien 3h, retention 7d/4w/6m + prune
-
-### Legacy (tar.gz + rclone sync)
-
-- Conserve en parallele 2-4 semaines
-- Exclude `restic/**` dans rclone sync
-
-### DR drill
-
-- Test trimestriel minimum
-- Dernier : 2026-04-13, RTO 7s (Vaultwarden from B2)
-
----
-
-## Tailscale
-
-- Installe sur **host** de chaque machine (pas container) pour Tailscale SSH natif
-- Key expiry **disabled** sur les serveurs (homelab, galahad, lancelot, dns-failover)
-- Key expiry **actif** sur les clients mobiles (MacBook, iPhone)
-- DNS : primaire `100.97.239.90` (penny), secondaire `100.74.145.26` (dns-failover)
+- [Authelia (SSO)](../services/authelia.md) — configuration SSO, clients OIDC, secrets rotation
+- [Traefik](../services/traefik.md) — middlewares, TLS, reverse proxy
+- [Backups](backups.md) — architecture, retention, restauration
+- [Tailscale ACLs](../network/tailscale-acls.md) — VPN mesh, key expiry, ACL policy
 
 ---
 

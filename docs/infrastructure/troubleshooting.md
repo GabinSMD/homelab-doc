@@ -1,6 +1,55 @@
-# Troubleshooting
+# Maintenance et depannage
 
-Problemes rencontres et leurs resolutions.
+Procedures de maintenance courante et resolution des problemes rencontres.
+
+---
+
+## Mises a jour
+
+### DietPi
+
+```bash
+dietpi-update          # Met a jour DietPi + paquets
+apt update && apt upgrade  # Mises a jour manuelles
+```
+
+### Docker images
+
+```bash
+cd /mnt/ssd/config
+docker compose pull    # Telecharge les nouvelles images
+docker compose up -d   # Redeploy avec les nouvelles images
+docker image prune -f  # Supprime les anciennes images
+```
+
+!!! tip "Watchtower surveille les mises a jour"
+    Watchtower auto-update les services non-critiques et notifie via ntfy quand une mise a jour est disponible pour les services critiques (monitor-only).
+
+### Firmware RPi
+
+```bash
+rpi-eeprom-update      # Verifie les mises a jour firmware
+rpi-update             # Met a jour le firmware (attention, peut casser)
+```
+
+!!! danger "Attention"
+    `rpi-update` installe le firmware bleeding-edge. Preferer `apt upgrade` pour les mises a jour stables du kernel.
+
+---
+
+## Verification post-reboot
+
+Checklist apres un reboot :
+
+- [ ] SSD monte sur `/mnt/ssd` en rw
+- [ ] `pcie_aspm=off` actif (`cat /sys/module/pcie_aspm/parameters/policy` → `[off]`)
+- [ ] USB autosuspend a -1 (`cat /sys/bus/usb/devices/*/power/autosuspend`)
+- [ ] Quirks USB appliques (`dmesg | grep "Quirks match"`)
+- [ ] Tous les containers Docker up (`docker ps`)
+- [ ] Pas de throttling (`vcgencmd get_throttled` = `0x0`)
+- [ ] Temperature normale (`vcgencmd measure_temp` < 70°C)
+
+---
 
 ## SSD Argon Forty — deconnexions USB
 
@@ -34,7 +83,7 @@ pcie_aspm=off usbcore.autosuspend=-1 usb-storage.quirks=174c:1156:u
 | `usbcore.autosuspend=-1` | Desactive l'USB autosuspend |
 | `usb-storage.quirks=174c:1156:u` | Force `usb-storage` au lieu de UAS pour le bridge ASMedia |
 
-### Procedure de recovery (SSD deconnecte)
+### Procedure de recovery manuelle
 
 ```bash
 # 1. Verifier l'etat
@@ -76,9 +125,7 @@ Le script `homelab_monitor.sh` integre une **recovery automatique** en cas de de
 
 **Rate limit** : max 3 tentatives par heure. Si les 3 echouent, alerte "SSD Recovery EPUISE — intervention manuelle requise."
 
-La procedure manuelle ci-dessus reste utile si l'auto-recovery echoue ou si le SSD ne reapparait pas.
-
-### Investigation en cours
+### Investigation historique
 
 Le support Argon a recommande :
 
@@ -89,6 +136,8 @@ Le support Argon a recommande :
 **Conclusion provisoire** : le bridge ASMedia ASM1156 est la cause, ni le cable ni le dongle. Le SSD de remplacement sera le test definitif.
 
 Donnees SMART : `UDMA_CRC_Error_Count = 4` (erreurs de communication SATA), pas de secteurs realloues.
+
+---
 
 ## Proxmox VE 9 — installation sur eMMC
 
@@ -103,6 +152,8 @@ Proxmox ne supporte pas les devices `mmcblk` dans sa logique de partitionnement.
 ### Workaround
 
 Patcher l'installeur avant de lancer l'installation. Voir le [guide complet](../guides/proxmox-zimaboard.md).
+
+---
 
 ## Proxmox VE 9 — repos et popup
 
@@ -123,6 +174,8 @@ Les fichiers `.sources` enterprise sont encore presents.
 Un fichier `.list` legacy avec la suite `bookworm` au lieu de `trixie`.
 
 **Fix** : le script supprime `/etc/apt/sources.list.d/pve-no-subscription.list` (ancien format).
+
+---
 
 ## Docker containers — DNS interne et OIDC
 
@@ -146,6 +199,8 @@ services:
       - 192.168.1.28
 ```
 
+---
+
 ## Beszel — OIDC "Only superusers can perform this action"
 
 ### Symptome
@@ -165,6 +220,8 @@ PocketBase (backend de Beszel) bloque la creation de comptes via OAuth2 par defa
 5. Aller dans `/_/#/collections` → `users` → promouvoir le compte en `admin`
 
 Source : [henrygd/beszel#291](https://github.com/henrygd/beszel/issues/291)
+
+---
 
 ## Authelia — redirect_uri mismatch
 
@@ -195,6 +252,8 @@ Le log indique l'URI attendue par le client → copier cette URI exacte dans la 
 | Portainer | `https://portainer.home.gabin-simond.fr/` (avec slash) |
 | Beszel | `https://monitor.home.gabin-simond.fr/api/oauth2-redirect` |
 
+---
+
 ## Services inaccessibles via Tailscale VPN
 
 ### Symptome
@@ -211,54 +270,7 @@ Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `
 
 Voir [Comment fonctionne le DNS](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
 
-## Portainer — mot de passe perdu
-
-### Procedure de reset
-
-```bash
-# Trouver le bon volume
-docker inspect portainer --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
-
-# Reset avec le helper (adapter le nom du volume)
-docker compose stop portainer
-docker run --rm -v config_portainer-data:/data portainer/helper-reset-password
-docker compose up -d portainer
-```
-
-Le helper genere un nouveau mot de passe aleatoire.
-
-## PVE — page blanche / chargement infini (Trixie)
-
-### Symptome
-
-L'interface web Proxmox VE (`galahad.home.*` / `lancelot.home.*`) affiche une page blanche ou tourne a l'infini.
-
-### Causes possibles
-
-**1. DNS pointe vers l'IP directe Proxmox au lieu de Traefik**
-
-```bash
-dig galahad.home.gabin-simond.fr @192.168.1.28
-# Si renvoie 192.168.1.18 au lieu de 192.168.1.28 → le navigateur
-# essaie :443 sur Proxmox (qui n'ecoute que sur :8006) → timeout
-```
-
-Fix : les rewrites AdGuard doivent pointer vers penny (192.168.1.28) pour que Traefik proxy vers `:8006`.
-
-**2. Fichier ExtJS manquant (symlink `ext6-all.js`)**
-
-Proxmox 9 sur Trixie : `libjs-extjs` installe `ext-all.js` mais `pve-manager` cherche `ext6-all.js`.
-
-```bash
-# Sur chaque node :
-cd /usr/share/javascript/extjs/
-ln -sf ext-all.js ext6-all.js
-ln -sf ext-all-debug.js ext6-all-debug.js
-```
-
-**3. Security headers incompatibles (CSP, COOP)**
-
-`Content-Security-Policy` ou `Cross-Origin-Opener-Policy: same-origin` appliques globalement cassent ExtJS + WebSocket. Les headers de securite ne doivent PAS etre appliques aux routes PVE.
+---
 
 ## Beszel — OIDC "Failed to fetch OAuth2 token"
 
@@ -311,6 +323,8 @@ sqlite3 /path/to/beszel/data.db \
 - Garder les CA certs montes en permanence dans Beszel
 - Tester l'OIDC apres chaque rotation de secret
 
+---
+
 ## Beszel — hostname ancien affiche (pve1, gabin-simond.home)
 
 ### Cause
@@ -329,6 +343,26 @@ docker restart beszel-agent  # penny
 sqlite3 /path/to/beszel/data.db "UPDATE system_details SET hostname='galahad' WHERE hostname='pve1';"
 ```
 
+---
+
+## Portainer — mot de passe perdu
+
+### Procedure de reset
+
+```bash
+# Trouver le bon volume
+docker inspect portainer --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+
+# Reset avec le helper (adapter le nom du volume)
+docker compose stop portainer
+docker run --rm -v config_portainer-data:/data portainer/helper-reset-password
+docker compose up -d portainer
+```
+
+Le helper genere un nouveau mot de passe aleatoire.
+
+---
+
 ## Portainer — "failed opening store : timeout"
 
 ### Cause
@@ -341,4 +375,74 @@ Un process Portainer fantome tient le verrou BoltDB. Typiquement apres un reset 
 fuser /path/to/portainer-data/portainer.db  # trouver le PID
 kill -9 <PID>
 docker start portainer
+```
+
+---
+
+## PVE — page blanche / chargement infini (Trixie)
+
+### Symptome
+
+L'interface web Proxmox VE (`galahad.home.*` / `lancelot.home.*`) affiche une page blanche ou tourne a l'infini.
+
+### Causes possibles
+
+**1. DNS pointe vers l'IP directe Proxmox au lieu de Traefik**
+
+```bash
+dig galahad.home.gabin-simond.fr @192.168.1.28
+# Si renvoie 192.168.1.18 au lieu de 192.168.1.28 → le navigateur
+# essaie :443 sur Proxmox (qui n'ecoute que sur :8006) → timeout
+```
+
+Fix : les rewrites AdGuard doivent pointer vers penny (192.168.1.28) pour que Traefik proxy vers `:8006`.
+
+**2. Fichier ExtJS manquant (symlink `ext6-all.js`)**
+
+Proxmox 9 sur Trixie : `libjs-extjs` installe `ext-all.js` mais `pve-manager` cherche `ext6-all.js`.
+
+```bash
+# Sur chaque node :
+cd /usr/share/javascript/extjs/
+ln -sf ext-all.js ext6-all.js
+ln -sf ext-all-debug.js ext6-all-debug.js
+```
+
+**3. Security headers incompatibles (CSP, COOP)**
+
+`Content-Security-Policy` ou `Cross-Origin-Opener-Policy: same-origin` appliques globalement cassent ExtJS + WebSocket. Les headers de securite ne doivent PAS etre appliques aux routes PVE.
+
+---
+
+## Commandes utiles
+
+### Containers et services
+
+```bash
+docker ps -a                              # Etat de tous les conteneurs
+docker logs <container_name> --tail 50    # Derniers logs
+docker compose up -d <service_name>       # Relancer un service specifique
+docker system df                          # Espace utilise par Docker
+docker system prune -f                    # Nettoyer images/volumes inutilises
+```
+
+### Temperature et alimentation
+
+```bash
+vcgencmd measure_temp                     # Temperature actuelle
+vcgencmd get_throttled                    # 0x0 = tout va bien
+```
+
+| Valeur throttled | Signification |
+|---|---|
+| `0x0` | OK |
+| `0x50000` | Throttling dans le passe |
+| `0x50005` | Throttling actif + sous-voltage |
+
+### Espace disque
+
+```bash
+df -h                    # Vue d'ensemble
+docker system df         # Espace utilise par Docker
+docker system prune -f   # Nettoyer images/volumes inutilises
 ```

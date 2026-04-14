@@ -74,8 +74,7 @@ nav:
     - Break-glass: infrastructure/break-glass.md
     - Monitoring: infrastructure/monitoring.md
     - Backups: infrastructure/backups.md
-    - Maintenance: infrastructure/maintenance.md
-    - Troubleshooting: infrastructure/troubleshooting.md
+    - Maintenance et depannage: infrastructure/troubleshooting.md
   - Services:
     - Naming: services/naming.md
     - Stack Docker: services/docker-stack.md

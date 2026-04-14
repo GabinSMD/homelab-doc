@@ -45,7 +45,7 @@ Pour les services sans OIDC natif :
 - AdGuard primaire (`adguard.home.gabin-simond.fr`)
 - AdGuard secondaire dns-failover (`dns-failover.home.gabin-simond.fr`)
 - Homepage (`home.gabin-simond.fr`)
-- WUD (`wud.home.gabin-simond.fr`)
+- Watchtower (headless, pas de route Traefik)
 
 Middleware declare via label sur le container Authelia :
 ```

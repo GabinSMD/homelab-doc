@@ -30,7 +30,7 @@ graph TB
         homepage[Homepage]
         portainer[Portainer]
         beszel[Beszel]
-        wud[WUD]
+        watchtower[Watchtower]
         autoheal[Autoheal]
         monitor[homelab_monitor.sh]
     end
@@ -72,7 +72,7 @@ graph TB
 
 ### Cle USB chiffree (mise a jour mensuelle)
 
-!!! warning "Derniere MAJ : ==A REMPLIR==. Prochaine : ==A REMPLIR=="
+!!! warning "Derniere MAJ : ==2026-04-14==. Prochaine : ==2026-05-14=="
 
 Contenu requis :
 
@@ -257,7 +257,7 @@ restic snapshots
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging"
 
 # Injecter les donnees dans les volumes Docker
-for vol in beszel wallos portainer; do
+for vol in beszel portainer; do
     docker volume create config_${vol}-data 2>/dev/null
     docker run --rm \
         -v config_${vol}-data:/data \

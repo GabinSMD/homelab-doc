@@ -6,7 +6,7 @@
 graph TD
     Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy.sh<br/>Notifications]
     Beszel[Beszel Server] -->|dashboard| Web[Interface web]
-    WUD[WUD] -->|verifie| Docker[Images Docker]
+    WT[Watchtower] -->|verifie| Docker[Images Docker]
     
     Script -->|surveille| SSD[SSD]
     Script -->|surveille| Temp[Temperature]
@@ -59,12 +59,12 @@ TEMP_CRIT=80                      # Seuil critique °C
 | Service | Role | Acces |
 |---|---|---|
 | **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — penny, galahad, lancelot | Dashboard web |
-| **WUD** | Surveillance mises a jour images Docker | Dashboard web |
+| **Watchtower** | Auto-update non-critiques + notification mises a jour critiques via ntfy | Headless (pas de dashboard) |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |
 | **SSD auto-recovery** | Remount + fsck + restart Docker apres deconnexion USB | Script (monitor) |
-| **Guardian health check** | Surveille penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
+| **dns-failover health check** | Surveille penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
 
 ## Architecture de resilience
 

@@ -84,13 +84,19 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
     "data-root": "/mnt/ssd/docker",
     "log-driver": "journald",
     "log-level": "warn",
-    "debug": false
+    "debug": false,
+    "icc": false,
+    "no-new-privileges": true
 }
 ```
 
 - `data-root` sur le SSD — images, volumes, et overlays sur le disque rapide
 - `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
 - `log-level: warn` — limite le bruit dans les logs
+- `icc: false` — inter-container communication OFF sur bridge par defaut (securite)
+- `no-new-privileges: true` — empeche l'escalade de privileges dans les containers
+
+Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](hardening.md#docker-tous-containers).
 
 ## Watchdog hardware (BCM2835)
 
@@ -161,11 +167,10 @@ Les containers avec healthcheck sont surveilles par Docker. Si un check echoue 3
 | Traefik | `wget http://localhost:8080/ping` | Endpoint `/ping` active dans traefik.yml |
 | AdGuard | `wget http://localhost:3000` | Interface web |
 | Tailscale | `tailscale status` | CLI interne |
-| Wallos | `curl http://localhost:80` | Interface web |
 | Vaultwarden | Healthcheck integre a l'image | — |
 | Homepage | Healthcheck integre a l'image | — |
 | Authelia | Healthcheck integre a l'image | — |
-| WUD | Healthcheck integre a l'image | — |
+| Watchtower | Healthcheck integre a l'image | — |
 | Portainer | Aucun (image distroless) | Surveille par homelab_monitor.sh |
 | Beszel | Aucun (image distroless) | Surveille par homelab_monitor.sh |
 

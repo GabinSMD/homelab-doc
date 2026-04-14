@@ -17,7 +17,7 @@ Pour la procedure en cas d'incident : [break-glass.md](break-glass.md).
 | Voisin LAN compromis | Acces reseau local | Firewall iptables DROP, services admin limites LAN+TS, Authelia 2FA |
 | Vol physique RPi/SSD | Acces direct au disque | Backups off-site OK — chiffrement disque **a faire** (Phase OPNsense) |
 | Invite / famille | WiFi domestique | A couvrir avec OPNsense + VLANs (Phase 2) |
-| Supply chain Docker | Image malveillante | WUD surveille versions — signature verification **a faire** (P2) |
+| Supply chain Docker | Image malveillante | Watchtower surveille versions — signature verification **a faire** (P2) |
 | Compromission cle SSH | sudo NOPASSWD = root immediat | Passphrase + YubiKey ssh-agent — **a deployer cote client** (P2) |
 | Phishing TOTP (AITM) | Replay credentials | WebAuthn FIDO2 (YubiKey) actif sur Authelia |
 
@@ -65,7 +65,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 | Portainer | OIDC Authelia (two_factor) | **Oui** (SSO + hide internal) | `gabins` local (break-glass) |
 | Grafana | OIDC Authelia (two_factor) + PKCE S256 | **Oui** (`auto_login=true`) | Admin desactive en DB |
 | Beszel | OIDC Authelia (one_factor) | Non (PocketBase) | Superuser `/_/` separe |
-| Homepage / WUD / AdGuard | ForwardAuth Authelia | **Oui** (transparent) | AdGuard bcrypt seul |
+| Homepage / AdGuard | ForwardAuth Authelia | **Oui** (transparent) | AdGuard bcrypt seul |
 | SSH | Cle Ed25519 uniquement | — | — |
 | Vaultwarden | Master password + TOTP | — | — |
 | Tailscale | WireGuard + SSO identity | — | — |
@@ -149,58 +149,10 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 
 ---
 
-## Access distant
+## Voir aussi
 
-### Tailscale mesh
-
-Acces a tous les services via IP Tailscale (`100.64.0.0/10`). **Aucun port Freebox forwarde** — tout passe par le tunnel WireGuard.
-
-**Tailscale SSH** actif sur homelab / galahad / lancelot :
-- Auth par identite Tailscale (pas de cles a gerer)
-- Mode `check` : validation navigateur a chaque connexion (MFA implicite)
-- Certificats rotated automatiquement
-- Aucun port 22 expose
-
-```bash
-ssh gabins@homelab    # penny via Tailscale (MagicDNS)
-ssh gabins@pve1       # galahad — Tailscale hostname pas encore renomme
-ssh gabins@pve2       # lancelot — idem
-```
-
-Note : les IP Tailscale restent stables (100.98.58.121 pour galahad, 100.69.6.13 pour lancelot). A faire : renommer les hotes Tailscale en `galahad`/`lancelot` dans [login.tailscale.com](https://login.tailscale.com).
-
-### TLS partout
-
-Traefik termine le TLS avec certificats Let's Encrypt (DNS challenge Cloudflare) sur `*.home.gabin-simond.fr`.
-
-CAA records actifs : `letsencrypt.org` uniquement + `iodef mailto:`.
-
----
-
-## SSO Authelia — resume
-
-| Service | Methode | Policy | Consent |
-|---|---|---|---|
-| Proxmox galahad/lancelot | OIDC natif | two_factor | pre-configured 1y |
-| Portainer | OIDC natif | two_factor | pre-configured 1y |
-| Grafana | OIDC natif + PKCE | two_factor | pre-configured 1y |
-| Beszel | OIDC natif + PKCE | one_factor | pre-configured 1y |
-| Traefik dashboard | ForwardAuth Authelia | two_factor (default) | N/A |
-| AdGuard UI | ForwardAuth — **a ajouter** | — | — |
-| Homepage | **Aucune auth actuellement — a ajouter** | — | — |
-
-Voir [services/authelia.md](../services/authelia.md) pour les configs.
-
----
-
-## Backups off-site
-
-| Cible | Frequence | Outil | Chiffrement |
-|---|---|---|---|
-| Backblaze B2 | Quotidien (3h) | `homelab_backup.sh` + restic | AES-256 client-side |
-| SD card locale | Quotidien (3h) | `homelab_backup.sh` (tar.gz) | Non |
-
-Retention restic : 7 daily / 4 weekly / 6 monthly + prune auto.
-DR drill Vaultwarden : **RTO 7 secondes** (valide 2026-04-13). A repeter trimestriellement.
-
-Voir [backups.md](backups.md) pour la procedure complete.
+- [Hardening](hardening.md) — mesures techniques par couche (sysctl, firewall, SSH, containers)
+- [Authelia (SSO)](../services/authelia.md) — configuration SSO et clients OIDC
+- [Tailscale ACLs](../network/tailscale-acls.md) — acces distant et politique ACL
+- [Backups](backups.md) — procedure et architecture de sauvegarde
+- [Break-glass](break-glass.md) — procedure de reconstruction en cas d'incident

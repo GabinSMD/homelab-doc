@@ -15,7 +15,7 @@ Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur
 | **Portainer EE** | `portainer/portainer-ee:latest` | Gestion Docker | proxy |
 | **Homepage** | `ghcr.io/gethomepage/homepage:latest` | Dashboard | proxy, socket |
 | **Beszel** + agent | `henrygd/beszel` | Monitoring systeme (CPU/RAM/disk/net) | proxy / host |
-| **Watchtower** | `containrrr/watchtower` | Auto-update non-critiques + notif ntfy pour critiques | proxy, socket |
+| **Watchtower** | `containrrr/watchtower` | Auto-update non-critiques + notif ntfy pour critiques | socket |
 | **Authelia** | `authelia/authelia:latest` | SSO / Identity Provider (OIDC) | proxy |
 | **autoheal** | `willfarrell/autoheal` | Redemarre les containers unhealthy | socket |
 
@@ -65,20 +65,11 @@ Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer
 
 ## SSO (Authelia)
 
-Voir [authelia.md](authelia.md) pour les details. Resume clients OIDC :
-
-| Service | Client ID | Host |
-|---|---|---|
-| Proxmox galahad + lancelot | `proxmox` | LXC nodes |
-| Portainer | `portainer` | penny |
-| Beszel | `beszel` | penny |
-| Grafana | `grafana` | LXC logs |
+Tous les services sont proteges par [Authelia](authelia.md) (OIDC ou ForwardAuth). Voir [authelia.md](authelia.md) pour les clients OIDC et la configuration.
 
 ## DNS interne
 
-Les containers sur `proxy` qui doivent resoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) :
-
-- Homepage, Portainer, Beszel
+Les containers sur `proxy` qui doivent resoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [troubleshooting](../infrastructure/troubleshooting.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
 
 ## Volumes
 
@@ -115,4 +106,4 @@ HOMEPAGE_VAR_PVE_TOKEN_ID=...      # Widget Proxmox (token readonly)
 HOMEPAGE_VAR_PVE_TOKEN_SECRET=...
 ```
 
-Tous ces secrets sont aussi stockes dans Vaultwarden. Voir [security.md](../infrastructure/security.md) section "Inventaire des secrets".
+Tous ces secrets sont aussi stockes dans Vaultwarden. Voir [security.md](../infrastructure/security.md#inventaire-des-secrets-a-stocker-dans-vaultwarden) pour l'inventaire complet.

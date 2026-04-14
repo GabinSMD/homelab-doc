@@ -14,7 +14,7 @@ Reference rapide — tous les services et leurs points d'acces.
 | **Portainer** | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny |
 | **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
 | **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC logs / lancelot |
-| **WUD** | `wud.home.*` | ForwardAuth Authelia | penny |
+| **Watchtower** | — (headless, pas de dashboard) | — | penny |
 | **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / galahad |
 | **Proxmox galahad** | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) |
 | **Proxmox lancelot** | `lancelot.home.*` | OIDC Authelia / root@pam | lancelot (bare metal) |
@@ -58,5 +58,5 @@ Note d'isolement : `vault` et `logs` sont sur des hosts differents (galahad vs l
 | Reseau | Type | Usage |
 |---|---|---|
 | `proxy` | bridge | Services reverse-proxies par Traefik |
-| `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, WUD, autoheal) |
+| `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, Watchtower, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
