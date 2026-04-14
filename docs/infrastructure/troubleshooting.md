@@ -226,3 +226,119 @@ docker compose up -d portainer
 ```
 
 Le helper genere un nouveau mot de passe aleatoire.
+
+## PVE — page blanche / chargement infini (Trixie)
+
+### Symptome
+
+L'interface web Proxmox VE (`galahad.home.*` / `lancelot.home.*`) affiche une page blanche ou tourne a l'infini.
+
+### Causes possibles
+
+**1. DNS pointe vers l'IP directe Proxmox au lieu de Traefik**
+
+```bash
+dig galahad.home.gabin-simond.fr @192.168.1.28
+# Si renvoie 192.168.1.18 au lieu de 192.168.1.28 → le navigateur
+# essaie :443 sur Proxmox (qui n'ecoute que sur :8006) → timeout
+```
+
+Fix : les rewrites AdGuard doivent pointer vers penny (192.168.1.28) pour que Traefik proxy vers `:8006`.
+
+**2. Fichier ExtJS manquant (symlink `ext6-all.js`)**
+
+Proxmox 9 sur Trixie : `libjs-extjs` installe `ext-all.js` mais `pve-manager` cherche `ext6-all.js`.
+
+```bash
+# Sur chaque node :
+cd /usr/share/javascript/extjs/
+ln -sf ext-all.js ext6-all.js
+ln -sf ext-all-debug.js ext6-all-debug.js
+```
+
+**3. Security headers incompatibles (CSP, COOP)**
+
+`Content-Security-Policy` ou `Cross-Origin-Opener-Policy: same-origin` appliques globalement cassent ExtJS + WebSocket. Les headers de securite ne doivent PAS etre appliques aux routes PVE.
+
+## Beszel — OIDC "Failed to fetch OAuth2 token"
+
+### Symptome
+
+Login Authelia fonctionne (popup s'ouvre, auth OK) mais retour sur Beszel = page blanche. Console : `ClientResponseError 401`.
+
+### Causes (3 root causes combinees)
+
+**1. DNS Docker → NXDOMAIN pour `auth.home.gabin-simond.fr`**
+
+Le wildcard AdGuard `||home.gabin-simond.fr^$dnsrewrite=...,client=192.168.1.0/24` ne matche PAS les containers Docker (`172.20.0.x`). PocketBase ne peut pas resoudre `auth.home...` → token exchange echoue silencieusement.
+
+Fix : ajouter un rewrite specifique (non filtre par client) dans AdGuard :
+```yaml
+rewrites:
+  - domain: auth.home.gabin-simond.fr
+    answer: 192.168.1.28
+    enabled: true
+```
+
+**2. Image scratch Beszel = pas de CA certificates**
+
+Go HTTP client ne peut pas verifier le cert Let's Encrypt → TLS handshake echoue silencieusement.
+
+Fix dans `docker-compose.yml` :
+```yaml
+beszel:
+  volumes:
+    - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+  environment:
+    SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+```
+
+**3. Subject ID mismatch dans PocketBase**
+
+Si les sessions OIDC Authelia sont purgees, le subject ID change. La table `_externalAuths` dans PocketBase garde l'ancien ID → mismatch → 401 apres token exchange reussi.
+
+```bash
+# Trouver le nouveau subject dans les logs Authelia (debug) :
+docker logs authelia | grep "beszel.*subject"
+# Mettre a jour PocketBase :
+sqlite3 /path/to/beszel/data.db \
+  "UPDATE _externalAuths SET providerId='<new_subject>' WHERE provider='oidc';"
+```
+
+### Prevention
+
+- Ne JAMAIS purger les sessions OIDC Authelia sans re-aligner les `_externalAuths`
+- Garder les CA certs montes en permanence dans Beszel
+- Tester l'OIDC apres chaque rotation de secret
+
+## Beszel — hostname ancien affiche (pve1, gabin-simond.home)
+
+### Cause
+
+Le beszel-agent cache le hostname au demarrage. Si le hostname systeme a ete renomme APRES le demarrage de l'agent, l'ancien nom persiste dans `system_details`.
+
+### Fix
+
+```bash
+# 1. Restart les agents sur chaque host
+ssh galahad "sudo systemctl restart beszel-agent"
+ssh lancelot "sudo systemctl restart beszel-agent"
+docker restart beszel-agent  # penny
+
+# 2. Si le hostname persiste, forcer en DB :
+sqlite3 /path/to/beszel/data.db "UPDATE system_details SET hostname='galahad' WHERE hostname='pve1';"
+```
+
+## Portainer — "failed opening store : timeout"
+
+### Cause
+
+Un process Portainer fantome tient le verrou BoltDB. Typiquement apres un reset de mot de passe via `--admin-password` qui n'a pas ete arrete proprement.
+
+### Fix
+
+```bash
+fuser /path/to/portainer-data/portainer.db  # trouver le PID
+kill -9 <PID>
+docker start portainer
+```

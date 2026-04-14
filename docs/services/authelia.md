@@ -30,17 +30,22 @@ graph LR
 | Proxmox VE (galahad + lancelot) | `proxmox` | `two_factor` | — | `pre-configured` (1y) |
 | Portainer | `portainer` | `two_factor` | — | `pre-configured` (1y) |
 | Grafana | `grafana` | `two_factor` | S256 | `pre-configured` (1y) |
-| Beszel | `beszel` | `one_factor` | S256 | `pre-configured` (1y) |
+| Beszel | `beszel` | `one_factor` | auto | `pre-configured` (1y) |
 
 `consent_mode: pre-configured` evite le consent screen a chaque login (1 acceptation = 1 an de validite).
+
+!!! warning "Beszel OIDC — pre-requis"
+    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS specifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [troubleshooting](../infrastructure/troubleshooting.md#beszel--oidc-failed-to-fetch-oauth2-token).
 
 ## ForwardAuth middleware
 
 Pour les services sans OIDC natif :
 
 - Traefik dashboard (`traefik.home.gabin-simond.fr`)
-- AdGuard (`adguard.home.gabin-simond.fr`) — **a faire**
-- Homepage (`home.gabin-simond.fr`) — **a faire**
+- AdGuard primaire (`adguard.home.gabin-simond.fr`)
+- AdGuard secondaire guardian (`adguard-guardian.home.gabin-simond.fr`)
+- Homepage (`home.gabin-simond.fr`)
+- WUD (`wud.home.gabin-simond.fr`)
 
 Middleware declare via label sur le container Authelia :
 ```

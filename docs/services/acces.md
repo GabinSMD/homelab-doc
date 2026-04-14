@@ -6,18 +6,19 @@ Reference rapide — tous les services et leurs points d'acces.
 
 | Service | URL publique (home.gabin-simond.fr) | Auth | Host |
 |---|---|---|---|
-| **Homepage** | `home.*` | **Aucune** (a proteger) | penny |
+| **Homepage** | `home.*` | ForwardAuth Authelia | penny |
 | **Traefik dashboard** | `traefik.home.*` | ForwardAuth Authelia | penny |
-| **AdGuard Home** | `adguard.home.*` | bcrypt local (ForwardAuth a ajouter) | penny (host net) |
+| **AdGuard primaire** | `adguard.home.*` | ForwardAuth Authelia + bcrypt | penny (host net) |
+| **AdGuard guardian** | `adguard-guardian.home.*` | ForwardAuth Authelia + bcrypt | LXC guardian / galahad |
 | **Authelia (SSO)** | `auth.home.*` | MFA TOTP + YubiKey | penny |
-| **Portainer** | `portainer.home.*` | OIDC Authelia | penny |
+| **Portainer** | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny |
 | **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
-| **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE) | LXC observability / lancelot |
-| **WUD** | `wud.home.*` | Aucune | penny |
+| **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC observability / lancelot |
+| **WUD** | `wud.home.*` | ForwardAuth Authelia | penny |
 | **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / galahad |
 | **Proxmox galahad** | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) |
 | **Proxmox lancelot** | `lancelot.home.*` | OIDC Authelia / root@pam | lancelot (bare metal) |
-| **Docs** | `homelab.gabin-simond.fr` | Aucune (publique) | hors infra (Cloudflare Pages / hebergement) |
+| **Docs** | `homelab.gabin-simond.fr` | Aucune (publique) | hors infra |
 
 ## Services reseau (ports ouverts)
 

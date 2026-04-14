@@ -1,6 +1,6 @@
 # Roadmap securite
 
-Etat au **2026-04-13**. Priorite : `impact / effort`.
+Etat au **2026-04-14**. Priorite : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [security.md](security.md).
 > Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).

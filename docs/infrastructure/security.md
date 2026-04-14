@@ -58,16 +58,17 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 
 ### Authentification forte
 
-| Service | Methode |
-|---|---|
-| Authelia | TOTP (obligatoire) + WebAuthn FIDO2 YubiKey |
-| Proxmox galahad/lancelot | OIDC Authelia (two_factor) |
-| Portainer | OIDC Authelia (two_factor) |
-| Grafana | OIDC Authelia (two_factor) + PKCE S256 |
-| Beszel | OIDC Authelia (one_factor — readonly monitoring) |
-| SSH | Cle Ed25519 uniquement, passphrase + YubiKey cote client (P2) |
-| Vaultwarden | Master password + TOTP |
-| Tailscale | WireGuard + SSO identity |
+| Service | Methode | Auto-login | Internal login |
+|---|---|---|---|
+| Authelia | TOTP + WebAuthn FIDO2 YubiKey | — (source de verite) | — |
+| Proxmox galahad/lancelot | OIDC Authelia (two_factor) | Non (realm selector) | `root@pam` (inevit.) |
+| Portainer | OIDC Authelia (two_factor) | **Oui** (SSO + hide internal) | `gabins` local (break-glass) |
+| Grafana | OIDC Authelia (two_factor) + PKCE S256 | **Oui** (`auto_login=true`) | Admin desactive en DB |
+| Beszel | OIDC Authelia (one_factor) | Non (PocketBase) | Superuser `/_/` separe |
+| Homepage / WUD / AdGuard | ForwardAuth Authelia | **Oui** (transparent) | AdGuard bcrypt seul |
+| SSH | Cle Ed25519 uniquement | — | — |
+| Vaultwarden | Master password + TOTP | — | — |
+| Tailscale | WireGuard + SSO identity | — | — |
 
 ### Rotation / revocation
 
@@ -79,6 +80,14 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 | Secrets OIDC | 12 mois max | `openssl rand -base64 32` -> hash pbkdf2 -> update Authelia + service |
 | Authelia internals (jwt/session/storage) | A la compromission uniquement | Migration DB necessaire si `encryption_key` change |
 | Master Vaultwarden | Au choix | UI Vaultwarden |
+
+### Session Authelia
+
+| Parametre | Valeur | Note |
+|---|---|---|
+| `expiration` | 4h | Session active |
+| `inactivity` | 30m | Timeout si idle |
+| `remember_me` | 7d | Cookie persistent (compromise browser = max 7j). Non differenciable par groupe en Authelia v4. |
 
 ### Revocation Tailscale
 

@@ -141,6 +141,23 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
+## Security headers : pas de CSP global, per-route headers
+
+**Contexte** : hardening HTTPS via security-headers Traefik middleware (HSTS, X-Frame, Referrer-Policy, Permissions-Policy, CSP, COOP, CORP).
+
+**Decision** : CSP retire du middleware global. Security-headers appliques per-route (Docker labels), PAS au niveau entrypoint.
+
+**Pourquoi** :
+
+- CSP global (`default-src 'self'`) casse les SPA : Beszel (SvelteKit), Proxmox (ExtJS), Portainer (Angular). Chaque framework a des besoins differents (inline scripts, eval, WebSocket `wss:`, data URIs).
+- `Cross-Origin-Opener-Policy: same-origin` casse le flow OIDC redirect (popup → Authelia → retour app = opener reference perdue). Fix : `same-origin-allow-popups`.
+- TLS 1.3 strict (`minVersion: VersionTLS13`) rollback : tous les clients modernes le supportent mais des interactions subtiles avec sniStrict causaient des timeouts.
+- Proxmox ExtJS est particulierement fragile → PVE routes n'ont AUCUN security header Traefik.
+
+**Headers conserves en global** (per-route via Docker labels) : HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+
+---
+
 ## Firewall : Appliance dediee plutot que VM Proxmox
 
 **Contexte** : Faire tourner OPNsense pour la segmentation VLANs.
