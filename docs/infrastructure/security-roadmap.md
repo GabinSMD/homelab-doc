@@ -35,11 +35,11 @@ Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exf
 
 **Effort** : 2-3h dont 1h validation post-deploy.
 
-#### Healthchecks Beszel + Portainer + beszel-agent
+#### Healthchecks Beszel + Portainer + beszel-agent — NON APPLICABLE
 
-3 services sans healthcheck explicite -> autoheal ne peut pas restart si zombie. Ajouter `HEALTHCHECK` per-image.
+Les 3 images sont scratch/distroless (Go static binary) : **aucun** outil CLI (wget, curl, sh) n'est disponible dans le container. Pas de subcommand healthcheck non plus. Healthchecks impossibles sans rebuilder les images.
 
-**Effort** : 30 min.
+**Mitigation** : monitoring via `homelab_monitor.sh` (check Docker containers stopped/unhealthy) + Beszel agent metriques.
 
 #### WUD authentification interne (anonyme actuellement)
 
@@ -51,7 +51,7 @@ Ferme par ForwardAuth Authelia cote externe (2026-04-13), mais l'API WUD interne
 
 Cluster.fw : `-log nolog` partout -> aucune visibilite sur tentatives bloquees. Mettre `-log warning` ou `info` pour audit.
 
-**Effort** : 15 min.
+**Effort** : 15 min. Commande : `sudo sed -i 's/-log nolog/-log warning/g' /etc/pve/firewall/cluster.fw` sur galahad.
 
 #### YubiKey sur cles SSH client
 
@@ -95,6 +95,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ??? success "Authentification"
     - Authelia 2FA (TOTP + WebAuthn FIDO2 YubiKey)
+    - **Authelia regulation anti brute-force** (5 retries / 2min / ban 10min) — 2026-04-14
     - Consent mode `pre-configured` (1 an) sur tous les clients OIDC
     - SSH cles uniquement, ports custom, MaxAuthTries 3
     - Comptes `gabins` partout, plus de `gabin` legacy
@@ -135,9 +136,11 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - sysctl hardening (rp_filter, SYN flood, source route, martians)
     - **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
     - Rate limit Traefik Authelia (100 req/s SPA)
+    - **`insecureSkipVerify` scope Proxmox only** (serversTransport dedie, retire du global Traefik) — 2026-04-14
     - DNSSEC validation (AdGuard primaire + guardian)
     - CAA records Cloudflare
     - Security headers HTTPS (HSTS, X-Frame, Referrer, Permissions-Policy)
+    - **Topic ntfy randomise** (hex 32 chars, plus de topic previsible) — 2026-04-14
 
 ??? success "Containers"
     - docker-socket-proxy + reseau `socket` isole
@@ -148,6 +151,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, WUD
     - **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
     - **Cosign installe** (apt Trixie) — verifie : aucune des 3 images critiques n'est signed upstream, attendre evolution
+    - Healthchecks Beszel + Portainer + beszel-agent : non applicable (images scratch/distroless, aucun outil CLI disponible)
 
 ??? success "Systemd-units hardening"
     - fail2ban : exposure 9.6 -> 4.7 (OK 🙂) sur penny+galahad+lancelot
@@ -179,6 +183,11 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Supply chain code"
     - Pre-commit hook anti-leak (`scripts/pre-commit-secret-scan.sh`) sur homelab-config + homelab-doc
     - Patterns : AWS, GitHub, Tailscale, B2, CF, PEM, password=, secret=
+
+??? success "Secrets management"
+    - **Authelia secrets externalises** (jwt, session, encryption_key, hmac → fichiers `/config/secrets/` chmod 600, charges via `AUTHELIA_*_FILE` env vars) — 2026-04-14
+    - Cle JWKS OIDC dans `oidc.pem` separee (gitignored)
+    - Configuration Authelia versionnable sans secrets inline
 
 ??? success "Migrations terminees"
     - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement observability, 2026-04-13)
