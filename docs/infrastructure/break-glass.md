@@ -98,7 +98,7 @@ Contenu requis :
 | Cloudflare | Zone `gabin-simond.fr`, token DNS:Edit | Dashboard Cloudflare |
 | Tailscale | Tailnet, 3 machines | login.tailscale.com |
 | GitHub | Repos `homelab-config` + `homelab-doc` | github.com/GabinSMD |
-| ntfy.sh | Topic `gabin-homelab` | Notification test |
+| ntfy.sh | Topic randomise (voir `.env` ou scripts) | Notification test |
 
 ---
 

@@ -25,13 +25,22 @@ Bloque par achat hardware. Voir [network/architecture-cible.md](../network/archi
 
 Voir [decisions.md](../decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
 
-#### Egress firewall (penny + galahad + lancelot)
+#### Egress firewall (penny + galahad + lancelot) — PHASE 1 EN COURS
 
 Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exfiltrer vers nimporte quelle destination internet.
 
-**Action** : whitelist outbound (DNS Cloudflare, GitHub.com pour pulls, Backblaze B2, ntfy.sh, Tailscale relays DERP, Let's Encrypt CA pour Traefik renew, Authelia federations).
+**Phase 1 (active depuis 2026-04-14)** : audit via `egress-audit.sh` (`LOG` sans `DROP`).
+Regles iptables LOG sur OUTPUT (host) et DOCKER-USER (containers) avec rate-limit 10/min.
+Skip LAN, Tailscale, Docker bridges. Script dans `homelab-config/scripts/egress-audit.sh`.
 
-**Risque** : casser silencieusement Let's Encrypt renew, B2 backup, ntfy alerts si whitelist incomplete. Tester en mode `LOG` puis `DROP`.
+```bash
+/root/egress-audit.sh report   # Analyser les logs collectes
+/root/egress-audit.sh stop     # Desactiver l'audit
+```
+
+**Phase 2 (prevue ~2026-04-21)** : analyser le rapport, construire la whitelist outbound (DNS upstream, Backblaze B2, ntfy.sh, Tailscale DERP, GitHub, Docker Hub/GHCR, Let's Encrypt, Cloudflare API, APT repos), appliquer `OUTPUT DROP` + whitelist avec rollback auto 5min.
+
+**Risque** : casser silencieusement Let's Encrypt renew, B2 backup, ntfy alerts si whitelist incomplete. C'est pourquoi la phase 1 (observation) est indispensable.
 
 **Effort** : 2-3h dont 1h validation post-deploy.
 
@@ -86,11 +95,14 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Scope token Cloudflare verifie (1 zone)
 
 ??? success "Backups"
-    - Off-site B2 + SD card locale
-    - Chiffrement client-side restic (AES-256, cle hors-Vaultwarden)
+    - Off-site B2 chiffre (restic AES-256), plus de tar.gz / rclone (supprime 2026-04-14)
+    - Restic unique backend B2 natif (`b2:gabin-homelab-backups:restic`)
+    - Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
     - Retention 7d/4w/6m + prune automatique
     - **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
-    - **vzdump LXC hebdo** (galahad + lancelot, dimanche 1h, retention 4) + pull penny -> restic B2
+    - **vzdump LXC quotidien** (galahad LXC 100+102, lancelot LXC 101, 1h, retention 3 jours) + pull quotidien penny 2h30 -> restic B2
+    - `vzdump-daily.sh` avec alerting ntfy (succes + echec) sur chaque ZimaBoard
+    - RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
 
 ??? success "Authentification"
     - Authelia 2FA (TOTP + WebAuthn FIDO2 YubiKey)
@@ -168,8 +180,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Observabilite"
     - Loki + Grafana Alloy sur LXC `logs`
     - Grafana renomme `logs.home.gabin-simond.fr`
-    - Dashboards : Auth & Securite, Traefik Access, Logs Explorer
+    - Dashboards : **Homelab Overview** (nouveau), Auth & Securite (ameliore), Traefik Access (ameliore), Logs Explorer
     - **Alerting rules** (Authelia auth failures, fail2ban bans, Traefik 5xx, auditd sudo) -> ntfy
+    - **Topic ntfy corrige** dans repo git + Grafana contact point (2026-04-14)
     - Retention 30 jours
 
 ??? success "Surveillance / resilience"
@@ -190,7 +203,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ??? success "Migrations terminees"
     - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement logs, 2026-04-13)
-    - Decommission container Vaultwarden penny prevu 2026-04-27
+    - Volume Docker orphelin `config_vaultwarden-data` supprime de penny (2026-04-14)
     - Proxmox cluster : pve1/pve2 -> galahad/lancelot
     - **Galahad + lancelot deja sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster
     - Tailscale : container -> host natif (SSH natif)
