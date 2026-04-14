@@ -112,14 +112,18 @@ Retention Loki : 30 jours.
 
 ### Ajouter un dashboard
 
-Depose le JSON dans `/mnt/ssd/config/logs/dashboards/` (source), puis :
+Depose le JSON dans `/mnt/ssd/config/logs/dashboards/` (source sur penny), puis deploie via Tailscale SSH + `pct push` :
 
 ```bash
-tar czf /tmp/bundle.tar.gz -C /mnt/ssd/config/logs dashboards grafana-provisioning docker-compose.yml
-scp /tmp/bundle.tar.gz gabins@100.69.6.13:/tmp/
-ssh gabins@100.69.6.13 "sudo pct push 101 /tmp/bundle.tar.gz /tmp/ && \
-  sudo pct exec 101 -- bash -c 'cd /opt/logs && tar xzf /tmp/bundle.tar.gz && docker restart grafana'"
+# Deployer chaque dashboard sur le LXC 101 (logs sur lancelot)
+for f in /mnt/ssd/config/logs/dashboards/*.json; do
+    tailscale ssh root@lancelot "pct push 101 /dev/stdin /opt/logs/dashboards/$(basename $f)" < "$f"
+done
+echo "Deploye — Grafana recharge automatiquement (updateIntervalSeconds: 60)"
 ```
+
+!!! info "Pas besoin de restart Grafana"
+    Le provisioner Grafana scanne `/opt/logs/dashboards/` toutes les 60 secondes. Les dashboards sont recharges automatiquement apres un `pct push`.
 
 ### Reset du compte admin (en cas d'urgence)
 
