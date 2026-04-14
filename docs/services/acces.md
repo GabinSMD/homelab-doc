@@ -13,7 +13,7 @@ Reference rapide — tous les services et leurs points d'acces.
 | **Authelia (SSO)** | `auth.home.*` | MFA TOTP + YubiKey | penny |
 | **Portainer** | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny |
 | **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
-| **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC observability / lancelot |
+| **Grafana (logs)** | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC logs / lancelot |
 | **WUD** | `wud.home.*` | ForwardAuth Authelia | penny |
 | **Vaultwarden** | `vault.home.*` | Master + TOTP | LXC vault / galahad |
 | **Proxmox galahad** | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) |
@@ -48,10 +48,10 @@ Tout le reste est DROP.
 | ID | Nom | Host | IP LAN | Role |
 |---|---|---|---|---|
 | 100 | guardian | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
-| 101 | observability | lancelot | `192.168.1.31` | Loki + Grafana |
+| 101 | logs | lancelot | `192.168.1.31` | Loki + Grafana |
 | 102 | vault | galahad | `192.168.1.32` | Vaultwarden |
 
-Note d'isolement : `vault` et `observability` sont sur des hosts differents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
+Note d'isolement : `vault` et `logs` sont sur des hosts differents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 
 ## Reseaux Docker (penny)
 

@@ -91,7 +91,7 @@ pveum acl modify / --user gabins@authelia --role Administrator
 
 ## Configuration Grafana
 
-Via env vars dans `/opt/observability/docker-compose.yml` sur LXC 101 :
+Via env vars dans `/opt/logs/docker-compose.yml` sur LXC 101 :
 
 ```yaml
 GF_AUTH_DISABLE_LOGIN_FORM: "true"

@@ -22,7 +22,7 @@ Le VPN mesh Tailscale est geré depuis [login.tailscale.com](https://login.tails
 | `macbook-pro-de-gabin` | `100.68.165.36` | macOS | Laptop |
 | `a00783` | `100.64.114.40` | windows | Desktop |
 
-Les LXC `observability` (101, sur lancelot) et `vault` (102, sur galahad) ne sont **pas** sur Tailscale — accessibles via l'IP LAN de leur host uniquement.
+Les LXC `logs` (101, sur lancelot) et `vault` (102, sur galahad) ne sont **pas** sur Tailscale — accessibles via l'IP LAN de leur host uniquement.
 
 ## Tailscale SSH
 
@@ -106,4 +106,4 @@ tailscale netcheck          # diagnostics NAT / DERP
 
 - [ ] Renommer `pve1` -> `galahad` et `pve2` -> `lancelot` dans la console Tailscale pour aligner sur la convention de naming.
 - [ ] Documenter la config ACL JSON exacte (export depuis la console) pour backup.
-- [ ] Envisager d'ajouter les LXC `observability` et `vault` sur Tailscale (permettrait SSH direct + acces monitoring hors LAN).
+- [ ] Envisager d'ajouter les LXC `logs` et `vault` sur Tailscale (permettrait SSH direct + acces monitoring hors LAN).

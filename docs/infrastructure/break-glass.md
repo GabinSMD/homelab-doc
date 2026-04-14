@@ -43,7 +43,7 @@ graph TB
 
     subgraph lancelot["lancelot (ZimaBoard — 192.168.1.19)"]
         pve2[Proxmox VE 9]
-        lxc101[LXC 101 — observability<br/>Loki + Grafana<br/>192.168.1.31]
+        lxc101[LXC 101 — logs<br/>Loki + Grafana<br/>192.168.1.31]
     end
 
     traefik --> lxc102
@@ -104,7 +104,7 @@ Contenu requis :
 
 ## Scenarios de panne
 
-### Scenario 0 : Panne d'un seul LXC (guardian / vault / observability)
+### Scenario 0 : Panne d'un seul LXC (guardian / vault / logs)
 
 **Duree estimee** : 15-30 min | **Impact** : service concerne uniquement
 
@@ -150,7 +150,7 @@ Contenu requis :
     # Installer Docker + Vaultwarden, restaurer le volume
     ```
 
-=== "LXC 101 — observability (Loki + Grafana)"
+=== "LXC 101 — logs (Loki + Grafana)"
 
     **Impact** : pas de logs centralises ni dashboards. Aucun impact sur les autres services.
 
@@ -430,12 +430,12 @@ pvecm status
     # Configurer le docker-compose pour Vaultwarden et demarrer
     ```
 
-=== "LXC 101 — observability (lancelot)"
+=== "LXC 101 — logs (lancelot)"
 
     ```bash
     # Sur lancelot
     pct create 101 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-        --hostname observability --memory 512 --cores 2 \
+        --hostname logs --memory 512 --cores 2 \
         --net0 name=eth0,bridge=vmbr0,ip=192.168.1.31/24,gw=192.168.1.254 \
         --unprivileged 1 --start 1
 
@@ -536,7 +536,7 @@ T+1.5h  penny : Authelia restauree, Traefik + DNS UP
 T+2h    LXC 100 (guardian) : AdGuard secondaire UP
         LXC 102 (vault) : Vaultwarden restaure depuis B2
 
-T+2.5h  LXC 101 (observability) : Grafana + Loki
+T+2.5h  LXC 101 (logs) : Grafana + Loki
         SSO reconfigure : OIDC Proxmox + Portainer + Grafana
 
 T+3h    Tests end-to-end (voir checklist ci-dessous)

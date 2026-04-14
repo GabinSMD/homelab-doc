@@ -88,7 +88,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Les deux outils ont chacun leur dashboard : `monitor.home...` (Beszel) et `logs.home...` (Grafana).
 - Sans doublon, chaque outil reste leger.
 
-**Decouplage delibere** : Grafana tourne dans un LXC dedie (`observability` sur lancelot), pas sur penny. Benefice : si penny tombe, on peut analyser les logs depuis l'infra Proxmox; inversement, un crash observability n'affecte pas les services.
+**Decouplage delibere** : Grafana tourne dans un LXC dedie (`logs` sur lancelot), pas sur penny. Benefice : si penny tombe, on peut analyser les logs depuis l'infra Proxmox; inversement, un crash logs n'affecte pas les services.
 
 **Alternative rejetee** : stack Prometheus+node_exporter+Grafana pour les metriques — redondant avec Beszel, plus lourd, plus complexe a maintenir.
 

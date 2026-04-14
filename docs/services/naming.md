@@ -91,7 +91,7 @@ Les services Docker, containers, LXC, subdomains et comptes restent **fonctionne
 | Type | Hostname | Host | IP LAN | IP Tailscale | Role |
 |---|---|---|---|---|---|
 | LXC 100 | `guardian` | galahad | 192.168.1.30 | 100.74.145.26 | AdGuard secondaire + health check externe |
-| LXC 101 | `observability` | lancelot | 192.168.1.31 | — | Loki + Grafana |
+| LXC 101 | `logs` | lancelot | 192.168.1.31 | — | Loki + Grafana |
 
 ## Futurs ajouts
 

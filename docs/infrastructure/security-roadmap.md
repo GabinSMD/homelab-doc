@@ -131,7 +131,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Reseau"
     - Firewall iptables penny (INPUT DROP)
     - Firewall Proxmox cluster (galahad + lancelot)
-    - **Firewall iptables LXC** (vault, observability, guardian) — INPUT DROP + whitelist par role
+    - **Firewall iptables LXC** (vault, logs, guardian) — INPUT DROP + whitelist par role
     - sysctl hardening (rp_filter, SYN flood, source route, martians)
     - **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
     - Rate limit Traefik Authelia (100 req/s SPA)
@@ -166,7 +166,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - rpcbind desactive (galahad + lancelot)
 
 ??? success "Observabilite"
-    - Loki + Grafana Alloy sur LXC `observability`
+    - Loki + Grafana Alloy sur LXC `logs`
     - Grafana renomme `logs.home.gabin-simond.fr`
     - Dashboards : Auth & Securite, Traefik Access, Logs Explorer
     - **Alerting rules** (Authelia auth failures, fail2ban bans, Traefik 5xx, auditd sudo) -> ntfy
@@ -189,7 +189,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Configuration Authelia versionnable sans secrets inline
 
 ??? success "Migrations terminees"
-    - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement observability, 2026-04-13)
+    - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement logs, 2026-04-13)
     - Decommission container Vaultwarden penny prevu 2026-04-27
     - Proxmox cluster : pve1/pve2 -> galahad/lancelot
     - **Galahad + lancelot deja sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster

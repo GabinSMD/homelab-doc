@@ -7,11 +7,11 @@ Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Bes
 | | |
 |---|---|
 | URL | `https://logs.home.gabin-simond.fr` |
-| Host | LXC 101 `observability` sur lancelot (192.168.1.31) |
+| Host | LXC 101 `logs` sur lancelot (192.168.1.31) |
 | Port interne | 3000 |
 | Image | `grafana/grafana:latest` |
-| Source compose | `/opt/observability/docker-compose.yml` |
-| Versioned | `/mnt/ssd/config/observability/` sur penny |
+| Source compose | `/opt/logs/docker-compose.yml` |
+| Versioned | `/mnt/ssd/config/logs/` sur penny |
 
 ## Authentification
 
@@ -31,7 +31,7 @@ Le compte legacy `admin` est desactive dans la DB (`is_disabled=1`, password eff
 |---|---|---|---|
 | Loki | loki | `http://loki:3100` | `loki` |
 
-Provisionnee via `/opt/observability/grafana-provisioning/datasources/loki.yml` avec `uid: loki` pour que les dashboards la trouvent.
+Provisionnee via `/opt/logs/grafana-provisioning/datasources/loki.yml` avec `uid: loki` pour que les dashboards la trouvent.
 
 ## Dashboards
 
@@ -41,7 +41,7 @@ Provisionnee via `/opt/observability/grafana-provisioning/datasources/loki.yml` 
 | `traefik-access` | Traefik Access | Volume HTTP par classe (2xx/3xx/4xx/5xx), logs 4xx/5xx |
 | `logs-explorer` | Logs Explorer | Recherche libre multi-host / multi-job avec filtres |
 
-Provisionnes via `/opt/observability/dashboards/*.json` (read-only), folder Grafana `Homelab`.
+Provisionnes via `/opt/logs/dashboards/*.json` (read-only), folder Grafana `Homelab`.
 
 ## Architecture
 
@@ -51,7 +51,7 @@ graph LR
         Alloy[Grafana Alloy]
     end
 
-    subgraph "LXC 101 observability"
+    subgraph "LXC 101 logs"
         Loki
         Grafana
     end
@@ -77,13 +77,13 @@ Retention Loki : 30 jours.
 
 ### Ajouter un dashboard
 
-Depose le JSON dans `/mnt/ssd/config/observability/dashboards/` (source), puis :
+Depose le JSON dans `/mnt/ssd/config/logs/dashboards/` (source), puis :
 
 ```bash
-tar czf /tmp/bundle.tar.gz -C /mnt/ssd/config/observability dashboards grafana-provisioning docker-compose.yml
+tar czf /tmp/bundle.tar.gz -C /mnt/ssd/config/logs dashboards grafana-provisioning docker-compose.yml
 scp /tmp/bundle.tar.gz gabins@100.69.6.13:/tmp/
 ssh gabins@100.69.6.13 "sudo pct push 101 /tmp/bundle.tar.gz /tmp/ && \
-  sudo pct exec 101 -- bash -c 'cd /opt/observability && tar xzf /tmp/bundle.tar.gz && docker restart grafana'"
+  sudo pct exec 101 -- bash -c 'cd /opt/logs && tar xzf /tmp/bundle.tar.gz && docker restart grafana'"
 ```
 
 ### Reset du compte admin (en cas d'urgence)
@@ -93,7 +93,7 @@ Si Authelia est down ET qu'il faut acceder a Grafana, passer en mode basic tempo
 ```bash
 # Dans le LXC 101
 docker stop grafana
-# Editer /opt/observability/docker-compose.yml :
+# Editer /opt/logs/docker-compose.yml :
 #   GF_AUTH_DISABLE_LOGIN_FORM: "false"
 #   GF_AUTH_BASIC_ENABLED: "true"
 #   GF_SECURITY_ADMIN_PASSWORD: "<one-shot>"

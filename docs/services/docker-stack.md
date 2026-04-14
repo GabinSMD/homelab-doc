@@ -3,7 +3,7 @@
 Tous les conteneurs sur penny tournent depuis un seul `/mnt/ssd/config/docker/docker-compose.yml`.
 Docker data-root sur le SSD (`/mnt/ssd/docker`).
 
-Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `observability` sur lancelot. Voir [grafana.md](grafana.md).
+Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [grafana.md](grafana.md).
 
 ## Services
 
@@ -72,7 +72,7 @@ Voir [authelia.md](authelia.md) pour les details. Resume clients OIDC :
 | Proxmox galahad + lancelot | `proxmox` | LXC nodes |
 | Portainer | `portainer` | penny |
 | Beszel | `beszel` | penny |
-| Grafana | `grafana` | LXC observability |
+| Grafana | `grafana` | LXC logs |
 
 ## DNS interne
 
