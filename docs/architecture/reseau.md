@@ -34,8 +34,8 @@ graph TB
 | Hostname | Type | Role | IP LAN | IP Tailscale |
 |---|---|---|---|---|
 | `penny` (homelab) | RPi 4 (DietPi) | Serveur principal (Docker, Traefik, AdGuard) | `192.168.1.28` | `100.97.239.90` |
-| `galahad` (pve1) | ZimaBoard (Proxmox) | Hyperviseur — **a renommer** `galahad` dans Tailscale | `192.168.1.18` | `100.98.58.121` |
-| `lancelot` (pve2) | ZimaBoard (Proxmox) | Hyperviseur — **a renommer** `lancelot` dans Tailscale | `192.168.1.19` | `100.69.6.13` |
+| `galahad` | ZimaBoard (Proxmox) | Hyperviseur (LXC vault + dns-failover) | `192.168.1.18` | `100.98.58.121` |
+| `lancelot` | ZimaBoard (Proxmox) | Hyperviseur (LXC logs) | `192.168.1.19` | `100.69.6.13` |
 | `dns-failover` | LXC 100 (sur galahad) | AdGuard secondaire + healthcheck | `192.168.1.30` | `100.74.145.26` |
 | `vault` | LXC 102 (sur galahad) | Vaultwarden | `192.168.1.32` | — |
 | `logs` | LXC 101 (sur lancelot) | Loki + Grafana | `192.168.1.31` | — |
@@ -169,12 +169,12 @@ Le VPN mesh Tailscale est gere depuis [login.tailscale.com](https://login.tailsc
 
 ### Tailscale SSH
 
-Mode `check` (MFA navigateur a chaque connexion) active sur `homelab`, `pve1`, `pve2`. Aucun port 22 expose sur aucun host.
+Mode `check` (MFA navigateur a chaque connexion) active sur `homelab` (penny), `galahad`, `lancelot`. Aucun port 22 expose sur aucun host.
 
 ```bash
-ssh gabins@homelab   # via MagicDNS Tailscale
-ssh gabins@pve1      # galahad
-ssh gabins@pve2      # lancelot
+ssh gabins@homelab    # penny via MagicDNS Tailscale
+ssh gabins@galahad    # ZimaBoard #1
+ssh gabins@lancelot   # ZimaBoard #2
 ```
 
 Fallback OpenSSH dispo sur les 3 hosts (ports 2806/2807/2808), cle Ed25519 uniquement.

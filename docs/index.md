@@ -18,20 +18,20 @@ graph TB
     end
 
     subgraph galahad["galahad (ZimaBoard — 192.168.1.18)"]
-        pve1[Proxmox VE 9]
+        proxmox1[Proxmox VE 9]
         lxc100[LXC 100 — dns-failover<br/>AdGuard secondaire]
         lxc102[LXC 102 — vault<br/>Vaultwarden]
     end
 
     subgraph lancelot["lancelot (ZimaBoard — 192.168.1.19)"]
-        pve2[Proxmox VE 9]
+        proxmox2[Proxmox VE 9]
         lxc101[LXC 101 — logs<br/>Loki + Grafana]
     end
 
     traefik --> lxc102
     traefik --> lxc101
-    traefik --> pve1
-    traefik --> pve2
+    traefik --> proxmox1
+    traefik --> proxmox2
     adguard1 -.->|failover| lxc100
 ```
 

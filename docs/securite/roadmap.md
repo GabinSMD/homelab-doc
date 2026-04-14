@@ -50,11 +50,6 @@ Les 3 images sont scratch/distroless (Go static binary) : **aucun** outil CLI (w
 
 **Mitigation** : monitoring via `homelab_monitor.sh` (check Docker containers stopped/unhealthy) + Beszel agent metriques.
 
-#### WUD authentification interne — RESOLU 2026-04-14
-
-WUD remplace par Watchtower (headless, aucune API/UI). Surface d'attaque interne supprimee.
-Watchtower auto-update les services non-critiques, notifie via ntfy pour les critiques (`monitor-only` label).
-
 #### PVE firewall logging
 
 Cluster.fw : `-log nolog` partout -> aucune visibilite sur tentatives bloquees. Mettre `-log warning` ou `info` pour audit.
@@ -78,8 +73,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 - HIDS (Wazuh / CrowdSec une fois dispo Trixie).
 - Bastion SSH LXC — Tailscale SSH couvre deja 80%.
 - IDS reseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
-- Renommer LXC `guardian` -> `dns-failover` — FAIT 2026-04-14.
-- Renommer Tailscale hosts `pve1`/`pve2` -> `galahad`/`lancelot` (UI tailscale, user side).
+- Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot` (UI Tailscale, user side).
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique).
 
 ---
@@ -202,7 +196,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Configuration Authelia versionnable sans secrets inline
 
 ??? success "Migrations terminees"
-    - Vaultwarden : penny SD card -> LXC 102 `vault` sur lancelot -> migre sur galahad (isolement logs, 2026-04-13)
+    - Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isole de logs sur lancelot, 2026-04-13)
     - Volume Docker orphelin `config_vaultwarden-data` supprime de penny (2026-04-14)
     - Proxmox cluster : pve1/pve2 -> galahad/lancelot
     - **Galahad + lancelot deja sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster

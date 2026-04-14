@@ -42,5 +42,4 @@
 - [ ] Ajouter comme 3eme noeud Proxmox (compute + storage) → quorum natif
 - [ ] Configurer ZFS mirror pour le stockage
 - [ ] Mettre en place les backups (Proxmox Backup Server sur ZimaBoard → NAS)
-- [x] Deployer AdGuard secondaire en LXC (redondance DNS) — LXC 100 "dns-failover" sur galahad
 - [ ] UPS pour le coffret technique

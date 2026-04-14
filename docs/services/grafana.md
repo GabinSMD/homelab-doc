@@ -1,6 +1,6 @@
 # Grafana (logs)
 
-Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Beszel](#) qui s'en occupe, pour eviter le doublon Prometheus + node_exporter.
+Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Beszel](index.md) qui s'en occupe, pour eviter le doublon Prometheus + node_exporter.
 
 ## Acces
 
