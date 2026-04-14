@@ -37,7 +37,7 @@ graph TB
 
     subgraph galahad["galahad (ZimaBoard — 192.168.1.18)"]
         pve1[Proxmox VE 9]
-        lxc100[LXC 100 — guardian<br/>AdGuard secondaire<br/>192.168.1.30]
+        lxc100[LXC 100 — dns-failover<br/>AdGuard secondaire<br/>192.168.1.30]
         lxc102[LXC 102 — vault<br/>Vaultwarden<br/>192.168.1.32]
     end
 
@@ -56,7 +56,7 @@ graph TB
 ### Dependances critiques (ordre de demarrage)
 
 ```
-1. DNS          → AdGuard Home (penny ou guardian)
+1. DNS          → AdGuard Home (penny ou dns-failover)
 2. Reverse Proxy → Traefik (penny) — necessite CF_DNS_API_TOKEN
 3. Passwords    → Vaultwarden (LXC 102 galahad) — PAS de dependance SSO
 4. SSO          → Authelia (penny) — necessite secrets generes
@@ -104,11 +104,11 @@ Contenu requis :
 
 ## Scenarios de panne
 
-### Scenario 0 : Panne d'un seul LXC (guardian / vault / logs)
+### Scenario 0 : Panne d'un seul LXC (dns-failover / vault / logs)
 
 **Duree estimee** : 15-30 min | **Impact** : service concerne uniquement
 
-=== "LXC 100 — guardian (AdGuard secondaire)"
+=== "LXC 100 — dns-failover (AdGuard secondaire)"
 
     **Impact** : DNS secondaire indisponible. Le primaire (penny) prend tout le trafic. Aucune interruption visible.
 
@@ -122,7 +122,7 @@ Contenu requis :
     # Si le LXC est corrompu : recreer depuis le template
     pct destroy 100
     pct create 100 local:vztmpl/debian-12-standard_*.tar.zst \
-        --hostname guardian --memory 256 --cores 1 \
+        --hostname dns-failover --memory 256 --cores 1 \
         --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
         --unprivileged 1 --start 1
     # Installer AdGuard Home + Tailscale + restaurer config depuis git
@@ -376,7 +376,7 @@ pvecm status
 
 #### Phase 3 — Recreer les LXC (T+1h a T+2h)
 
-=== "LXC 100 — guardian (galahad)"
+=== "LXC 100 — dns-failover (galahad)"
 
     ```bash
     # Telecharger le template Debian 12
@@ -385,7 +385,7 @@ pvecm status
 
     # Creer le conteneur
     pct create 100 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-        --hostname guardian --memory 256 --cores 1 \
+        --hostname dns-failover --memory 256 --cores 1 \
         --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
         --unprivileged 1 --start 1
 
@@ -513,7 +513,7 @@ gantt
     Install Proxmox galahad          :c1, after a2, 30min
     Install Proxmox lancelot         :c2, after a2, 30min
     Post-install + cluster           :c3, after c1, 15min
-    LXC guardian + vault + obs       :c4, after c3, 45min
+    LXC dns-failover + vault + obs   :c4, after c3, 45min
     SSO + integrations               :c5, after c4, 30min
 ```
 
@@ -533,7 +533,7 @@ T+1h    penny : Docker up, restauration volumes depuis B2
 T+1.5h  penny : Authelia restauree, Traefik + DNS UP
         lancelot : rejoint le cluster
 
-T+2h    LXC 100 (guardian) : AdGuard secondaire UP
+T+2h    LXC 100 (dns-failover) : AdGuard secondaire UP
         LXC 102 (vault) : Vaultwarden restaure depuis B2
 
 T+2.5h  LXC 101 (logs) : Grafana + Loki

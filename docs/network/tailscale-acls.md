@@ -15,7 +15,7 @@ Le VPN mesh Tailscale est geré depuis [login.tailscale.com](https://login.tails
 | Hostname Tailscale | IP | Type | Role |
 |---|---|---|---|
 | `homelab` | `100.97.239.90` | linux | penny (RPi4, DietPi) |
-| `guardian` | `100.74.145.26` | linux | LXC 100 sur galahad (DNS + healthcheck) |
+| `dns-failover` | `100.74.145.26` | linux | LXC 100 sur galahad (DNS + healthcheck) |
 | `pve1` | `100.98.58.121` | linux | galahad (Proxmox) — **a renommer** `galahad` |
 | `pve2` | `100.69.6.13` | linux | lancelot (Proxmox) — **a renommer** `lancelot` |
 | `iphone175` | `100.84.188.65` | iOS | Mobile |
@@ -54,7 +54,7 @@ Pas de compte multi-utilisateur pour l'instant (homelab personnel).
 |---|---|
 | `tag:homelab` | penny |
 | `tag:proxmox` | galahad + lancelot |
-| `tag:lxc` | guardian (et futurs LXCs sur Tailscale) |
+| `tag:lxc` | dns-failover (et futurs LXCs sur Tailscale) |
 | `tag:client` | iphone, macbook, desktop |
 
 ### Regles d'acces (principe)
@@ -90,7 +90,7 @@ Procedure en cas de vol / perte / compromission d'un device :
 
 ## Key expiry
 
-Desactive sur les serveurs (`homelab`, `guardian`, `galahad`, `lancelot`) pour eviter qu'un serveur headless perde l'acces mesh sans intervention humaine. Les clients (iphone, macbook, desktop) gardent l'expiry par defaut (180 jours) + re-auth interactive.
+Desactive sur les serveurs (`homelab`, `dns-failover`, `galahad`, `lancelot`) pour eviter qu'un serveur headless perde l'acces mesh sans intervention humaine. Les clients (iphone, macbook, desktop) gardent l'expiry par defaut (180 jours) + re-auth interactive.
 
 ## Commandes utiles
 

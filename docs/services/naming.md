@@ -11,7 +11,7 @@ fish        # Prison Break        — l'assistant (futur, pas encore deploye)
 penny       # James Bond          — appliance reseau (RPi 4)
 galahad     # Kingsman            — ZimaBoard #1 (Proxmox)
 lancelot    # Kingsman            — ZimaBoard #2 (Proxmox)
-guardian    # — generique —       — LXC 100 sur galahad (AdGuard secondaire + health check)
+dns-failover # — fonctionnel —    — LXC 100 sur galahad (AdGuard secondaire + health check)
 luther      # Mission Impossible  — Minisforum futur (compute + stockage)
 fury        # Marvel              — appliance firewall futur (OPNsense)
 ```
@@ -90,14 +90,14 @@ Les services Docker, containers, LXC, subdomains et comptes restent **fonctionne
 
 | Type | Hostname | Host | IP LAN | IP Tailscale | Role |
 |---|---|---|---|---|---|
-| LXC 100 | `guardian` | galahad | 192.168.1.30 | 100.74.145.26 | AdGuard secondaire + health check externe |
+| LXC 100 | `dns-failover` | galahad | 192.168.1.30 | 100.74.145.26 | AdGuard secondaire + health check externe |
 | LXC 101 | `logs` | lancelot | 192.168.1.31 | — | Loki + Grafana |
 
 ## Futurs ajouts
 
 | Ajout prevu | Nom potentiel | Reference |
 |---|---|---|
-| Switch manageable | actuel : aucun nom (192.168.1.2) | — |
+| Switch manageable | `switch.lan` (192.168.1.2) — rewrite AdGuard | — |
 | NAS dedie | **q** | Q branch dans James Bond |
 | 2e firewall (HA) | **hill** | Maria Hill dans Marvel |
 | Home Assistant | **jarvis** ou **friday** | Iron Man |

@@ -43,7 +43,7 @@ Pour les services sans OIDC natif :
 
 - Traefik dashboard (`traefik.home.gabin-simond.fr`)
 - AdGuard primaire (`adguard.home.gabin-simond.fr`)
-- AdGuard secondaire guardian (`adguard-guardian.home.gabin-simond.fr`)
+- AdGuard secondaire dns-failover (`dns-failover.home.gabin-simond.fr`)
 - Homepage (`home.gabin-simond.fr`)
 - WUD (`wud.home.gabin-simond.fr`)
 

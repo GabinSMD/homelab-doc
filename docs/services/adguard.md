@@ -35,7 +35,7 @@ DNS et DHCP avec ad-blocking pour tout le reseau.
 | Instance | Machine | IP | Role |
 |---|---|---|---|
 | **Primaire** | RPi 4 (Docker, host network) | `192.168.1.28` | DNS principal, ad-blocking |
-| **Secondaire** | LXC 100 "guardian" sur galahad | `192.168.1.30` | DNS de secours, ad-blocking |
+| **Secondaire** | LXC 100 "dns-failover" sur galahad | `192.168.1.30` | DNS de secours, ad-blocking |
 
 Les deux instances ont la meme configuration : memes upstream (Quad9 DoH), memes blocklists, memes `user_rules` conditionnelles.
 
@@ -48,23 +48,33 @@ Les configs sont synchronisees **manuellement**. Quand les `user_rules` ou les b
 Les clients recoivent les deux adresses DNS via DHCP :
 
 - DNS 1 : `192.168.1.28` (RPi, primaire)
-- DNS 2 : `192.168.1.30` (guardian LXC, secondaire)
+- DNS 2 : `192.168.1.30` (dns-failover LXC, secondaire)
 
 Si le RPi tombe, les clients basculent sur le secondaire en quelques secondes. Le secondaire resout `*.home.gabin-simond.fr` vers le RPi — les services redeviennent accessibles des que le RPi reboote (watchdog ~15s + Docker ~30-60s).
 
 ### Acces Tailscale (clients distants)
 
-Le LXC guardian a **Tailscale installe** (IP : `100.74.145.26`). Les clients VPN distants peuvent utiliser ce DNS secondaire.
+Le LXC dns-failover a **Tailscale installe** (IP : `100.74.145.26`). Les clients VPN distants peuvent utiliser ce DNS secondaire.
 
 Configuration Tailscale admin (login.tailscale.com > DNS) :
 
 - DNS 1 : `100.97.239.90` (RPi)
-- DNS 2 : `100.74.145.26` (guardian)
+- DNS 2 : `100.74.145.26` (dns-failover)
 
-!!! warning "Ne pas utiliser de DNS Rewrites statiques"
+!!! warning "Ne pas utiliser de DNS Rewrites statiques pour `*.home.*`"
     Voir [DNS flow](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) — uniquement les `user_rules` conditionnelles sur les deux instances.
 
-## LXC "guardian" — health check externe
+### DNS Rewrites statiques (exceptions)
+
+La seule rewrite statique conservee est pour le switch manageable, qui n'est pas derriere Traefik :
+
+| Domaine | IP | Raison |
+|---|---|---|
+| `switch.lan` | `192.168.1.2` | HTTP only, hors scope HSTS `home.gabin-simond.fr` |
+
+Le domaine `switch.lan` (sans `.home.gabin-simond.fr`) evite le HSTS `includeSubdomains` qui forcerait HTTPS sur un equipement qui ne le supporte pas. Acceder via `http://switch.lan` ou directement `http://192.168.1.2`.
+
+## LXC "dns-failover" — health check externe
 
 Le meme LXC qui heberge AdGuard secondaire surveille le RPi depuis l'exterieur :
 

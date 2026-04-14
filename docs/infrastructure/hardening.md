@@ -369,9 +369,9 @@ Appliques sur `websecure` par defaut :
 ## Tailscale
 
 - Installe sur **host** de chaque machine (pas container) pour Tailscale SSH natif
-- Key expiry **disabled** sur les serveurs (homelab, galahad, lancelot, guardian)
+- Key expiry **disabled** sur les serveurs (homelab, galahad, lancelot, dns-failover)
 - Key expiry **actif** sur les clients mobiles (MacBook, iPhone)
-- DNS : primaire `100.97.239.90` (penny), secondaire `100.74.145.26` (guardian)
+- DNS : primaire `100.97.239.90` (penny), secondaire `100.74.145.26` (dns-failover)
 
 ---
 

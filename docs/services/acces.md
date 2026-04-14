@@ -9,7 +9,7 @@ Reference rapide — tous les services et leurs points d'acces.
 | **Homepage** | `home.*` | ForwardAuth Authelia | penny |
 | **Traefik dashboard** | `traefik.home.*` | ForwardAuth Authelia | penny |
 | **AdGuard primaire** | `adguard.home.*` | ForwardAuth Authelia + bcrypt | penny (host net) |
-| **AdGuard guardian** | `adguard-guardian.home.*` | ForwardAuth Authelia + bcrypt | LXC guardian / galahad |
+| **AdGuard dns-failover** | `dns-failover.home.*` | ForwardAuth Authelia + bcrypt | LXC dns-failover / galahad |
 | **Authelia (SSO)** | `auth.home.*` | MFA TOTP + YubiKey | penny |
 | **Portainer** | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny |
 | **Beszel (monitoring)** | `monitor.home.*` | OIDC Authelia (one_factor) | penny |
@@ -47,7 +47,7 @@ Tout le reste est DROP.
 
 | ID | Nom | Host | IP LAN | Role |
 |---|---|---|---|---|
-| 100 | guardian | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
+| 100 | dns-failover | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
 | 101 | logs | lancelot | `192.168.1.31` | Loki + Grafana |
 | 102 | vault | galahad | `192.168.1.32` | Vaultwarden |
 

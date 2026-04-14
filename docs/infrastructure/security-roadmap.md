@@ -69,7 +69,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 - HIDS (Wazuh / CrowdSec une fois dispo Trixie).
 - Bastion SSH LXC — Tailscale SSH couvre deja 80%.
 - IDS reseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
-- Renommer LXC `guardian` -> nom fonctionnel (`dns-failover`) — coherence naming.
+- Renommer LXC `guardian` -> `dns-failover` — FAIT 2026-04-14.
 - Renommer Tailscale hosts `pve1`/`pve2` -> `galahad`/`lancelot` (UI tailscale, user side).
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique).
 
@@ -114,7 +114,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Traefik dashboard
     - Homepage (etait sans auth)
     - AdGuard primaire (etait bcrypt seul)
-    - AdGuard secondaire guardian (route adguard-guardian.home.*)
+    - AdGuard secondaire dns-failover (route dns-failover.home.*)
     - **WUD** (etait expose anonyme + Traefik sans auth — ferme 2026-04-13)
 
 ??? success "Authelia session config explicite"
@@ -131,12 +131,12 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Reseau"
     - Firewall iptables penny (INPUT DROP)
     - Firewall Proxmox cluster (galahad + lancelot)
-    - **Firewall iptables LXC** (vault, logs, guardian) — INPUT DROP + whitelist par role
+    - **Firewall iptables LXC** (vault, logs, dns-failover) — INPUT DROP + whitelist par role
     - sysctl hardening (rp_filter, SYN flood, source route, martians)
     - **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
     - Rate limit Traefik Authelia (100 req/s SPA)
     - **`insecureSkipVerify` scope Proxmox only** (serversTransport dedie, retire du global Traefik) — 2026-04-14
-    - DNSSEC validation (AdGuard primaire + guardian)
+    - DNSSEC validation (AdGuard primaire + dns-failover)
     - CAA records Cloudflare
     - Security headers HTTPS (HSTS, X-Frame, Referrer, Permissions-Policy)
     - **Topic ntfy randomise** (hex 32 chars, plus de topic previsible) — 2026-04-14

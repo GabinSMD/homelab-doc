@@ -50,6 +50,8 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
     Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
     Elles ecraseraient les regles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, meme aux clients Tailscale — rendant les services inaccessibles via VPN.
 
+    **Seule exception** : `switch.lan` → `192.168.1.2` (equipement HTTP-only, hors du domaine `home.*` pour eviter le HSTS).
+
 !!! success "AdGuard en `network_mode: host`"
     AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
 
@@ -57,7 +59,7 @@ AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_ru
 
     - **2 regles DNS** au lieu de 4 — plus de bricolage avec le bridge Docker
     - **Stats par client** dans AdGuard — on voit quel device fait quelles requetes
-    - **Reverse proxy** toujours actif via Traefik file provider (`dynamic/adguard.yml`)
+    - **Reverse proxy** toujours actif via Traefik file provider (`dynamic/dns.yml`)
 
 ### Wildcard `home.gabin-simond.fr`
 
