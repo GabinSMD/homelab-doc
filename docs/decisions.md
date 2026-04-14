@@ -189,3 +189,22 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Docker data-root sur le SSD — les ecritures lourdes vont sur le SSD, pas la SD
 
 **Alternative rejetee** : Boot complet sur SSD — plus rapide au boot, mais si le bridge USB deconnecte, le systeme entier crash (kernel panic). Trop risque avec ce bridge.
+
+---
+
+## Updates Docker : Watchtower plutot que WUD
+
+**Contexte** : WUD (What's Up Docker) surveillait les mises a jour images mais exposait une API web anonyme sur le reseau interne (item securite P2 ouvert, auth interne cassee).
+
+**Decision** : Migration vers Watchtower (headless)
+
+**Pourquoi** :
+
+- **Zero surface d'attaque** — pas de port, pas d'API, pas de route Traefik. Ferme l'item P2 "WUD auth interne"
+- **Auto-update** des services non-critiques (homepage, beszel, beszel-agent, autoheal) — plus de maintenance manuelle
+- **Monitor-only** sur les critiques (traefik, authelia, portainer, adguard, socket-proxy) via label `com.centurylinklabs.watchtower.monitor-only=true` — notification ntfy quand nouvelle version dispo
+- Plus leger (30 MB vs 357 MB)
+- Notification ntfy en mode report : silence si RAS, resume sinon (maj OK / echec / maintenance requise)
+- Cleanup automatique des anciennes images
+
+**Alternative rejetee** : Garder WUD — API interne anonyme non corrigeable (bug confirme), surface d'attaque inutile pour un dashboard peu consulte.

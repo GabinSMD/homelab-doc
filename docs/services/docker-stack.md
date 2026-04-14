@@ -15,7 +15,7 @@ Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `observabi
 | **Portainer EE** | `portainer/portainer-ee:latest` | Gestion Docker | proxy |
 | **Homepage** | `ghcr.io/gethomepage/homepage:latest` | Dashboard | proxy, socket |
 | **Beszel** + agent | `henrygd/beszel` | Monitoring systeme (CPU/RAM/disk/net) | proxy / host |
-| **WUD** | `getwud/wud` | Surveillance updates images containers | proxy, socket |
+| **Watchtower** | `containrrr/watchtower` | Auto-update non-critiques + notif ntfy pour critiques | proxy, socket |
 | **Authelia** | `authelia/authelia:latest` | SSO / Identity Provider (OIDC) | proxy |
 | **autoheal** | `willfarrell/autoheal` | Redemarre les containers unhealthy | socket |
 
@@ -30,7 +30,6 @@ graph TB
         Traefik --> Authelia
         Traefik --> Portainer
         Traefik --> Homepage
-        Traefik --> WUD
         Traefik --> Beszel
     end
 
@@ -38,7 +37,7 @@ graph TB
         SP[socket-proxy]
         Traefik -.-> SP
         Homepage -.-> SP
-        WUD -.-> SP
+        Watchtower -.-> SP
         Autoheal -.-> SP
     end
 
@@ -58,7 +57,7 @@ graph TB
 
 ## Reseau socket — isolation Docker API
 
-Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par necessite admin). Tout passe par `socket-proxy` :
+Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par necessite admin). Tout passe par `socket-proxy`. Watchtower utilise aussi le proxy pour verifier et pull les images.
 
 - **Endpoints autorises** : CONTAINERS, NETWORKS, SERVICES, TASKS, EVENTS, IMAGES, INFO, VERSION, PING, POST
 - **Endpoints DROPPED** : AUTH, SECRETS, EXEC, VOLUMES, BUILD, COMMIT, CONFIGS, DISTRIBUTION, NODES, PLUGINS, SESSION, SWARM, SYSTEM

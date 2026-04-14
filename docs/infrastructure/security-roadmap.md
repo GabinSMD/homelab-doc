@@ -41,11 +41,10 @@ Les 3 images sont scratch/distroless (Go static binary) : **aucun** outil CLI (w
 
 **Mitigation** : monitoring via `homelab_monitor.sh` (check Docker containers stopped/unhealthy) + Beszel agent metriques.
 
-#### WUD authentification interne (anonyme actuellement)
+#### WUD authentification interne — RESOLU 2026-04-14
 
-Ferme par ForwardAuth Authelia cote externe (2026-04-13), mais l'API WUD interne reste anonyme. Si un container compromis sur reseau `proxy` peut atteindre wud:3001, lecture libre. Activer auth basic ou Authelia OIDC interne.
-
-**Effort** : 1h.
+WUD remplace par Watchtower (headless, aucune API/UI). Surface d'attaque interne supprimee.
+Watchtower auto-update les services non-critiques, notifie via ntfy pour les critiques (`monitor-only` label).
 
 #### PVE firewall logging
 
