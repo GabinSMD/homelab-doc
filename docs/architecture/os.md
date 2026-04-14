@@ -96,7 +96,7 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 - `icc: false` — inter-container communication OFF sur bridge par defaut (securite)
 - `no-new-privileges: true` — empeche l'escalade de privileges dans les containers
 
-Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](hardening.md#docker-tous-containers).
+Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](../securite/hardening.md#docker-tous-containers).
 
 ## Watchdog hardware (BCM2835)
 

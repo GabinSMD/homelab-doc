@@ -1,24 +1,8 @@
 # Homelab
 
-Documentation du homelab : architecture actuelle et cible.
+Documentation du homelab : architecture, services, securite et operations.
 
-## Vue d'ensemble
-
-Un homelab base sur un **Raspberry Pi 4** (actuellement) avec une architecture cible multi-machines pour une maison renovee.
-
-```mermaid
-graph LR
-    Internet --> Freebox
-    Freebox -->|WAN| OPNsense
-    OPNsense -->|Trunk 802.1Q| Switch[Switch 2.5GbE]
-    Switch --> RPi4[RPi 4<br/>DNS / Proxy / VPN]
-    Switch --> Zima1[ZimaBoard #1<br/>Proxmox]
-    Switch --> Zima2[ZimaBoard #2<br/>Proxmox]
-    Switch --> Mini[Minisforum<br/>Proxmox + NAS]
-    Switch --> WiFi[APs WiFi]
-```
-
-### Architecture actuelle
+## Architecture actuelle
 
 ```mermaid
 graph TB
@@ -51,18 +35,35 @@ graph TB
     adguard1 -.->|failover| lxc100
 ```
 
-- **Raspberry Pi 4 (penny)** — appliance reseau (DNS, reverse proxy, SSO, VPN, monitoring)
-- **DietPi** — distribution legere, optimisee headless
-- **Docker** — tous les services containerises
-- **SSD 480 Go** — stockage donnees via USB 3.0
-- **2 ZimaBoards (galahad + lancelot)** — cluster Proxmox VE 9, LXC pour Vaultwarden, Grafana, DNS secondaire
+- **penny** (RPi 4) — appliance reseau : DNS, reverse proxy, SSO, VPN, monitoring
+- **galahad** (ZimaBoard) — Proxmox VE 9 : Vaultwarden (LXC 102), DNS failover (LXC 100)
+- **lancelot** (ZimaBoard) — Proxmox VE 9 : Loki + Grafana (LXC 101)
 
-### Architecture cible
+## Ou chercher quoi
 
-- **3 noeuds Proxmox VE** — 2x ZimaBoard + 1x Minisforum N5 Max
-- **Appliance OPNsense** — firewall dedie, segmentation VLANs
-- **RPi 4** — DNS + reverse proxy (independant du cluster)
-- **Cablage Cat 8** — infrastructure 2.5GbE
+| Je veux... | Aller a |
+|---|---|
+| Voir la liste des services et leurs URLs | [Services — Vue d'ensemble](services/index.md) |
+| Comprendre le reseau et le DNS | [Reseau actuel](architecture/reseau.md) |
+| Voir le hardware et les IPs | [Machines](architecture/hardware.md) |
+| Comprendre la politique de securite | [Securite — Politique](securite/politique.md) |
+| Savoir ce qui est harden | [Securite — Hardening](securite/hardening.md) |
+| Restaurer apres un crash | [Break-glass](operations/break-glass.md) |
+| Verifier les backups | [Backups](operations/backups.md) |
+| Diagnostiquer un probleme | [Depannage](operations/depannage.md) |
+| Ajouter un nouveau service | [Guide — Ajouter un service](guides/ajouter-service.md) |
+
+## Naming
+
+Chaque machine porte un nom de code du monde de l'espionnage. Voir le [casting complet](projet/about.md).
+
+| Machine | Nom | Reference | Role |
+|---|---|---|---|
+| RPi 4 | **penny** | Miss Moneypenny (James Bond) | Appliance reseau |
+| ZimaBoard #1 | **galahad** | Galahad (Kingsman) | Proxmox compute |
+| ZimaBoard #2 | **lancelot** | Lancelot (Kingsman) | Proxmox compute |
+| _Futur_ Minisforum | **luther** | Luther Stickell (Mission Impossible) | Compute + NAS |
+| _Futur_ firewall | **fury** | Nick Fury (Marvel) | OPNsense |
 
 ## Organisation des fichiers (RPi 4)
 

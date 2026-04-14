@@ -3,8 +3,8 @@
 Doctrine securite : **qui on defend contre quoi, jusqu'ou**, et **comment les credentials sont gerees**.
 
 Pour les mesures techniques par couche (sysctl, firewall rules, SSH, containers) : [hardening.md](hardening.md).
-Pour les actions restantes : [security-roadmap.md](security-roadmap.md).
-Pour la procedure en cas d'incident : [break-glass.md](break-glass.md).
+Pour les actions restantes : [roadmap.md](roadmap.md).
+Pour la procedure en cas d'incident : [break-glass.md](../operations/break-glass.md).
 
 ---
 
@@ -153,6 +153,6 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 
 - [Hardening](hardening.md) — mesures techniques par couche (sysctl, firewall, SSH, containers)
 - [Authelia (SSO)](../services/authelia.md) — configuration SSO et clients OIDC
-- [Tailscale ACLs](../network/tailscale-acls.md) — acces distant et politique ACL
-- [Backups](backups.md) — procedure et architecture de sauvegarde
-- [Break-glass](break-glass.md) — procedure de reconstruction en cas d'incident
+- [Tailscale ACLs](../architecture/reseau.md) — acces distant et politique ACL
+- [Backups](../operations/backups.md) — procedure et architecture de sauvegarde
+- [Break-glass](../operations/break-glass.md) — procedure de reconstruction en cas d'incident

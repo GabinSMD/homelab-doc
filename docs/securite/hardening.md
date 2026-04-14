@@ -2,9 +2,9 @@
 
 Ce document centralise toutes les mesures de durcissement appliquees, par couche, avec commandes reproductibles.
 
-Pour la doctrine generale (modele de menace, politique credentials), voir [security.md](security.md).
+Pour la doctrine generale (modele de menace, politique credentials), voir [politique.md](politique.md).
 
-Pour la roadmap des actions restantes, voir [security-roadmap.md](security-roadmap.md).
+Pour la roadmap des actions restantes, voir [roadmap.md](roadmap.md).
 
 ---
 
@@ -132,7 +132,7 @@ blacklist tipc
 
 ### Watchdog hardware
 
-Voir [os-optimizations.md](os-optimizations.md#watchdog-hardware-bcm2835) pour la configuration complete. Timeout 15s, module `bcm2835_wdt`.
+Voir [os.md](../architecture/os.md#watchdog-hardware-bcm2835) pour la configuration complete. Timeout 15s, module `bcm2835_wdt`.
 
 ### Comptes
 
@@ -161,7 +161,7 @@ Actif, reboot auto a 4h si necessaire (apres backups 3h). Upgrades securite Debi
 
 ### Docker daemon
 
-Voir [os-optimizations.md](os-optimizations.md#daemonjson) pour la configuration complete. Points securite : `icc: false` (inter-container OFF), `no-new-privileges: true`.
+Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. Points securite : `icc: false` (inter-container OFF), `no-new-privileges: true`.
 
 ---
 
@@ -287,8 +287,8 @@ Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart l
 
 - [Authelia (SSO)](../services/authelia.md) — configuration SSO, clients OIDC, secrets rotation
 - [Traefik](../services/traefik.md) — middlewares, TLS, reverse proxy
-- [Backups](backups.md) — architecture, retention, restauration
-- [Tailscale ACLs](../network/tailscale-acls.md) — VPN mesh, key expiry, ACL policy
+- [Backups](../operations/backups.md) — architecture, retention, restauration
+- [Tailscale ACLs](../architecture/reseau.md) — VPN mesh, key expiry, ACL policy
 
 ---
 

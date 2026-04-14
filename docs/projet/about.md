@@ -35,6 +35,21 @@ Quelques principes qui guident les decisions techniques :
 - **Budget raisonnable** — optimiser le rapport performance/prix, pas acheter le plus cher
 - **Apprendre en faisant** — preferer une solution qu'on comprend a une boite noire qui "juste marche"
 
+## Naming — le pantheon
+
+Chaque machine porte un nom de code emprunte au monde de l'espionnage, des agents secrets et des heros de l'ombre.
+
+| Machine | Nom | Reference | Pourquoi |
+|---|---|---|---|
+| RPi 4 | **penny** | Miss Moneypenny (James Bond) | Point de passage oblige du reseau — DNS, proxy, monitoring |
+| ZimaBoard #1 | **galahad** | Galahad (Kingsman) | Premier agent du cluster Proxmox, fiable, toujours operationnel |
+| ZimaBoard #2 | **lancelot** | Lancelot (Kingsman) | Deuxieme agent, duo inseparable avec galahad |
+| Minisforum (futur) | **luther** | Luther Stickell (Mission Impossible) | Cerveau technique : compute + NAS, le plus puissant |
+| Firewall (futur) | **fury** | Nick Fury (Marvel) | Controler qui a acces a quoi — c'est le firewall |
+| Assistant (futur) | **fish** | Scofield (Prison Break) | Intelligence calme, observe, execute, repare |
+
+Le pantheon s'applique aux **machines physiques** uniquement. Les services Docker, LXC et subdomains restent **fonctionnels** (`vault`, `auth`, `monitor`, `logs`...).
+
 ## Ce site
 
 Ce site est genere avec [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) et deploye automatiquement sur GitHub Pages via GitHub Actions.

@@ -65,34 +65,32 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
-  - Infrastructure:
-    - Hardware: infrastructure/hardware.md
-    - Optimisations OS: infrastructure/os-optimizations.md
-    - Securite: infrastructure/security.md
-    - Hardening: infrastructure/hardening.md
-    - Roadmap securite: infrastructure/security-roadmap.md
-    - Break-glass: infrastructure/break-glass.md
-    - Monitoring: infrastructure/monitoring.md
-    - Backups: infrastructure/backups.md
-    - Maintenance et depannage: infrastructure/troubleshooting.md
+  - Architecture:
+    - Machines: architecture/hardware.md
+    - Optimisations OS: architecture/os.md
+    - Reseau actuel: architecture/reseau.md
+    - Reseau cible: architecture/reseau-cible.md
   - Services:
-    - Naming: services/naming.md
-    - Stack Docker: services/docker-stack.md
+    - Vue d'ensemble: services/index.md
     - Traefik: services/traefik.md
-    - AdGuard Home: services/adguard.md
     - Authelia (SSO): services/authelia.md
+    - AdGuard Home: services/adguard.md
     - Vaultwarden: services/vaultwarden.md
     - Grafana (logs): services/grafana.md
-    - Acces et URLs: services/acces.md
-  - Reseau:
-    - Architecture cible: network/architecture-cible.md
-    - VLANs: network/vlans.md
-    - Tailscale ACLs: network/tailscale-acls.md
+  - Securite:
+    - Politique: securite/politique.md
+    - Hardening: securite/hardening.md
+    - Roadmap: securite/roadmap.md
+  - Operations:
+    - Monitoring: operations/monitoring.md
+    - Backups: operations/backups.md
+    - Break-glass: operations/break-glass.md
+    - Depannage: operations/depannage.md
   - Guides:
     - Ajouter un service: guides/ajouter-service.md
     - Proxmox sur ZimaBoard: guides/proxmox-zimaboard.md
-    - Comment fonctionne le DNS: guides/dns-flow.md
     - TLS et certificats: guides/tls.md
-  - Decisions techniques: decisions.md
-  - Roadmap: roadmap.md
-  - A propos: about.md
+  - Projet:
+    - Decisions techniques: projet/decisions.md
+    - Roadmap: projet/roadmap.md
+    - A propos: projet/about.md

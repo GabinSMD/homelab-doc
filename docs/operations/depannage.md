@@ -268,7 +268,7 @@ Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent le
 
 Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` gere deja tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
 
-Voir [Comment fonctionne le DNS](../guides/dns-flow.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
+Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
 
 ---
 

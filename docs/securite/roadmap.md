@@ -2,7 +2,7 @@
 
 Etat au **2026-04-14**. Priorite : `impact / effort`.
 
-> Pour la doctrine (threat model, politique credentials) : [security.md](security.md).
+> Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
 
 ---
@@ -19,11 +19,11 @@ Etat au **2026-04-14**. Priorite : `impact / effort`.
 
 #### VLANs + OPNsense
 
-Bloque par achat hardware. Voir [network/architecture-cible.md](../network/architecture-cible.md).
+Bloque par achat hardware. Voir [architecture/reseau-cible.md](../architecture/reseau-cible.md).
 
 #### Chiffrement au repos (ZFS) — SKIP DOCUMENTE
 
-Voir [decisions.md](../decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
+Voir [decisions.md](../projet/decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
 
 #### Egress firewall (penny + galahad + lancelot) — PHASE 1 EN COURS
 
@@ -87,10 +87,10 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ## Deja fait
 
 ??? success "Observabilite / documentation"
-    - Threat model documente ([security.md](security.md))
+    - Threat model documente ([politique.md](politique.md))
     - Politique rotation / revocation documentee
-    - Procedure revocation Tailscale ([network/tailscale-acls.md](../network/tailscale-acls.md))
-    - Break-glass procedure ([break-glass.md](break-glass.md))
+    - Procedure revocation Tailscale ([reseau.md](../architecture/reseau.md))
+    - Break-glass procedure ([break-glass.md](../operations/break-glass.md))
     - DR drill Vaultwarden (RTO 7s)
     - Scope token Cloudflare verifie (1 zone)
 

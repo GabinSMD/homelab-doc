@@ -35,7 +35,7 @@ graph LR
 `consent_mode: pre-configured` evite le consent screen a chaque login (1 acceptation = 1 an de validite).
 
 !!! warning "Beszel OIDC — pre-requis"
-    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS specifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [troubleshooting](../infrastructure/troubleshooting.md#beszel--oidc-failed-to-fetch-oauth2-token).
+    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS specifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [depannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
 
 ## ForwardAuth middleware
 
