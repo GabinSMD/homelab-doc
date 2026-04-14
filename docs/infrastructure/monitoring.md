@@ -48,7 +48,7 @@ Le script utilise des fichiers d'etat dans `/var/lib/homelab_monitor/` :
 ### Configuration
 
 ```bash
-NTFY_TOPIC="gabin-homelab"        # Topic ntfy (secret)
+NTFY_TOPIC="<topic-randomise>"    # Topic ntfy (hex 32 chars, non public)
 NTFY_SERVER="https://ntfy.sh"
 TEMP_WARN=70                      # Seuil warning °C
 TEMP_CRIT=80                      # Seuil critique °C
