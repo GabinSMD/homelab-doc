@@ -7,8 +7,10 @@ Gestionnaire de mots de passe auto-heberge, compatible avec les clients Bitwarde
 | | |
 |---|---|
 | URL | `https://vault.home.gabin-simond.fr` |
-| Image | `vaultwarden/server:latest` |
+| Host | LXC 102 `vault` sur galahad (192.168.1.32) |
+| Image | `vaultwarden/server:latest` (digest pinned) |
 | Port interne | 80 |
+| Auth | Master password + TOTP (pas de SSO, voir ci-dessous) |
 
 ## Pourquoi pas de SSO ?
 

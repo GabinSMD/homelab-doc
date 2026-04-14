@@ -35,13 +35,48 @@ Provisionnee via `/opt/logs/grafana-provisioning/datasources/loki.yml` avec `uid
 
 ## Dashboards
 
-| UID | Titre | Focus |
-|---|---|---|
-| `auth-security` | Auth & Securite | Authelia logins / echecs, fail2ban bans, auditd events |
-| `traefik-access` | Traefik Access | Volume HTTP par classe (2xx/3xx/4xx/5xx), logs 4xx/5xx |
-| `logs-explorer` | Logs Explorer | Recherche libre multi-host / multi-job avec filtres |
+Quatre dashboards provisionnes via `/opt/logs/dashboards/*.json` (read-only), folder Grafana `Homelab`. Tous les KPI stats utilisent `[$__range]` et suivent le selecteur de temps Grafana.
 
-Provisionnes via `/opt/logs/dashboards/*.json` (read-only), folder Grafana `Homelab`.
+### Homelab Overview (`homelab-overview`)
+
+Le dashboard du matin — 5 secondes pour savoir si tout va bien.
+
+| Ligne | Panneaux |
+|---|---|
+| KPIs sante | Erreurs, Container restarts, Autoheal, Events SSD |
+| KPIs conscience | Logins echoues, Bans fail2ban, Watchtower MAJ, Sessions SSH |
+| Graphes | Erreurs par service, Monitoring alerts (homelab_monitor.sh) |
+| Logs evenements | MAJ containers (Watchtower), SSD / Power / Certificats TLS |
+| Logs erreurs | Erreurs recentes tous services |
+
+### Securite (`auth-security`)
+
+Deep dive quand un signal securite clignote sur l'overview.
+
+| Ligne | Panneaux |
+|---|---|
+| KPIs | Logins reussis, Logins echoues, Bans fail2ban, Sudo commands |
+| Graphes | Authelia logins, fail2ban bans par host, SSH sessions par host, Sudo par host |
+| Logs | Authelia echecs + IP, WebAuthn/TOTP, SSH connexions, auditd |
+
+### Trafic (`traefik-access`)
+
+Deep dive sur le trafic HTTP via Traefik.
+
+| Ligne | Panneaux |
+|---|---|
+| KPIs | Requetes, 4xx, 5xx, Taux erreur |
+| Graphes | Codes HTTP par classe (stacked), Volume par service backend |
+| Logs | 4xx/5xx recents avec URL |
+
+### Logs Explorer (`logs-explorer`)
+
+Recherche libre avec filtres. Variables : Host, Job, Container, Recherche texte.
+
+| Ligne | Panneaux |
+|---|---|
+| Graphes | Volume par host, Volume par container, Volume par job |
+| Logs | Recherche libre (repond aux filtres variables) |
 
 ## Architecture
 

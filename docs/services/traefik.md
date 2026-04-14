@@ -2,6 +2,16 @@
 
 Reverse proxy avec TLS automatique via Let's Encrypt et DNS challenge Cloudflare.
 
+## Acces
+
+| | |
+|---|---|
+| URL | `https://traefik.home.gabin-simond.fr` (dashboard) |
+| Host | penny (Docker) |
+| Image | `traefik:latest` (digest pinned) |
+| Port interne | 8080 (dashboard, non expose) |
+| Auth | ForwardAuth Authelia |
+
 ## Fonctionnement
 
 ```mermaid

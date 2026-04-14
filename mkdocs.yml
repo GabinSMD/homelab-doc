@@ -28,6 +28,7 @@ theme:
     - navigation.tracking
     - navigation.sections
     - navigation.expand
+    - navigation.indexes
     - navigation.top
     - search.suggest
     - search.highlight
@@ -66,6 +67,7 @@ markdown_extensions:
 nav:
   - Accueil: index.md
   - Architecture:
+    - architecture/index.md
     - Machines: architecture/hardware.md
     - Optimisations OS: architecture/os.md
     - Reseau actuel: architecture/reseau.md
@@ -78,19 +80,23 @@ nav:
     - Vaultwarden: services/vaultwarden.md
     - Grafana (logs): services/grafana.md
   - Securite:
+    - securite/index.md
     - Politique: securite/politique.md
     - Hardening: securite/hardening.md
     - Roadmap: securite/roadmap.md
   - Operations:
+    - operations/index.md
     - Monitoring: operations/monitoring.md
     - Backups: operations/backups.md
     - Break-glass: operations/break-glass.md
     - Depannage: operations/depannage.md
   - Guides:
+    - guides/index.md
     - Ajouter un service: guides/ajouter-service.md
     - Proxmox sur ZimaBoard: guides/proxmox-zimaboard.md
     - TLS et certificats: guides/tls.md
   - Projet:
+    - projet/index.md
     - Decisions techniques: projet/decisions.md
     - Roadmap: projet/roadmap.md
     - A propos: projet/about.md

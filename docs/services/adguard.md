@@ -2,6 +2,15 @@
 
 DNS et DHCP avec ad-blocking pour tout le reseau.
 
+## Acces
+
+| | |
+|---|---|
+| URL | `https://dns.home.gabin-simond.fr` (primaire) / `https://dns-failover.home.gabin-simond.fr` (secondaire) |
+| Host | penny (Docker, host network) + LXC 100 dns-failover (galahad) |
+| Image | `adguard/adguardhome:latest` |
+| Auth | ForwardAuth Authelia + bcrypt local |
+
 ## Role
 
 - **DNS resolver** principal pour le reseau local
