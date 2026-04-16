@@ -67,6 +67,9 @@ UseDNS no
 X11Forwarding no
 ```
 
+!!! note "dietpi.conf override"
+    Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent etre aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+
 ### Firewall iptables
 
 Policy `INPUT DROP`. Ports ouverts uniquement :
@@ -78,9 +81,11 @@ Policy `INPUT DROP`. Ports ouverts uniquement :
 | 853 | DNS-over-TLS | Tous |
 | 2806 | SSH | Tous (cle requise) |
 | 3000 | AdGuard web UI | LAN + Tailscale |
+| 2049 (TCP) | NFS (PBS datastore) | LAN + Tailscale |
+| 111 (TCP/UDP) | rpcbind / portmapper (NFS) | LAN + Tailscale |
 | 45876 | Beszel agent | LAN + Tailscale |
 
-Persistance via `iptables-persistent`.
+Persistance via `netfilter-persistent`.
 
 ### sysctl hardening (`/etc/sysctl.d/99-hardening.conf`)
 
@@ -171,7 +176,8 @@ Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. P
 
 Idem penny mais :
 - Port 2807 (galahad) / 2808 (lancelot)
-- `PermitRootLogin prohibit-password` (Proxmox necessite root pour operations cluster)
+- `PermitRootLogin prohibit-password` (Proxmox necessite root pour operations cluster : pvecm, corosync)
+- `PasswordAuthentication no`
 
 ### Firewall Proxmox cluster (`/etc/pve/firewall/cluster.fw`)
 
@@ -200,6 +206,21 @@ IN ACCEPT -i tailscale0 -log nolog
 | auditd | Actif | Actif (reactive 2026-04-13 — retrait des watch Docker absents host) |
 | lynis weekly | Cron dimanche 5h | Cron dimanche 5h |
 | rpcbind | Disabled + masked | Disabled + masked |
+
+---
+
+## LXC (100, 101, 102, 103)
+
+### SSH
+
+Tous les LXC ont le meme hardening SSH :
+
+```ini
+PermitRootLogin no
+PasswordAuthentication no
+```
+
+Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de SSH root). SSH direct via `gabins` + cle Ed25519 si necessaire pour les scripts (monitoring, backup).
 
 ---
 

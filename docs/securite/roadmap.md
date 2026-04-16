@@ -1,6 +1,6 @@
 # Roadmap securite
 
-Etat au **2026-04-14**. Priorite : `impact / effort`.
+Etat au **2026-04-16**. Priorite : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
@@ -89,13 +89,18 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Scope token Cloudflare verifie (1 zone)
 
 ??? success "Backups"
-    - Off-site B2 chiffre (restic AES-256), plus de tar.gz / rclone (supprime 2026-04-14)
+    - **Proxmox Backup Server** (LXC 103 "pbs" sur lancelot, IP 192.168.1.33) — backup natif de tous les LXC (100, 101, 102, 103) via API PBS
+    - Datastore "main" sur NFS penny (`/mnt/ssd/pbs-datastore`, 65536 chunk dirs)
+    - NFS export `all_squash anonuid=100034` (UID mappe LXC unprivileged)
+    - Traefik route `backup.home.gabin-simond.fr` → PBS UI
+    - Authelia OIDC realm "authelia" pour login PBS + comptes break-glass locaux
+    - vzdump-permfix-hook.sh sur galahad + lancelot (workaround pct.conf permissions, TEMPORAIRE — a supprimer apres migration ZFS)
+    - **Vaultwarden restic-direct** (LXC 102 → B2:restic-vault, SQLite atomic snapshot, cron 02h, independant de PBS)
+    - Off-site B2 chiffre (restic AES-256) pour penny configs + volumes Docker
     - Restic unique backend B2 natif (`b2:gabin-homelab-backups:restic`)
     - Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
     - Retention 7d/4w/6m + prune automatique
     - **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
-    - **vzdump LXC quotidien** (galahad LXC 100+102, lancelot LXC 101, 1h, retention 3 jours) + pull quotidien penny 2h30 -> restic B2
-    - `vzdump-daily.sh` avec alerting ntfy (succes + echec) sur chaque ZimaBoard
     - RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
 
 ??? success "Authentification"
@@ -103,6 +108,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **Authelia regulation anti brute-force** (5 retries / 2min / ban 10min) — 2026-04-14
     - Consent mode `pre-configured` (1 an) sur tous les clients OIDC
     - SSH cles uniquement, ports custom, MaxAuthTries 3
+    - **SSH hardening LXC** (100, 101, 102, 103) : `PermitRootLogin no`, `PasswordAuthentication no` — 2026-04-16
+    - **penny SSH** : `PermitRootLogin no`, `PasswordAuthentication no` (dietpi.conf override) — 2026-04-16
+    - **galahad/lancelot SSH** : `PermitRootLogin prohibit-password` (exception cluster Proxmox) — 2026-04-16
     - Comptes `gabins` partout, plus de `gabin` legacy
     - Sudo NOPASSWD (cle SSH = auth forte)
     - SSH hardening Lynis (`AllowTcpForwarding no`, etc.)
@@ -111,6 +119,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ??? success "OIDC SSO (Authelia)"
     - Proxmox galahad + lancelot (Administrator sur gabins@authelia)
+    - **PBS** (LXC 103, `gabins@authelia` Admin sur /, two_factor, pre-configured consent 1y) — 2026-04-16
     - Portainer
     - Beszel
     - Grafana (GrafanaAdmin, admin legacy desactive)
@@ -137,7 +146,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Reseau"
     - Firewall iptables penny (INPUT DROP)
     - Firewall Proxmox cluster (galahad + lancelot)
-    - **Firewall iptables LXC** (vault, logs, dns-failover) — INPUT DROP + whitelist par role
+    - **Firewall iptables LXC** (vault, logs, dns-failover, pbs) — INPUT DROP + whitelist par role
+    - **NFS rules** (ports 2049, 111) pour LAN + Tailscale sur penny — 2026-04-16
+    - Suppression regles temporaires vault-import (port 8765) — 2026-04-16
     - sysctl hardening (rp_filter, SYN flood, source route, martians)
     - **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
     - Rate limit Traefik Authelia (100 req/s SPA)
@@ -169,7 +180,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **auditd actif sur penny + galahad + lancelot** (auth, sudo, SSH, crontabs, firewall, Docker socket sur hosts Docker)
     - fail2ban (penny + galahad)
     - unattended-upgrades (penny + galahad)
-    - rpcbind desactive (galahad + lancelot)
+    - rpcbind desactive (galahad + lancelot) ; active sur penny pour NFS (PBS datastore)
 
 ??? success "Observabilite"
     - Loki + Grafana Alloy sur LXC `logs`
@@ -185,6 +196,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Auto-recovery SSD (device rename detection)
     - dns-failover LXC (health check externe penny depuis galahad)
     - DNS redondant primaire/secondaire
+    - **AdGuard wildcard** `*.home.gabin-simond.fr` → penny (Traefik reverse proxy) — 2026-04-16
+    - **adguard-sync.sh** : synchronisation primary → secondary (avec verification canary) — 2026-04-16
+    - **homelab_monitor.sh** : checks `check_adguard_sync`, `check_backup_freshness`, `check_vault_backup_freshness` — 2026-04-16
 
 ??? success "Supply chain code"
     - Pre-commit hook anti-leak (`scripts/pre-commit-secret-scan.sh`) sur homelab-config + homelab-doc
@@ -194,6 +208,11 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **Authelia secrets externalises** (jwt, session, encryption_key, hmac → fichiers `/config/secrets/` chmod 600, charges via `AUTHELIA_*_FILE` env vars) — 2026-04-14
     - Cle JWKS OIDC dans `oidc.pem` separee (gitignored)
     - Configuration Authelia versionnable sans secrets inline
+
+??? success "Convention comptes et service accounts"
+    - [comptes.md](comptes.md) : 3 tiers (root break-glass, gabins admin 2FA, svc-* automation)
+    - Naming convention, arbre de decision, stockage Vaultwarden — 2026-04-16
+    - Matrice par type de systeme (machines, PVE, PBS, Authelia, Docker, LXC, services web)
 
 ??? success "Migrations terminees"
     - Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isole de logs sur lancelot, 2026-04-13)

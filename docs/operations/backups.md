@@ -4,46 +4,110 @@
 
 ```mermaid
 graph LR
+    subgraph cluster["Proxmox cluster"]
+        galahad[galahad<br/>LXC 100 dns-failover<br/>LXC 102 vault]
+        lancelot[lancelot<br/>LXC 101 logs<br/>LXC 103 pbs]
+    end
+
     subgraph penny["penny (RPi 4)"]
         volumes[Volumes Docker<br/>staging → /mnt/ssd/.restic-staging]
         configs[Configs bind-mount<br/>/mnt/ssd/config/*]
-        dumps[LXC dumps<br/>/mnt/ssd/data/lxc-dumps/]
+        nfs[NFS server<br/>/mnt/ssd/pbs-datastore]
     end
 
-    subgraph cluster["Proxmox cluster"]
-        vzdump[vzdump quotidien<br/>galahad LXC 100+102<br/>lancelot LXC 101]
-    end
+    galahad -->|PBS API| PBS[PBS LXC 103<br/>192.168.1.33]
+    lancelot -->|PBS API| PBS
+    PBS -->|NFS mount| nfs
 
-    vzdump -->|rsync 2h30| dumps
     volumes --> restic
     configs --> restic
-    dumps --> restic
-
     restic[restic backup 3h<br/>chiffre AES-256] --> B2[Backblaze B2<br/>gabin-homelab-backups/restic]
+
+    vault102[LXC 102 vault] -->|restic-direct 2h| B2vault[Backblaze B2<br/>restic-vault]
+
     Git[Configs + Scripts] -->|git push| GitHub[GitHub<br/>homelab-config prive]
 ```
 
-**Chiffrement** : AES-256 cote client (restic). Les donnees quittent penny deja chiffrees.
+**Chiffrement** : AES-256 cote client (restic pour penny + Vaultwarden). PBS chiffre au niveau datastore (AES-256-GCM).
 
 **Regle 3-2-1 :**
 
-- **3** copies : SSD (live) + LXC local (vzdump) + Backblaze B2 (restic chiffre)
+- **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Backblaze B2 (restic chiffre)
 - **2** supports : SSD/eMMC + cloud
 - **1** copie hors-site : Backblaze B2
 
-## Ce qui est sauvegarde
+---
 
-### Via Git (a chaque modification)
+## Proxmox Backup Server (PBS)
 
-| Donnee | Repo | Visibilite |
+### Infrastructure
+
+| Element | Detail |
+|---|---|
+| LXC | 103 "pbs" sur lancelot, unprivileged, Debian 13, IP 192.168.1.33 |
+| Datastore "main" | `/mnt/datastore` (bind-mount depuis lancelot `/mnt/pbs-nfs`) |
+| Stockage reel | NFS sur penny, export `/mnt/ssd/pbs-datastore` (65536 chunk dirs) |
+| NFS export | `all_squash anonuid=100034` (UID mappe du LXC unprivileged) |
+| UI | `backup.home.gabin-simond.fr` via Traefik → 192.168.1.33:8007 |
+| Auth | Authelia OIDC realm "authelia" + comptes locaux break-glass |
+
+### Comptes PBS
+
+Voir [comptes.md](../securite/comptes.md) pour la convention complete.
+
+| Compte | Role | Usage |
 |---|---|---|
-| Configs applicatives (Traefik, AdGuard, Homepage, etc.) | `homelab-config` | Prive |
-| Config systeme (boot, fstab, udev, sysctl, crontab) | `homelab-config` | Prive |
-| Scripts (monitor, backup, vzdump, proxmox) | `homelab-config` | Prive |
-| Templates Authelia (`.example`, sans secrets) | `homelab-config` | Prive |
-| Documentation | `homelab-doc` | Public |
+| `root@pam` | Superuser | Break-glass uniquement |
+| `gabins@authelia` | Admin sur `/` | Login quotidien UI via OIDC 2FA |
+| `gabins@pbs` | Admin sur `/` | Break-glass si Authelia down |
+| `svc-pve-backup@pbs!pve` | DatastorePowerUser sur `/datastore/main` | Jobs backup PVE Datacenter |
 
-### Via restic (quotidien, 3h du matin)
+### Backup des LXC via PBS
+
+Les deux nodes PVE (galahad + lancelot) envoient leurs LXC directement au PBS via l'API native. Plus besoin de vzdump-daily.sh + rsync + pull vers penny.
+
+| LXC | Contenu | Node PVE | Criticite |
+|---|---|---|---|
+| 100 (dns-failover) | AdGuard secondaire | galahad | Moyenne |
+| 101 (logs) | Loki + Grafana | lancelot | Faible |
+| 102 (vault) | Vaultwarden | galahad | **Critique** |
+| 103 (pbs) | PBS lui-meme | lancelot | Moyenne (reconstructible) |
+
+!!! warning "vzdump hook temporaire"
+    Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
+
+### vzdump-permfix-hook.sh
+
+Hook vzdump enregistre dans `/etc/vzdump.conf` sur galahad et lancelot :
+
+```ini
+# /etc/vzdump.conf
+tmpdir: /tmp
+script: /usr/local/bin/vzdump-permfix-hook.sh
+```
+
+Le hook lance un watcher en arriere-plan a `backup-start` qui surveille l'apparition de `pct.conf` dans le tmpdir et corrige ses permissions (`chmod a+rX` dirs, `chmod a+r` fichiers) pour que `lxc-usernsexec` (UID 100000) puisse les lire.
+
+---
+
+## Vault — restic-direct vers B2
+
+Vaultwarden (LXC 102 sur galahad) dispose d'un backup restic independant, direct vers B2. Ce backup est complementaire de PBS et garantit une copie hors-site meme si PBS ou le NFS sont en panne.
+
+| Element | Detail |
+|---|---|
+| Script | `/usr/local/bin/vault-backup.sh` dans LXC 102 |
+| Cron | Quotidien 02h00 |
+| Repo | `b2:gabin-homelab-backups:restic-vault` |
+| Retention | 7 daily / 4 weekly / 6 monthly |
+| Methode | SQLite atomic snapshot (`.backup` API) + `/opt/vaultwarden/` complet |
+| Notification | ntfy (low OK, high FAIL) |
+
+---
+
+## penny — restic vers B2
+
+### Ce qui est sauvegarde
 
 **Volumes Docker (stages puis backup) :**
 
@@ -51,9 +115,6 @@ graph LR
 |---|---|---|
 | Beszel (historique monitoring) | `config_beszel-data` | Faible |
 | Portainer (config Docker) | `config_portainer-data` | Moyenne |
-
-!!! info "Vaultwarden n'est plus un volume Docker"
-    Migre vers LXC 102 sur galahad. Sauvegarde via vzdump quotidien (voir ci-dessous).
 
 **Configs avec secrets :**
 
@@ -67,30 +128,44 @@ graph LR
 | Boot config (cmdline, config.txt) | `/mnt/ssd/config/boot/` | Haute |
 | System config (fstab, sysctl) | `/mnt/ssd/config/system/` | Haute |
 
-**LXC dumps Proxmox :**
+### Via Git (a chaque modification)
 
-| LXC | Contenu | Host | Criticite |
-|---|---|---|---|
-| 100 (dns-failover) | AdGuard secondaire | galahad | Moyenne |
-| 101 (logs) | Loki + Grafana | lancelot | Faible |
-| 102 (vault) | Vaultwarden | galahad | **Critique** |
+| Donnee | Repo | Visibilite |
+|---|---|---|
+| Configs applicatives (Traefik, AdGuard, Homepage, etc.) | `homelab-config` | Prive |
+| Config systeme (boot, fstab, udev, sysctl, crontab) | `homelab-config` | Prive |
+| Scripts (monitor, backup, vzdump, proxmox) | `homelab-config` | Prive |
+| Templates Authelia (`.example`, sans secrets) | `homelab-config` | Prive |
+| Documentation | `homelab-doc` | Public |
 
-### Via vzdump (quotidien, 1h du matin)
+### Script homelab_backup.sh
 
-Les LXC sont sauvegardes par `vzdump-daily.sh` sur chaque ZimaBoard :
+**Execution** : cron quotidien a 3h (`0 3 * * *`)
 
-- **1h00** : vzdump snapshot compresse (zstd) sur chaque node
-- **2h30** : `lxc-dumps-pull.sh` tire les dumps vers penny via rsync
-- **3h00** : `homelab_backup.sh` inclut les dumps dans le snapshot restic
+**Fonctionnement** :
 
-Retention vzdump locale : 3 jours par node.
+1. Verification preflight (`.restic-env` present, `restic` installe)
+2. Stage chaque volume Docker vers `/mnt/ssd/.restic-staging/<label>/`
+3. `restic backup` : staging + configs → B2 (chiffre AES-256)
+4. Nettoyage du staging
+5. `restic forget` : retention 7 daily / 4 weekly / 6 monthly + prune
+6. Notification ntfy (succes ou echec avec duree)
+
+**Verification d'integrite** : `restic-check-monthly.sh` (1er du mois, 4h)
+
+- Verification structure (indexes, packs)
+- Verification 10% donnees aleatoires (detection bit rot)
+- Alerte ntfy en cas d'echec
 
 ### Destinations
 
 | Destination | Chemin | Retention | Chiffrement | Cout |
 |---|---|---|---|---|
-| Backblaze B2 (restic) | `gabin-homelab-backups/restic` | 7 daily / 4 weekly / 6 monthly | AES-256 client-side | Gratuit (<10 Go) |
-| ZimaBoards (vzdump) | `/var/lib/vz/dump/` | 3 jours | Non | Gratuit |
+| Backblaze B2 (restic penny) | `gabin-homelab-backups/restic` | 7d / 4w / 6m | AES-256 client-side | Gratuit (<10 Go) |
+| Backblaze B2 (restic vault) | `gabin-homelab-backups/restic-vault` | 7d / 4w / 6m | AES-256 client-side | Gratuit |
+| PBS datastore "main" (NFS penny) | `/mnt/ssd/pbs-datastore` | Configuree dans PBS | AES-256-GCM | Gratuit |
+
+---
 
 ## Ce qui n'est PAS sauvegarde (reconstructible)
 
@@ -102,40 +177,39 @@ Retention vzdump locale : 3 jours par node.
 | Logs | Ephemeres, pas critiques |
 | Tailscale state | Re-auth suffit (`tailscale up`) |
 | Proxmox config | Reinstallation via scripts (`proxmox-post-install.sh`) |
+| PBS LXC 103 | Reconstructible (config + datastore sur NFS penny) |
 
-## Script homelab_backup.sh
-
-**Execution** : cron quotidien a 3h (`0 3 * * *`)
-
-**Fonctionnement** :
-
-1. Verification preflight (`.restic-env` present, `restic` installe)
-2. Stage chaque volume Docker vers `/mnt/ssd/.restic-staging/<label>/`
-3. `restic backup` : staging + configs + LXC dumps → B2 (chiffre AES-256)
-4. Nettoyage du staging
-5. `restic forget` : retention 7 daily / 4 weekly / 6 monthly + prune
-6. Notification ntfy (succes ou echec avec duree)
-
-**Verification d'integrite** : `restic-check-monthly.sh` (1er du mois, 4h)
-
-- Verification structure (indexes, packs)
-- Verification 10% donnees aleatoires (detection bit rot)
-- Alerte ntfy en cas d'echec
+---
 
 ## Restauration
 
-### Lister les snapshots
+### Restaurer un LXC depuis PBS
 
 ```bash
-source /root/.restic-env
-export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
-restic snapshots
+# Via l'UI PBS (backup.home.gabin-simond.fr) :
+# 1. Selectionner le snapshot dans le datastore "main"
+# 2. Bouton "Restore" → choisir le node PVE cible
+#
+# Via CLI PVE :
+pvesh create /nodes/<node>/lxc -archive <PBS-backup-ID> -storage local
 ```
 
-### Restaurer un volume Docker
+### Restaurer Vaultwarden depuis restic B2
 
 ```bash
-# Exemple : restaurer Beszel
+# Depuis LXC 102 (ou un nouveau LXC)
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+restic restore latest --target /tmp/restore --tag vault
+cp -a /tmp/restore/opt/vaultwarden/. /opt/vaultwarden/
+# Restaurer le snapshot SQLite propre
+cp /tmp/restore/var/backups/vault/db.sqlite3 /opt/vaultwarden/data/db.sqlite3
+rm -rf /tmp/restore
+systemctl restart vaultwarden
+```
+
+### Restaurer un volume Docker (penny)
+
+```bash
 source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/beszel"
 
@@ -148,10 +222,9 @@ docker compose up -d beszel
 rm -rf /tmp/restore
 ```
 
-### Restaurer une config
+### Restaurer une config (penny)
 
 ```bash
-# Exemple : restaurer Authelia
 source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 
@@ -159,18 +232,6 @@ docker compose stop authelia
 cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
 docker compose up -d authelia
 rm -rf /tmp/restore
-```
-
-### Restaurer Vaultwarden (LXC 102)
-
-```bash
-# Option A : depuis vzdump (plus rapide, local)
-pct restore 102 /var/lib/vz/dump/vzdump-lxc-102-XXXX.tar.zst
-
-# Option B : depuis restic (si vzdump indisponible)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
-restic restore latest --target /tmp/restore --include "/mnt/ssd/data/lxc-dumps"
-# Puis pct restore depuis le dump recupere
 ```
 
 ### Restauration complete (nouveau RPi)
@@ -185,6 +246,8 @@ Voir [break-glass.md](break-glass.md) pour la procedure pas-a-pas.
 6. Restaurer les volumes et configs
 7. Regenerer les secrets Authelia si necessaire (voir README)
 8. `docker compose up -d`
+
+---
 
 ## Credentials restic
 
@@ -202,18 +265,10 @@ B2_ACCOUNT_KEY=<applicationKey>
 Bucket `gabin-homelab-backups` sur Backblaze B2, region US West.
 Application key limitee a ce bucket uniquement (read + write).
 
-## Long terme (cluster Proxmox)
+---
 
-```mermaid
-graph LR
-    VMs[VMs / LXC] -->|backup| PBS[Proxmox Backup Server<br/>LXC sur ZimaBoard]
-    PBS -->|stocke sur| NAS[Minisforum NAS<br/>ZFS mirror]
-    NAS -->|restic| B2[Backblaze B2]
-```
+## Voir aussi
 
-Quand le cluster sera en production :
-
-- **Proxmox Backup Server** en LXC sur un ZimaBoard
-- Backups incrementaux des VMs/LXC
-- Stockage sur NAS (Minisforum, ZFS mirror)
-- Replication hors-site vers Backblaze B2 via restic
+- [Comptes PBS](../securite/comptes.md#proxmox-backup-server-lxc-103) — convention comptes et tokens
+- [Monitoring](monitoring.md) — checks backup freshness
+- [Break-glass](break-glass.md) — procedure reconstruction d'urgence
