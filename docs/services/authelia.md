@@ -64,13 +64,19 @@ Policy par defaut : `two_factor`. Beszel est en `one_factor` car c'est pas un en
 ## Configuration Proxmox
 
 ```bash
-# Sur un node du cluster
+# Sur un node du cluster (se propage via /etc/pve)
 pveum realm add authelia --type openid \
   --issuer-url https://auth.home.gabin-simond.fr \
   --client-id proxmox \
   --client-key <CLIENT_SECRET> \
   --username-claim preferred_username \
   --autocreate
+
+# Realm par defaut → Authelia (pre-selectionne sur la page de login)
+pveum realm modify authelia --default 1
+
+# Nom affiche dans le selecteur de realm
+pveum realm modify authelia --comment 'Authelia'
 
 # ACL Administrator pour gabins@authelia
 pveum acl modify / --user gabins@authelia --role Administrator
@@ -118,6 +124,8 @@ Voir [grafana.md](grafana.md) pour le detail complet.
 | Auth URL | `https://auth.home.gabin-simond.fr/api/oidc/authorization` |
 | Token URL | `https://auth.home.gabin-simond.fr/api/oidc/token` |
 | User API URL | `https://auth.home.gabin-simond.fr/api/oidc/userinfo` |
+
+L'authentification par mot de passe est desactivee via la variable d'environnement `DISABLE_PASSWORD_AUTH=true` dans le docker-compose. Cela empeche PocketBase de reactiver le formulaire email/mot de passe a chaque redemarrage du container.
 
 ## Fichiers
 

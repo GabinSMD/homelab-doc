@@ -106,6 +106,31 @@ La configuration se fait a trois endroits :
 | `proxmox-fix-emmc.sh` | `homelab-config/scripts/` | Patch installeur pour support eMMC |
 | `proxmox-post-install.sh` | `homelab-config/scripts/` | Repos, update, suppression nag popup |
 
+### 7. Configurer l'authentification Authelia (OIDC)
+
+Apres avoir configure Authelia sur le RPi (voir [authelia.md](../services/authelia.md)), ajouter le realm OIDC sur un noeud du cluster :
+
+```bash
+pveum realm add authelia --type openid \
+  --issuer-url https://auth.home.gabin-simond.fr \
+  --client-id proxmox \
+  --client-key <CLIENT_SECRET> \
+  --username-claim preferred_username \
+  --autocreate
+
+# Realm par defaut + nom affiche
+pveum realm modify authelia --default 1
+pveum realm modify authelia --comment 'Authelia'
+
+# ACL admin
+pveum acl modify / --user gabins@authelia --role Administrator
+```
+
+La config se propage automatiquement via `/etc/pve/domains.cfg` — pas besoin de repeter sur chaque noeud.
+
+!!! info "Trois realms conserves"
+    **Authelia** (OIDC, defaut) pour le quotidien, **Linux PAM** pour l'acces d'urgence via `root@pam`, **PVE** pour les comptes de service/API. Ne jamais supprimer PAM — c'est le filet de securite si Authelia est down.
+
 ## Repetition
 
-Repeter les etapes 1 a 6 pour chaque ZimaBoard.
+Repeter les etapes 1 a 6 pour chaque ZimaBoard. L'etape 7 (realm OIDC) ne se fait qu'une seule fois, la config est partagee dans le cluster.
