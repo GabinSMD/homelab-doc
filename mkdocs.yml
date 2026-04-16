@@ -82,6 +82,7 @@ nav:
   - Securite:
     - securite/index.md
     - Politique: securite/politique.md
+    - Comptes et service accounts: securite/comptes.md
     - Hardening: securite/hardening.md
     - Roadmap: securite/roadmap.md
   - Operations:

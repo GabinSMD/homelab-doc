@@ -107,7 +107,13 @@ GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
 GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
 GF_AUTH_GENERIC_OAUTH_SCOPES: "openid profile email groups"
 GF_AUTH_GENERIC_OAUTH_USE_PKCE: "true"
-GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups[*], 'admins') && 'GrafanaAdmin' || 'Viewer'"
+# IMPORTANT: PAS de || 'Viewer' a la fin — Grafana 12.x evalue l'expression sur
+# le ID token d'abord (qui n'a PAS le claim groups). Si l'expression retourne un
+# role valide ('Viewer'), Grafana s'arrete la et ne consulte jamais le userinfo
+# (qui a les groups). Sans fallback, le ID token retourne null → fallthrough vers
+# userinfo → trouve groups → retourne GrafanaAdmin.
+GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups[*], 'admins') && 'GrafanaAdmin'"
+GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "false"
 GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true"
 ```
 

@@ -11,7 +11,7 @@ Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Bes
 | Port interne | 3000 |
 | Image | `grafana/grafana:latest` |
 | Source compose | `/opt/logs/docker-compose.yml` |
-| Versioned | `/mnt/ssd/config/logs/` sur penny |
+| Versioned | `homelab-config/logs/docker-compose.yml` (GitHub) |
 
 ## Authentification
 
@@ -20,8 +20,24 @@ Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Bes
 - `GF_AUTH_DISABLE_LOGIN_FORM=true`
 - `GF_AUTH_BASIC_ENABLED=false`
 - `GF_AUTH_OAUTH_AUTO_LOGIN=true` (redirige direct sur Authelia)
-- Role mapping : groupe `admins` dans users_database → `GrafanaAdmin`, sinon `Viewer`
 - PKCE S256 requis
+
+### Role mapping (Grafana 12.x)
+
+```
+GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups[*], 'admins') && 'GrafanaAdmin'"
+GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "false"
+GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true"
+```
+
+Groupe `admins` dans Authelia `users_database.yml` → `GrafanaAdmin` (server admin + org admin).
+Les users hors du groupe `admins` recoivent `auto_assign_org_role: Viewer`.
+
+**Piege Grafana 12.x :** `role_attribute_path` est evalue sur le ID token EN PREMIER,
+puis userinfo, puis access token. Authelia ne met PAS le claim `groups` dans le ID token
+(seulement dans userinfo). Si l'expression a un fallback `|| 'Viewer'`, le ID token retourne
+`'Viewer'` (role valide) et Grafana ne consulte JAMAIS le userinfo. Solution : pas de fallback
+dans l'expression, le ID token retourne `null` → fallthrough vers userinfo → trouve les groups.
 
 Le compte legacy `admin` est desactive dans la DB (`is_disabled=1`, password efface). `gabins` est `is_admin=1` + org Admin.
 
