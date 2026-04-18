@@ -9,7 +9,7 @@
 - [x] SSO centralise avec [Authelia](services/authelia.md) (OIDC pour Proxmox, Portainer, Beszel)
 - [x] Deployer [Vaultwarden](services/vaultwarden.md) (gestionnaire de mots de passe)
 - [x] Monitoring Beszel sur les 3 machines (RPi + pve1 + pve2)
-- [ ] Acheter switch manageable 2.5GbE (keepLINK 9XHML-X 8p managed ~62€)
+- [x] Acheter switch manageable 2.5GbE — recu (8p 2.5G + SFP 10G)
 - [x] Activer Tailscale SSH sur les 3 machines (RPi, pve1, pve2)
 - [x] Backups automatiques quotidiens (volumes Docker + configs → SD card + ntfy)
 - [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
@@ -21,11 +21,15 @@
 
 ## Phase 2 — Avant emmenagement
 
-- [ ] Acheter appliance OPNsense (Topton/CWWK N100 4x 2.5GbE, ~120€)
-- [ ] Acheter switch 2.5GbE manageable 16+ ports (switch coeur)
-- [ ] Acheter APs WiFi VLAN-capable
+- [ ] Migrer Tailscale du container Docker vers le host (RPi + pve1 + pve2)
+- [ ] Brancher WD 2TB sur pve1 (SATA-Y + 2-Bay Rack), configurer PBS datastore
+- [ ] Configurer le switch 2.5G (VLANs 802.1Q, trunk vers EdgeRouter Lite)
+- [ ] Passer la Freebox en mode bridge
+- [ ] Deployer EdgeRouter Lite comme routeur principal (NAT + firewall + VLANs)
+- [ ] Tester les VLANs (Management 10, Services 20, LAN 30, IoT 40, Invites 50)
+- [ ] Acheter APs WiFi VLAN-capable (Ubiquiti U6+ ou TP-Link EAP)
 - [ ] Acheter patch panel Cat 8 blinde + coffret mural/baie 6U
-- [ ] Installer OPNsense sur l'appliance, tester les VLANs
+- [ ] Evaluer si OPNsense est necessaire en complement de l'EdgeRouter Lite
 
 ## Phase 3 — Installation maison
 
