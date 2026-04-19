@@ -2,7 +2,7 @@
 
 Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre, defaillance materielle, corruption).
 
-!!! danger "Ce document doit etre imprime et stocke avec la cle USB hors-ligne"
+!!! danger "Ce document doit etre imprime et stocke avec la YubiKey hors-domicile (YK2)"
     En cas de destruction totale, l'acces a ce site sera perdu. Garder une copie papier ou PDF a jour.
 
 ---
@@ -70,25 +70,46 @@ graph TB
 
 ## Preparation AVANT l'incident
 
-### Cle USB chiffree (mise a jour mensuelle)
+### YubiKeys break-glass (remplace la cle USB depuis 2026-04-19)
 
-!!! warning "Derniere MAJ : ==2026-04-14==. Prochaine : ==2026-05-14=="
+Deux YubiKeys sont des recipiants sops independants. Chacune peut dechiffrer TOUS les secrets sans l'autre.
 
-Contenu requis :
+| YubiKey | Localisation | Usage |
+|---|---|---|
+| **YK1** | Domicile (acces quotidien si besoin) | DR sur host fresh + rotation secrets |
+| **YK2** | Hors-domicile (coffre ou lieu sur) | Redondance pure — stocker avec ce doc imprime |
 
-- [ ] Export Bitwarden/Vaultwarden chiffre (master password imprime separement)
-- [ ] Fichier `.env` complet (tokens Cloudflare, Tailscale, Backblaze, etc.)
-- [ ] Fichier `.restic-env` (password restic + credentials Backblaze B2)
-- [ ] Cles SSH privees (passphrase protegees)
-- [ ] Snapshot du repo `homelab-config` (zip ou `git bundle`)
-- [ ] Ce document en PDF
+**Secrets couverts par les YubiKeys** (dans `homelab-config/`) :
 
-### Coffre physique (lieu separe)
+- `.env.enc` — tous les tokens (Cloudflare, Tailscale, Backblaze, ntfy...)
+- `authelia/secrets/*` — JWT, OIDC, session, storage keys
+- `crowdsec/online_api_credentials.yaml`, `local_api_credentials.yaml`
+- `system/secrets/restic-env.enc` — password restic + credentials Backblaze B2
 
-- [ ] Master password Vaultwarden (memorise + papier)
-- [ ] Master password cle USB
+**Workflow de dechiffrement avec YubiKey** (sur n'importe quel host avec `age-plugin-yubikey` installe) :
+
+```bash
+# Installer age-plugin-yubikey (macOS)
+brew install age-plugin-yubikey
+
+# Exporter l'identite YubiKey (PIN + touch requis)
+age-plugin-yubikey --identity > /tmp/yk-id.txt
+
+# Dechiffrer un fichier sops
+SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv --output-type dotenv -d system/secrets/restic-env.enc
+SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops -d authelia/secrets/jwt_secret
+
+# Supprimer l'identity apres usage
+rm /tmp/yk-id.txt
+```
+
+### Coffre physique (hors-domicile, avec YK2)
+
+- [ ] YubiKey 2 (YK2) physique
+- [ ] PIN YK2 (note separee ou Vaultwarden)
+- [ ] Master password Vaultwarden (memorise ou papier scelle)
 - [ ] Codes de recuperation TOTP
-- [ ] Codes de recuperation YubiKey
+- [ ] Ce document en PDF
 
 ### Comptes externes (doivent rester actifs)
 
@@ -236,12 +257,13 @@ cp -r adguard/ /mnt/ssd/config/adguard/
 cp -r traefik/ /mnt/ssd/config/traefik/
 cp -r homepage/ /mnt/ssd/config/homepage/
 
-# Restaurer le .env depuis la cle USB (contient TOUS les tokens)
-cp /media/usb/.env /mnt/ssd/config/.env
-
-# Restaurer le .restic-env depuis la cle USB
-cp /media/usb/.restic-env /root/.restic-env
-chmod 600 /root/.restic-env
+# Dechiffrer les secrets depuis le repo (YubiKey requise)
+# Prerequis : age-plugin-yubikey installe, YubiKey inseree
+age-plugin-yubikey --identity > /tmp/yk-id.txt
+SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv --output-type dotenv -d /mnt/ssd/config/.env.enc > /mnt/ssd/config/.env
+SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv --output-type dotenv -d /mnt/ssd/config/system/secrets/restic-env.enc > /root/.restic-env
+chmod 600 /root/.restic-env /mnt/ssd/config/.env
+rm /tmp/yk-id.txt
 
 # Copier le docker-compose
 cp docker/docker-compose.yml /mnt/ssd/config/docker-compose.yml
@@ -487,10 +509,11 @@ tailscale up
 **Duree estimee** : 4h + delai d'achat materiel
 
 !!! danger "Prerequis absolus"
+    - **YK1 ou YK2** avec son PIN (remplace la cle USB)
+    - `age-plugin-yubikey` installe sur la machine de travail (`brew install age-plugin-yubikey`)
     - Acces au master password Vaultwarden (memoire ou coffre papier)
-    - Cle USB chiffree avec `.env`, `.restic-env`, cles SSH
-    - OU acces au compte GitHub (pour cloner `homelab-config`)
-    - OU acces au compte Backblaze (pour telecharger les backups)
+    - Acces au compte GitHub (pour cloner `homelab-config`) — ou clone local
+    - Cles SSH pour acceder aux machines (cle FIDO2 sur la YubiKey, ou cle Ed25519 backup)
 
 #### Strategie : paralleliser les restaurations
 
@@ -557,7 +580,7 @@ T+4h    OPERATIONNEL
 2. **Cle USB chiffree** : contient le `.env` avec `CF_DNS_API_TOKEN`, `TS_AUTHKEY`, et tous les tokens
 3. **Coffre papier** : master password Vaultwarden → acces via un client Bitwarden sur un autre appareil, mais necessite que le LXC 102 soit deja restaure
 
-**En pratique** : utiliser le `.env` de la cle USB pour demarrer penny independamment du cluster.
+**En pratique** : dechiffrer `.env.enc` avec la YubiKey (`age-plugin-yubikey --identity > /tmp/yk-id.txt && SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv -d .env.enc > .env`) pour demarrer penny independamment du cluster.
 
 ---
 
