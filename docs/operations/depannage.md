@@ -414,6 +414,96 @@ ln -sf ext-all-debug.js ext6-all-debug.js
 
 ---
 
+## Stack down apres `docker compose down` + reboot
+
+### Symptome
+
+Apres un reboot (ou un `docker compose down` suivi d'une session qui n'a pas pu `up`), **aucun container ne remonte** meme si Docker tourne :
+
+```bash
+docker ps           # vide
+docker ps -a        # tous Exited (0) il y a N heures
+systemctl is-active docker  # active
+```
+
+### Cause racine
+
+La restart policy du compose est `unless-stopped`. Docker **n'auto-redemarre pas** les containers arretes via `docker stop` ou `docker compose down` — meme a travers un reboot daemon. Seuls les containers crashes (`restart: always`) ou arretes par panne remontent.
+
+C'est voulu (securite contre boucle de redemarrage), mais ca veut dire qu'un `down` oublie = stack morte jusqu'au prochain `up`.
+
+### Fix
+
+```bash
+cd /mnt/ssd/config/docker && docker compose up -d
+```
+
+Attendre 15-30 s et verifier healthchecks :
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}'
+```
+
+### Prevention
+
+- Toujours terminer une session de maintenance par `docker compose up -d` avant de fermer le terminal.
+- En cas de session interrompue (outil bash cassé, etc.), noter l'etat avec `/checkpoint` pour que la session suivante sache qu'il faut redemarrer.
+- Utiliser `homelab_monitor.sh` (hook systemd) pour alerter si `docker ps` renvoie vide apres boot.
+
+---
+
+## CrowdSec — crash-loop "read-only file system" sur local_api_credentials.yaml
+
+### Symptome
+
+```
+Error: failed copying from /tmp/tempXXXXX to /etc/crowdsec/local_api_credentials.yaml:
+  open /etc/crowdsec/local_api_credentials.yaml: read-only file system
+```
+
+Container `crowdsec` en etat `Restarting (1)` en boucle, meme apres nettoyage du volume `crowdsec-data`.
+
+### Cause
+
+L'entrypoint CrowdSec **reecrit `local_api_credentials.yaml` et `online_api_credentials.yaml` a chaque boot** (`config_set` sur machine id/URL), meme quand la machine est deja registered. Si le bind-mount est en `:ro`, le `mv /tmp/xxx → /etc/crowdsec/...` echoue.
+
+Typique quand on active le declassement sops→tmpfs et qu'on mount les credentials read-only par reflex securite.
+
+### Fix
+
+Monter les deux fichiers en `:rw` :
+
+```yaml
+volumes:
+  - /run/homelab/crowdsec/online_api_credentials.yaml:/etc/crowdsec/online_api_credentials.yaml:rw
+  - /run/homelab/crowdsec/local_api_credentials.yaml:/etc/crowdsec/local_api_credentials.yaml:rw
+```
+
+Puis :
+
+```bash
+cd /mnt/ssd/config/docker && docker compose up -d crowdsec
+```
+
+### Pourquoi c'est safe
+
+- **Chiffrement at-rest** : les fichiers sont stockes chiffres (sops) dans le repo config. Le `.yaml` en clair ne vit qu'en RAM sur `/run/homelab/` (tmpfs).
+- **Tmpfs runtime** : pas de persistance sur disque, efface au shutdown.
+- **Scope limite** : seul le container crowdsec peut ecrire sur son propre bind-mount, pas d'escalade.
+
+Les fichiers sops contiennent l'ID machine + une URL — sensibles mais pas aussi critiques qu'une cle privee. L'interet du sops-declassement reste : **pas de secret en clair dans git**.
+
+### Diagnostic
+
+```bash
+docker logs --tail 20 crowdsec              # voir la boucle d'erreur
+docker inspect crowdsec --format '{{json .Mounts}}' | python3 -m json.tool
+# Verifier que les deux mounts credentials sont "RW": true
+ls -la /run/homelab/crowdsec/               # confirmer que les fichiers sont decryptes
+```
+
+---
+
 ## Commandes utiles
 
 ### Containers et services
