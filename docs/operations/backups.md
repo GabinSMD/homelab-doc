@@ -90,18 +90,43 @@ Le hook lance un watcher en arriere-plan a `backup-start` qui surveille l'appari
 
 ---
 
-## Vault — restic-direct vers B2
+## Restic-direct vers B2 (4 chaines parallel)
 
-Vaultwarden (LXC 102 sur galahad) dispose d'un backup restic independant, direct vers B2. Ce backup est complementaire de PBS et garantit une copie hors-site meme si PBS ou le NFS sont en panne.
+Chaque LXC critique a un backup `restic` independant direct vers B2, complementaire de PBS. Meme si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
+
+### Vue d'ensemble
+
+| Repo B2 | Source | Script | Frequence | Retention | Seuil freshness monitor |
+|---------|--------|--------|-----------|-----------|-------------------------|
+| `restic` | penny configs+volumes+pbs-datastore | `/root/homelab_backup.sh` | daily 03:00 | 7d/4w/6m | 30h |
+| `restic-vault` | LXC 102 vaultwarden | `/usr/local/bin/vault-backup.sh` | **hourly** | 7d/4w/6m | **3h** |
+| `restic-dnsfailover` | LXC 100 AdGuard secondaire | `/usr/local/bin/dnsfailover-backup.sh` | daily 02:30 | 7d/4w/6m | 30h |
+| `restic-logs` | LXC 101 Grafana+Loki+Prometheus | `/usr/local/bin/logs-backup.sh` | daily 02:45 | 7d/4w/6m | 30h |
+
+Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur chaque host/LXC). B2 bucket unique `gabin-homelab-backups`, sous-path distinct par repo.
+
+### Vault — hourly pattern
 
 | Element | Detail |
 |---|---|
 | Script | `/usr/local/bin/vault-backup.sh` dans LXC 102 |
-| Cron | Quotidien 02h00 |
-| Repo | `b2:gabin-homelab-backups:restic-vault` |
-| Retention | 7 daily / 4 weekly / 6 monthly |
-| Methode | SQLite atomic snapshot (`.backup` API) + `/opt/vaultwarden/` complet |
+| Cron | **Horaire** (snapshot SQLite atomic via `.backup` API) |
+| Methode | `.backup` vers `/var/backups/vault/db.sqlite3` (zero downtime) + `/opt/vaultwarden/` complet |
 | Notification | ntfy (low OK, high FAIL) |
+
+### DNS-failover / Logs — daily pattern
+
+Meme script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/system/lxc-scripts/`.
+
+### Integrite : restic-check-monthly.sh multi-repo
+
+Cron penny `1er de chaque mois 04:00` : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot detection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
+
+Alerte ntfy haute si UN repo echoue (les autres continuent). Script : `scripts/restic-check-monthly.sh`.
+
+### Freshness monitor
+
+`homelab_monitor.sh / check_restic_repos_freshness` query B2 directement toutes les heures (cache 1h par repo) pour detecter si un cron silencieusement casse. Seuil par repo (vault 3h car hourly, autres 30h car daily).
 
 ---
 

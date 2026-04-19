@@ -84,8 +84,62 @@ Policy `INPUT DROP`. Ports ouverts uniquement :
 | 2049 (TCP) | NFS (PBS datastore) | LAN + Tailscale |
 | 111 (TCP/UDP) | rpcbind / portmapper (NFS) | LAN + Tailscale |
 | 45876 | Beszel agent | LAN + Tailscale |
+| 5403 (TCP) | corosync-qnetd (qdevice) | LAN + Tailscale |
+| 3101 (TCP) | loki-replica (HA Loki) | LAN (via Docker bridge, interne) |
 
 Persistance via `netfilter-persistent`.
+
+---
+
+## Systemd drop-ins : PrivateMounts=yes (anti-leak namespace)
+
+**Contexte** : tout service systemd avec `ProtectSystem=strict|full` ou `ProtectKernelModules=yes` et sans `PrivateMounts=yes` leak ses bind-mounts RO (namespace shared par defaut) vers le mount tree host global. Resultat : `/etc`, `/usr`, `/boot` deviennent RO pour toutes les sessions — `apt install` casse, `pct set` casse, etc.
+
+Fix systematique : drop-in `PrivateMounts=yes` sur chaque service hardene.
+
+### Services concernes (identifies 2026-04-19)
+
+| Host | Services avec drop-in `PrivateMounts=yes` |
+|------|-------------------------------------------|
+| penny | ssh, fail2ban, systemd-networkd, systemd-timesyncd, auditd, fstrim, systemd-hostnamed, systemd-localed, systemd-logind, systemd-timedated (10 services) |
+| galahad | ssh, fail2ban, postfix, chrony, beszel-agent, systemd-logind (6 services) |
+| lancelot | idem galahad |
+
+### Pattern drop-in
+
+```bash
+mkdir -p /etc/systemd/system/<svc>.service.d
+cat > /etc/systemd/system/<svc>.service.d/private-mounts.conf <<EOF
+[Service]
+PrivateMounts=yes
+EOF
+systemctl daemon-reload
+systemctl restart <svc>
+```
+
+### Scan detection
+
+Pour trouver un service leaky sur un host :
+
+```bash
+for svc in $(systemctl list-units --type=service --state=active --no-legend | awk '{print $1}'); do
+  ps=$(systemctl show "$svc" -p ProtectSystem --value)
+  pm=$(systemctl show "$svc" -p PrivateMounts --value)
+  if [ "$ps" = "strict" ] || [ "$ps" = "full" ]; then
+    [ "$pm" != "yes" ] && echo "LEAK: $svc (PS=$ps PM=$pm)"
+  fi
+done
+```
+
+### Verification mount state
+
+```bash
+findmnt /etc /usr /boot 2>&1
+# Doit ne rien renvoyer (aucun bind-mount RO separe)
+touch /etc/.testwrite && rm /etc/.testwrite && echo OK
+```
+
+Voir `operations/depannage.md` section "/etc, /usr, /boot read-only" pour remediation si re-apparait.
 
 ### sysctl hardening (`/etc/sysctl.d/99-hardening.conf`)
 

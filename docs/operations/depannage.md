@@ -432,6 +432,9 @@ La restart policy du compose est `unless-stopped`. Docker **n'auto-redemarre pas
 
 C'est voulu (securite contre boucle de redemarrage), mais ca veut dire qu'un `down` oublie = stack morte jusqu'au prochain `up`.
 
+!!! tip "Auto-repair depuis 2026-04-19"
+    `check_docker_autorepair` dans `homelab_monitor.sh` detecte stack vide + daemon actif et lance `docker compose up -d` apres 2 min. Circuit breaker 3 tentatives / 24h : au 3e echec ntfy urgent "autorepair-capped" et stop. Reset : `rm /var/lib/homelab_monitor/autorepair-docker-attempts`.
+
 ### Fix
 
 ```bash
@@ -501,6 +504,140 @@ docker inspect crowdsec --format '{{json .Mounts}}' | python3 -m json.tool
 # Verifier que les deux mounts credentials sont "RW": true
 ls -la /run/homelab/crowdsec/               # confirmer que les fichiers sont decryptes
 ```
+
+---
+
+## Docker daemon crash loop (SIGBUS journald)
+
+### Symptome
+
+`systemctl show docker --property=NRestarts` > 3 dans la journee, containers exit 0 massivement en cascade, auto-repair plafonne :
+
+```
+dockerd[PID]: SIGBUS: bus error
+dockerd[PID]: github.com/moby/moby/v2/daemon/logger/journald/internal/sdjournal._Cfunc_sd_journal_next
+```
+
+### Cause racine
+
+Bug ARM-specific du log-driver `journald` de dockerd. Le reader sdjournal (cgo binding) fait un SIGBUS quand journald rotate les files pendant un read mmap. Typique sur Pi avec SystemMaxUse agressif.
+
+`journalctl --verify` passe (pas corruption journal) — c'est le reader qui panique.
+
+### Fix
+
+`/etc/docker/daemon.json` :
+
+```json
+{
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "10m",
+        "max-file": "3"
+    }
+}
+```
+
+Puis `systemctl restart docker && docker compose up -d`.
+
+### Impact
+
+- Les logs containers ne sont plus dans `journalctl` (ni `journalctl CONTAINER_NAME=X`).
+- `docker logs X --tail N` continue de fonctionner (lit json-file direct).
+- Alloy/Promtail pour shipping : doit lire `/var/lib/docker/containers/*/*-json.log` au lieu de journald.
+- Historique pre-switch perdu (Loki l'a deja ingere si actif).
+
+---
+
+## pmxcfs stuck read-only apres recovery node cluster
+
+### Symptome
+
+Sur un cluster 2-node, apres qu'un node tombe puis revient, `corosync-quorumtool -s` montre `Quorate: Yes` mais :
+
+```bash
+sudo pvecm status           # ipcc_send_rec[1] failed: Unknown error -1
+sudo pct config 103         # meme erreur
+sudo touch /etc/pve/.x      # Read-only file system
+```
+
+### Cause racine
+
+pmxcfs (fuse mount de `/etc/pve`) est demarre AVANT que corosync reforme le quorum, et ne retransitionne pas automatiquement vers RW une fois le quorum retrouve. Etat transitoire coince.
+
+### Fix
+
+```bash
+sudo systemctl restart pve-cluster
+sleep 3
+sudo touch /etc/pve/.x && sudo rm /etc/pve/.x && echo OK
+```
+
+Zero impact sur les LXC running — `/etc/pve` n'est utilise qu'a la reconfig, pas au runtime container.
+
+### Prevention
+
+Qdevice (3e vote) : le survivant ne perd jamais quorum → pmxcfs reste RW tout du long → pas de transition coincee. Voir `architecture/cluster.md`.
+
+---
+
+## /etc, /usr, /boot read-only via SSH sur nodes PVE
+
+### Symptome
+
+Sur galahad ou lancelot, via SSH :
+
+```
+sudo apt install X          # "Read-only file system" sur /etc/*.dpkg-new
+sudo pct set N --onboot 1   # idem sur /etc/pve/nodes/X/lxc/N.conf.tmp.PID
+findmnt /etc                # /etc /dev/mapper/pve-root[/etc] ext4 ro,relatime
+```
+
+Pas d'entree fstab, pas de mount-unit systemd.
+
+### Cause racine
+
+Services systemd actifs avec `ProtectSystem=strict` ou `full` **sans** `PrivateMounts=yes` : leur namespace mount est `shared` → leurs bind-mounts RO (via ProtectSystem) se propagent au namespace host global. Chaque restart accumule des leaks.
+
+Scan pour identifier :
+
+```bash
+for svc in $(systemctl list-units --type=service --state=active --no-legend | awk '{print $1}'); do
+  ps=$(systemctl show "$svc" -p ProtectSystem --value)
+  pm=$(systemctl show "$svc" -p PrivateMounts --value)
+  if [ "$ps" = "strict" ] || [ "$ps" = "full" ]; then
+    [ "$pm" != "yes" ] && echo "LEAK: $svc"
+  fi
+done
+```
+
+### Fix
+
+1. Drop-in `PrivateMounts=yes` sur chaque service listed :
+
+```bash
+mkdir -p /etc/systemd/system/<svc>.service.d
+cat > /etc/systemd/system/<svc>.service.d/private-mounts.conf <<EOF
+[Service]
+PrivateMounts=yes
+EOF
+systemctl daemon-reload
+systemctl restart <svc>
+```
+
+2. Remount RW immediate pour enlever les leaks deja presents :
+
+```bash
+mount -o remount,rw /etc
+mount -o remount,rw /usr
+mount -o remount,rw /boot
+```
+
+Le restart `ssh.service` appliquant le drop-in risque de kill la session — scheduler via `systemd-run --on-active=30s systemctl restart ssh` pour preserver la connexion active.
+
+### Services concernes (2026-04-19)
+
+beszel-agent, chrony, fail2ban, postfix, ssh, systemd-logind. Tous fixes via drop-ins `/etc/systemd/system/<svc>.service.d/private-mounts.conf`.
 
 ---
 

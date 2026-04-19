@@ -72,6 +72,7 @@ nav:
     - Optimisations OS: architecture/os.md
     - Reseau actuel: architecture/reseau.md
     - Reseau cible: architecture/reseau-cible.md
+    - Cluster qdevice: architecture/cluster-qdevice.md
   - Services:
     - Vue d'ensemble: services/index.md
     - Traefik: services/traefik.md
@@ -79,18 +80,22 @@ nav:
     - AdGuard Home: services/adguard.md
     - Vaultwarden: services/vaultwarden.md
     - Grafana (logs): services/grafana.md
+    - Alloy + Loki HA: services/alloy-loki-ha.md
   - Securite:
     - securite/index.md
     - Politique: securite/politique.md
     - Comptes et service accounts: securite/comptes.md
     - Hardening: securite/hardening.md
     - Roadmap: securite/roadmap.md
+    - YubiKey age setup: securite/yubikey-age-setup.md
+    - Egress phase 2 plan: securite/egress-phase2-plan.md
   - Operations:
     - operations/index.md
     - Monitoring: operations/monitoring.md
     - Backups: operations/backups.md
     - Break-glass: operations/break-glass.md
     - Depannage: operations/depannage.md
+    - DR drill scenario 1: operations/dr-drill-scenario-1.md
   - Guides:
     - guides/index.md
     - Ajouter un service: guides/ajouter-service.md

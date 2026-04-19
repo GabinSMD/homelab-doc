@@ -208,3 +208,81 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Cleanup automatique des anciennes images
 
 **Alternative rejetee** : Garder WUD — API interne anonyme non corrigeable (bug confirme), surface d'attaque inutile pour un dashboard peu consulte.
+
+---
+
+## Cluster quorum : qdevice sur penny plutot que 3e node PVE
+
+**Contexte** : Cluster 2-node perd systematiquement quorum quand un node tombe (confirme incident 2026-04-19 lancelot down ~6h, galahad paralyse meme quorate=1/2).
+
+**Decision** : `corosync-qnetd` sur penny (2026-04-19)
+
+**Pourquoi** :
+
+- **Penny est deja la** — RPi 4 toujours on, Tailscale, firewall, maintenu. Zero materiel nouveau.
+- **1 vote arbitraire** — penny ne heberge pas de LXC, juste le vote. Simple a maintenir.
+- **30 min deploiement** vs investissement hardware + setup Proxmox sur un 3e machine (~500€ + 1 journee)
+- **Pattern officiel Proxmox** : documente, supporte, `pvecm qdevice setup` built-in
+- Survit aux pannes les plus frequentes (1 node down)
+
+**Alternative rejetee** : Attendre le Minisforum N5 Max (phase 4 roadmap) — trop d'attente vu l'incident recurrent. qdevice est une etape intermediate qui peut rester meme apres le 3e node.
+
+**Tradeoff** : penny devient indirectement critique pour les operations cluster (pas juste pour ses services). Si penny + 1 node PVE tombent simultanement = 1/3 vote = perte quorum. Double-fault extreme, acceptable.
+
+---
+
+## Docker log-driver : json-file plutot que journald (ARM)
+
+**Contexte** : Sur ARM (penny RPi 4), dockerd crash SIGBUS dans le reader `sdjournal` quand journald rotate les files. 5 restarts docker en 24h le 2026-04-19, containers massivement down.
+
+**Decision** : log-driver `json-file` + rotation `max-size=10m max-file=3` (2026-04-19)
+
+**Pourquoi** :
+
+- **Battle-tested** — default Docker, pas de cgo fragile (sdjournal utilise libsystemd via cgo, crash SIGBUS sur read mmap pendant rotation)
+- **Rotation builtin** — max-size/max-file evite le bloat disque (sans ca, json-file accumule indefiniment)
+- **Compatible shipping Loki** — Alloy a `loki.source.docker` qui lit via socket API (pas via journald), fonctionne idem
+- **Bug ARM-specific** — Pi rotate agressivement journald (SystemMaxUse serre), x86 moins impacte
+
+**Alternative rejetee** : Downgrade Docker ou journald SystemMaxUse=... — workarounds fragiles, bug reapparait au prochain update Docker. json-file elimine categoriquement la classe de crash.
+
+**Impact** : `journalctl CONTAINER_NAME=X` ne marche plus (logs pas dans journald). `docker logs X` continue de marcher. Shipping Loki via Alloy continue.
+
+---
+
+## Alloy HA : dual-write primary + replica au lieu de single Loki
+
+**Contexte** : Loki tourne dans LXC 101 sur lancelot. Si lancelot tombe, observabilite perdue pendant la panne (alors que c'est justement quand on en a le plus besoin).
+
+**Decision** : dual-write depuis les 3 hosts vers Loki primary (lancelot:3100) + replica (penny:3101) (2026-04-19)
+
+**Pourquoi** :
+
+- **Replica etait deja en place** pour penny (dual-write existant depuis deploy) — etendre aux 2 nodes PVE = 5 min config Alloy par node
+- **Survit a lancelot down** — Grafana depuis loki-replica via URL alternative
+- **WAL Alloy** — chaque Alloy buffer localement si un sink est down, rejoue au retour. Zero perte.
+- **Cout quasi-nul** — meme images Docker, meme storage (replica dans container sur penny SSD)
+
+**Alternative rejetee** : Loki cluster-mode (microservices) — overkill pour 3 hosts, complexite operationnelle >> gain resilience.
+
+---
+
+## Secrets at-rest : sops + age + tmpfs plutot que Vault / Bitwarden CLI
+
+**Contexte** : Secrets Authelia (JWT, OIDC keys) et CrowdSec credentials etaient en clair dans le repo `homelab-config` (sur Github prive mais toujours expose a qui volerait le token). Besoin : chiffrement at-rest, dechiffrement automatique au boot.
+
+**Decision** : `sops` + age + scellement in-place + unseal vers tmpfs `/run/homelab/` au boot (systemd unit) (2026-04-17 → 2026-04-19 finalise)
+
+**Pourquoi** :
+
+- **Git-friendly** — sops chiffre au niveau champ YAML, diff lisible, pas de blob opaque
+- **age** — cle moderne (X25519), plus simple que GPG, supporte YubiKey (`age-plugin-yubikey`) pour DR physique
+- **tmpfs** — secrets dechiffres jamais sur disque, efface au shutdown. Le service Docker bind-mount la tmpfs dans le container (RO pour authelia, RW pour crowdsec car entrypoint reecrit)
+- **Boot-time** — `homelab-unseal.service` systemd fait le dechiffrement, puis `docker.service` demarre (dependance ordre)
+- **Fail-safe** — si unseal echoue, Docker demarre mais les bind-mounts pointent vers des fichiers inexistants → containers cassent en erreur explicite (vs demarrent avec secrets vides = drift silencieux)
+
+**Alternative rejetee** :
+- Vault — agent overhead, complexite d'operation pour 5 secrets, pas git-native
+- Bitwarden CLI — plaintext au moment du fetch, dependance runtime au vault Vaultwarden (circulaire : vault backup contient ses propres secrets)
+
+**Piege documente** : CrowdSec credentials doivent etre bind-mount `:rw` (entrypoint reecrit au boot). Le fichier `console.yaml` n'est pas scelle (booleans sans secret, pas de bind-mount tmpfs dans compose).

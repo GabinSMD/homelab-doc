@@ -199,15 +199,40 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **AdGuard wildcard** `*.home.gabin-simond.fr` → penny (Traefik reverse proxy) — 2026-04-16
     - **adguard-sync.sh** : synchronisation primary → secondary (avec verification canary) — 2026-04-16
     - **homelab_monitor.sh** : checks `check_adguard_sync`, `check_backup_freshness`, `check_vault_backup_freshness` — 2026-04-16
+    - **Cluster quorum via qdevice sur penny** — 3 votes, survit perte 1 node — 2026-04-19
+    - **Auto-repair docker** (`check_docker_autorepair`) — `docker compose up -d` automatique si stack vide + daemon UP > 2 min, circuit breaker 3/24h — 2026-04-19
+    - **Cascade alert suppression** — `house-down` / `lancelot-down` suppriment les alertes enfants redondantes — 2026-04-19
+    - **check_cluster_hosts** + **check_house** (Freebox + internet reach) — cause-racine avant symptomes — 2026-04-19
+    - **check_restic_repos_freshness** — surveille 4 repos B2 avec seuils par repo — 2026-04-19
 
 ??? success "Supply chain code"
     - Pre-commit hook anti-leak (`scripts/pre-commit-secret-scan.sh`) sur homelab-config + homelab-doc
     - Patterns : AWS, GitHub, Tailscale, B2, CF, PEM, password=, secret=
+    - **12/13 images Docker pinnees @sha256** (loki-replica ajoute 2026-04-19, reste 1 non-pinnee decelee)
 
 ??? success "Secrets management"
     - **Authelia secrets externalises** (jwt, session, encryption_key, hmac → fichiers `/config/secrets/` chmod 600, charges via `AUTHELIA_*_FILE` env vars) — 2026-04-14
     - Cle JWKS OIDC dans `oidc.pem` separee (gitignored)
     - Configuration Authelia versionnable sans secrets inline
+    - **Sops + age scellement in-place** des secrets authelia+crowdsec credentials — 2026-04-19
+    - Unseal au boot via `homelab-unseal.service` → tmpfs `/run/homelab/` → bind-mount Docker
+    - Age private key backupee sur B2 (`/root/.config/sops/age` dans `homelab_backup.sh` paths) — 2026-04-19
+
+??? success "Hardening systemd mount leaks"
+    - Drop-ins `PrivateMounts=yes` sur 10 services penny (ssh, fail2ban, networkd, timesyncd, auditd, fstrim, hostnamed, localed, logind, timedated) — 2026-04-17/19
+    - Idem 6 services sur galahad + lancelot (ssh, fail2ban, postfix, chrony, beszel-agent, logind) — 2026-04-19
+    - Fix la cascade `/etc /usr /boot` RO au niveau namespace host via ProtectSystem=strict/full shared mount propagation
+    - PVE firewall cluster.fw : `-log nolog` → `-log warning` sur galahad+lancelot — 2026-04-19
+
+??? success "Observabilite HA"
+    - **Alloy dual-write Loki** : primary (LXC 101 lancelot:3100) + replica (container loki-replica penny:3101) depuis les 3 hosts — 2026-04-19 etendu aux PVE nodes
+    - Survit perte lancelot : replica continue sur penny
+    - WAL Alloy rejoue si un sink down = zero perte
+
+??? success "Backup tiers independants PBS"
+    - 4 chaines restic-direct vers B2 : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19)
+    - `restic-check-monthly.sh` multi-repo : structure + 10% data subset sur les 4 repos — 2026-04-19
+    - Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily)
 
 ??? success "Convention comptes et service accounts"
     - [comptes.md](comptes.md) : 3 tiers (root break-glass, gabins admin 2FA, svc-* automation)

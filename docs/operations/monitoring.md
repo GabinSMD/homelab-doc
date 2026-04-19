@@ -36,6 +36,65 @@ Script bash executé **chaque minute** via cron. Surveille :
 | RAM + OOM kill | > 90% ou OOM detecte | :octicons-alert-16: critique |
 | Docker daemon | Ne repond plus | :octicons-alert-16: critique |
 | Containers | Stopped / unhealthy | :octicons-alert-16: haute |
+| **Auto-repair docker** | Stack vide + daemon UP > 2 min | :octicons-alert-16: info (wrench) |
+| **House alive** | Freebox injoignable TCP 80/443 | :octicons-alert-16: urgent |
+| **Internet reach** | 1.1.1.1 + 9.9.9.9 TCP 53 KO | :octicons-alert-16: haute |
+| **Cluster hosts** | galahad/lancelot ping + SSH port | :octicons-alert-16: urgent |
+| **Logs stack** | Grafana + Loki HTTP 200 | :octicons-alert-16: haute |
+| **AdGuard sync** | Canary rewrite secondaire | :octicons-alert-16: haute |
+| **Restic freshness** | 4 repos B2 (3h vault, 30h autres) | :octicons-alert-16: urgent |
+| **PBS health** | LXC 103 API :8007 | :octicons-alert-16: urgent |
+
+### Cascade suppression (depuis 2026-04-19)
+
+Quand une alerte parente explique plusieurs enfants, le monitor **supprime** les alertes redondantes pour eviter le spam :
+
+| Si | Alerte(s) supprimee(s) | Justification |
+|---|---|---|
+| `house-down` (Freebox ou internet KO) | `cluster-hosts` (galahad/lancelot), `logs-stack`, `pbs-down` | Pas joignable car la maison est down |
+| `lancelot-down` | `logs-stack`, `pbs-down` | Les 2 LXC (101, 103) vivent sur lancelot |
+
+Le log `(suppressed: parent-flag)` montre la suppression. Tu ne recois qu'**une** notification au lieu de 4 pour le meme incident cause-racine.
+
+### Auto-repair docker
+
+`check_docker_autorepair` — si `docker info` OK + `docker ps -q` vide depuis > 2 min + pas de flag maintenance :
+
+```bash
+cd /mnt/ssd/config/docker && docker compose up -d
+```
+
+Circuit breaker : max 3 tentatives par 24h (compteur `/var/lib/homelab_monitor/autorepair-docker-attempts`). Au 4e, ntfy urgent "autorepair-capped" et stop (force enquete humaine). Opt-out : `touch /var/lib/homelab_monitor/maintenance` avant une maintenance planifiee.
+
+Prouve en live 2026-04-19 : stack down apres recreation loki, auto-repair fire 172s apres detection, 13 containers up. Voir log `/var/log/homelab_monitor.log` entry `AUTOREPAIR: docker compose up -d OK`.
+
+### House signal (deadman complement HomePod)
+
+`check_house` teste :
+1. **Freebox** (192.168.1.254 TCP 80/443) — si KO = LAN segmente / Freebox crashee
+2. **Internet** (1.1.1.1 et 9.9.9.9 TCP 53) — si Freebox OK mais ca KO = WAN down ISP
+
+Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi :
+
+| Signal Pi | Notif HomePod | Diagnostic |
+|---|---|---|
+| Silence radio | Notif recue | **Coupure electrique** (Pi mort) |
+| `internet-down` alert | Notif recue | **Coupure ISP** (Pi + Freebox UP, WAN KO) |
+| `freebox-down` alert | Notif recue | **Freebox crashee** |
+| Alerts normales | Pas de notif | **Problem homelab isole** |
+
+### Restic repos freshness (multi-repo)
+
+`check_restic_repos_freshness` queries B2 directement pour les 4 repos backup :
+
+| Repo | Seuil | Source |
+|---|---|---|
+| `restic` | 30h | penny daily (`homelab_backup.sh` @ 03:00) |
+| `restic-vault` | **3h** | LXC 102 vaultwarden (`vault-backup.sh` **hourly**) |
+| `restic-dnsfailover` | 30h | LXC 100 AdGuard (`dnsfailover-backup.sh` @ 02:30) |
+| `restic-logs` | 30h | LXC 101 Grafana+Loki (`logs-backup.sh` @ 02:45) |
+
+Cache 1h par repo pour ne pas faire 4 round-trips B2 chaque minute. Alerte ntfy `restic-<repo>-stale` si depassement.
 
 ### Deduplication des alertes
 
