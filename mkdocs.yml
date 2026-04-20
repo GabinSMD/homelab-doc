@@ -105,4 +105,5 @@ nav:
     - projet/index.md
     - Decisions techniques: projet/decisions.md
     - Roadmap: projet/roadmap.md
+    - fish (SRE perso): projet/fish.md
     - A propos: projet/about.md
