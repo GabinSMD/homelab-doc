@@ -73,6 +73,7 @@ nav:
     - Reseau actuel: architecture/reseau.md
     - Reseau cible: architecture/reseau-cible.md
     - Cluster qdevice: architecture/cluster-qdevice.md
+    - Fish observability: architecture/fish-observability.md
   - Services:
     - Vue d'ensemble: services/index.md
     - Traefik: services/traefik.md
@@ -92,6 +93,7 @@ nav:
   - Operations:
     - operations/index.md
     - Monitoring: operations/monitoring.md
+    - Notif hygiene: operations/notif-hygiene.md
     - Backups: operations/backups.md
     - Break-glass: operations/break-glass.md
     - Depannage: operations/depannage.md
