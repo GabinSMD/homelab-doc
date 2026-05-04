@@ -1,6 +1,6 @@
 # Roadmap securite
 
-Etat au **2026-04-16**. Priorite : `impact / effort`.
+Etat au **2026-05-04** (refresh post-audit live). Priorite : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
@@ -25,7 +25,7 @@ Bloque par achat hardware. Voir [architecture/reseau-cible.md](../architecture/r
 
 Voir [decisions.md](../projet/decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
 
-#### Egress firewall (penny + galahad + lancelot) — PHASE 1 EN COURS
+#### Egress firewall (penny + galahad + lancelot) — PHASE 1 DEPLOYEE LES 3 HOSTS
 
 Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exfiltrer vers nimporte quelle destination internet.
 
@@ -33,12 +33,14 @@ Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exf
 Regles iptables LOG sur OUTPUT (host) et DOCKER-USER (containers) avec rate-limit 10/min.
 Skip LAN, Tailscale, Docker bridges. Script dans `homelab-config/scripts/egress-audit.sh`.
 
+**Etat 2026-05-04** : `egress-audit.service` deploye + active sur **les 3 hosts** (penny + galahad + lancelot) via systemd. Logs collectes depuis ~2 semaines.
+
 ```bash
 /root/egress-audit.sh report   # Analyser les logs collectes
 /root/egress-audit.sh stop     # Desactiver l'audit
 ```
 
-**Phase 2 (prevue ~2026-04-21)** : analyser le rapport, construire la whitelist outbound (DNS upstream, Backblaze B2, ntfy.sh, Tailscale DERP, GitHub, Docker Hub/GHCR, Let's Encrypt, Cloudflare API, APT repos), appliquer `OUTPUT DROP` + whitelist avec rollback auto 5min.
+**Phase 2 (prochaine)** : analyser le rapport, construire la whitelist outbound (DNS upstream, Backblaze B2, ntfy.sh, Tailscale DERP, GitHub, Docker Hub/GHCR, Let's Encrypt, Cloudflare API, APT repos, healthchecks.io), appliquer `OUTPUT DROP` + whitelist avec rollback auto 5min.
 
 **Risque** : casser silencieusement Let's Encrypt renew, B2 backup, ntfy alerts si whitelist incomplete. C'est pourquoi la phase 1 (observation) est indispensable.
 
@@ -50,17 +52,13 @@ Les 3 images sont scratch/distroless (Go static binary) : **aucun** outil CLI (w
 
 **Mitigation** : monitoring via `homelab_monitor.sh` (check Docker containers stopped/unhealthy) + Beszel agent metriques.
 
-#### PVE firewall logging
+#### PVE firewall logging — DONE 2026-04-19
 
-Cluster.fw : `-log nolog` partout -> aucune visibilite sur tentatives bloquees. Mettre `-log warning` ou `info` pour audit.
+`/etc/pve/firewall/cluster.fw` : toutes les rules ont `-log warning` (deploye 2026-04-19 dans le commit hardening systemd mount leaks). Audit visibility OK sur tentatives bloquees.
 
-**Effort** : 15 min. Commande : `sudo sed -i 's/-log nolog/-log warning/g' /etc/pve/firewall/cluster.fw` sur galahad.
+#### YubiKey sur cles SSH client — DONE
 
-#### YubiKey sur cles SSH client
-
-`ssh-keygen -t ed25519-sk`, deploy sur les 3 hosts, revoke anciennes cles. YubiKey deja en main.
-
-**Effort** : 1h (user side).
+`sk-ssh-ed25519@openssh.com` keys presentes dans `/home/gabins/.ssh/authorized_keys` sur penny + galahad + lancelot, et `/root/.ssh/authorized_keys` sur penny. Cles touch-required pour sudo.
 
 #### Mot de passe GRUB (galahad + lancelot) — DEFERE
 
@@ -73,8 +71,10 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 - HIDS (Wazuh / CrowdSec une fois dispo Trixie).
 - Bastion SSH LXC — Tailscale SSH couvre deja 80%.
 - IDS reseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
-- Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot` (UI Tailscale, user side).
+- ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE (`tailscale status` confirme).
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique).
+- TFA root@pam Proxmox (UI Datacenter → Permissions → Two Factor, 5 min user side).
+- DR drill from cold — restore B2 + sops sur Pi neuf, chronometrage. Seule preuve reelle que la chain DR fonctionne end-to-end (memory `project_security_audit_20260419` : "Restore backup test reel — Non audite").
 
 ---
 
