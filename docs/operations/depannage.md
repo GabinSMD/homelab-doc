@@ -272,6 +272,114 @@ Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-p
 
 ---
 
+## Tailscale SSH — atterrissage dans le container Alpine au lieu du RPi
+
+### Symptôme
+
+En se connectant via `ssh root@homelab` (port 22), le shell affiche :
+
+- Motd Alpine Linux (`setup-alpine`, `wiki.alpinelinux.org`)
+- Shell `ash` au lieu de `bash`
+- Historique `.ash_history` dans `/root`
+- Utilisateur = identité Tailscale (ex: `gabin-simond`) et non `root`
+- Aucune trace de DietPi, Docker ou des services du homelab
+
+### Cause
+
+L'image Docker `tailscale/tailscale` est basée sur **Alpine Linux**. Quand Tailscale SSH est géré par le container (et non par le daemon host), la connexion `ssh root@homelab` atterrit dans le container Alpine — pas sur le RPi.
+
+Le container Tailscale intercepte la connexion sur le port 22 Tailscale et mappe l'identité Tailscale à un utilisateur local du container.
+
+### Fix — contourner le container via OpenSSH
+
+Utiliser l'**IP Tailscale du RPi avec le port SSH custom** (OpenSSH du host, pas Tailscale SSH) :
+
+```bash
+ssh -p 2806 root@100.97.239.90
+```
+
+Dans Termius, modifier le host :
+
+| Champ | Valeur incorrecte | Valeur correcte |
+|---|---|---|
+| IP or Hostname | `homelab` | `100.97.239.90` |
+| Port | 22 (Default) | `2806` |
+| Username | root | `root` |
+| Auth | — | Clé SSH |
+
+Cette connexion va directement sur **OpenSSH de DietPi** via le tunnel WireGuard Tailscale, sans passer par le container.
+
+---
+
+## Tailscale SSH — shell minimaliste à la connexion
+
+### Symptôme
+
+En se connectant via `ssh root@homelab` (Tailscale SSH), le shell est différent de celui obtenu via OpenSSH (`ssh -p 2806 root@192.168.1.28`) :
+
+- Pas de bannière DietPi
+- `PATH` incomplet (commandes introuvables)
+- Prompt basique sans couleurs
+- Variables d'environnement manquantes (`LANG`, `TERM`, etc.)
+
+### Cause
+
+**Tailscale SSH est une implémentation SSH distincte d'OpenSSH.** Il n'utilise pas `/etc/ssh/sshd_config` et n'invoque pas le shell comme un *login shell*. Concrètement :
+
+| Mécanisme | OpenSSH (port 2806) | Tailscale SSH |
+|---|---|---|
+| `/etc/profile` | Chargé (login shell) | **Non chargé** |
+| `~/.bash_profile` | Chargé | **Non chargé** |
+| PAM / pam_exec | Actif (DietPi banner) | **Non actif** |
+| `/etc/ssh/sshrc` | Exécuté | **Non exécuté** |
+| Mode `check` (MFA) | Non | Validation navigateur |
+
+Le shell démarre donc en mode non-interactif minimal, sans l'environnement habituel de DietPi.
+
+### Fix — forcer un login shell
+
+**Option 1 : Termius (mobile)**
+
+Dans les paramètres du host Termius :
+
+1. Tap **Startup Snippet** → créer un nouveau snippet
+2. Contenu du snippet : `. /etc/profile; . ~/.bashrc`
+3. Sélectionner ce snippet dans les paramètres du host → sauvegarder
+
+C'est la méthode recommandée depuis mobile — aucune commande à retenir, actif à chaque connexion.
+
+!!! warning "Ne pas utiliser `exec bash -l`"
+    `exec` remplace le shell courant par le nouveau processus. Quand `bash -l` termine son initialisation sans commande interactive, la session se ferme immédiatement. Sourcer les fichiers directement (`. /etc/profile`) charge l'environnement sans remplacer le shell.
+
+**Option 2 : à la connexion (terminal classique)**
+
+```bash
+ssh root@homelab -t 'bash -l'
+```
+
+Le flag `-t` force un pseudo-TTY et `-l` invoque bash comme login shell — identique à une connexion OpenSSH classique.
+
+**Option 3 : alias permanent (côté client desktop)**
+
+Dans `~/.ssh/config` sur la machine cliente :
+
+```text
+Host homelab
+    RequestTTY yes
+    RemoteCommand bash -l
+```
+
+### Vérification
+
+Après correction, les deux méthodes doivent donner le même résultat :
+
+```bash
+ssh root@homelab "echo \$SHELL; echo \$PATH"
+ssh -p 2806 root@192.168.1.28 "echo \$SHELL; echo \$PATH"
+```
+
+---
+
 ## Beszel — OIDC "Failed to fetch OAuth2 token"
 
 ### Symptome
