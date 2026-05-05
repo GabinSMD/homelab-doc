@@ -2,14 +2,19 @@
 
 Pas un sujet glamour mais critique : **un homelab qui bipe trop = un homelab dont les vrais signaux passent inaperçus**. Au bout d'un mois de "Backup OK" quotidien, tu silences le ntfy et tu rates le vrai "Backup FAILED".
 
-Cette page documente le mode opérationnel actuel (depuis 2026-05-04) : **silence sur les success, signal uniquement sur les pannes**, avec un canary externe pour distinguer "tout va bien" de "penny est mort".
+Cette page documenté le mode opérationnel actuel (depuis 2026-05-04) : **silence sur les success, signal uniquement sur les pannes**, avec un canary externe pour distinguer "tout va bien" de "penny est mort".
 
 ## Principe
 
-```
-Mode normal (penny + tout green) → 0 notif
-Quelque chose casse                → 🚨 notif sur le phone
-Penny meurt                         → healthchecks.io te bipe externe
+```mermaid
+flowchart LR
+    A[Mode normal<br/>penny + tout green] --> N1[0 notif]
+    B[Quelque chose casse] --> N2[Notif sur le phone]
+    C[Penny meurt] --> N3[healthchecks.io<br/>bipe externe]
+
+    style N1 fill:#d4edda,stroke:#28a745
+    style N2 fill:#fff3cd,stroke:#ffc107
+    style N3 fill:#f8d7da,stroke:#dc3545
 ```
 
 ## Ce qui est silencié (mode "boring runs silent")
@@ -49,14 +54,16 @@ Le silence des success crée un trade-off : **silence côté ntfy = penny vivant
 
 Solution : ping externe.
 
-```
-homelab_monitor.sh (cron 1 min) ──► healthchecks.io ping
-                                            │
-                                    si penny ping pas pendant grace period
-                                            ▼
-                                   healthchecks fire ntfy externe
-                                            ▼
-                                       phone bipe
+```mermaid
+flowchart TD
+    M[homelab_monitor.sh<br/>cron 1 min] -->|ping silencieux| HC[healthchecks.io]
+    HC -.si penny ping pas<br/>pendant grace period.-> F[healthchecks fire<br/>ntfy externe]
+    F --> P[Phone bipe]
+
+    style M fill:#e3f2fd,stroke:#1976d2
+    style HC fill:#fff3cd,stroke:#ffc107
+    style F fill:#f8d7da,stroke:#dc3545
+    style P fill:#f8d7da,stroke:#dc3545
 ```
 
 ### Setup one-shot

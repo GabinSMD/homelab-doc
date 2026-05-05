@@ -1,8 +1,8 @@
-# Reseau cible
+# Réseau cible
 
-Architecture reseau prevue pour la maison renovee.
+Architecture réseau prévue pour la maison renovee.
 
-## Schema reseau
+## Schema réseau
 
 ```mermaid
 graph TB
@@ -25,17 +25,17 @@ graph TB
     style Mini fill:#8e44ad,color:#fff
 ```
 
-## Roles par machine
+## Rôles par machine
 
-### Raspberry Pi 4 — Appliance reseau
+### Raspberry Pi 4 — Appliance réseau
 
 !!! success "Independant du cluster"
-    Si le cluster Proxmox tombe, le reseau continue de fonctionner.
+    Si le cluster Proxmox tombe, le réseau continue de fonctionner.
 
 - **AdGuard Home** — DNS principal + ad-blocking
 - **Traefik** — reverse proxy + TLS auto
 - **Tailscale** — VPN mesh distant
-- **Beszel** — monitoring systeme
+- **Beszel** — monitoring système
 - **Homepage** — dashboard
 - **Watchtower** — auto-update containers non-critiques + notif pour critiques
 
@@ -43,7 +43,7 @@ graph TB
 
 Machine dediee bare-metal. Seul point de passage entre les VLANs et vers Internet.
 
-| Port | Role |
+| Port | Rôle |
 |---|---|
 | ETH0 | WAN (Freebox en bridge) |
 | ETH1 | LAN trunk 802.1Q vers le switch |
@@ -51,26 +51,26 @@ Machine dediee bare-metal. Seul point de passage entre les VLANs et vers Interne
 
 Fonctions :
 
-- Inter-VLAN routing avec regles firewall strictes
+- Inter-VLAN routing avec règles firewall strictes
 - DHCP server par VLAN
 - OPNsense bare-metal pour la fiabilite
 
 ### ZimaBoard #1 + #2 — Compute
 
-Deux noeuds Proxmox VE pour les services applicatifs en LXC/VM.
+Deux nœuds Proxmox VE pour les services applicatifs en LXC/VM.
 
 - Services legers : outils internes, dev, tests
 - Proxmox Backup Server (en LXC sur un des deux)
-- Avec le Minisforum → cluster Proxmox 3 noeuds (quorum natif)
+- Avec le Minisforum → cluster Proxmox 3 nœuds (quorum natif)
 
 ### Minisforum N5 Max — Compute + Storage
 
-Noeud Proxmox le plus puissant, double role.
+Nœud Proxmox le plus puissant, double rôle.
 
-- **NAS** — partage NFS/SMB vers les autres noeuds
+- **NAS** — partagé NFS/SMB vers les autres nœuds
 - **Jellyfin** — media server avec transcodage hardware (Intel Quick Sync)
 - **Services lourds** — VMs/LXC gourmands
-- ZFS mirror recommande (minimum 2 disques)
+- ZFS mirror recommandé (minimum 2 disques)
 
 ## Plan VLANs
 
@@ -112,7 +112,7 @@ graph LR
     style G fill:#95a5a6,color:#fff
 ```
 
-## Regles firewall OPNsense
+## Règles firewall OPNsense
 
 ### VLAN 10 — Management
 
@@ -133,7 +133,7 @@ graph LR
 
 ### VLAN 40 — IoT / Domotique
 
-- :material-check: Acces internet **limite**
+- :material-check: Acces internet **limité**
 - :material-check: Acces DNS uniquement (VLAN 20, port 53)
 - :material-close: **Isole** de tout le reste (pas de LAN, pas de management)
 
@@ -144,7 +144,7 @@ graph LR
 
 ## WiFi et VLANs
 
-Chaque VLAN qui necessite du WiFi a son propre SSID :
+Chaque VLAN qui nécessité du WiFi a son propre SSID :
 
 | SSID | VLAN | Usage |
 |---|---|---|

@@ -4,21 +4,21 @@ Comment fonctionne le HTTPS automatique sur tous les services internes.
 
 ## Vue d'ensemble
 
-Tous les services internes sont accessibles en **HTTPS avec un certificat Let's Encrypt valide**, meme s'ils ne sont pas exposes sur Internet.
+Tous les services internes sont accessibles en **HTTPS avec un certificat Let's Encrypt valide**, même s'ils ne sont pas exposes sur Internet.
 
 La magie repose sur le **DNS challenge Cloudflare** :
 
-1. Traefik detecte un nouveau service (via les labels Docker)
+1. Traefik détecté un nouveau service (via les labels Docker)
 2. Il demande un certificat a Let's Encrypt
-3. Let's Encrypt verifie la propriete du domaine en demandant un record TXT DNS
-4. Traefik cree automatiquement ce record via l'API Cloudflare
-5. Certificat delivre, stocke, renouvele automatiquement
+3. Let's Encrypt vérifie la propriete du domaine en demandant un record TXT DNS
+4. Traefik créé automatiquement ce record via l'API Cloudflare
+5. Certificat delivre, stocké, renouvele automatiquement
 
 ## Pourquoi le DNS challenge ?
 
-| Methode | HTTP challenge | DNS challenge |
+| Méthode | HTTP challenge | DNS challenge |
 |---|---|---|
-| Port 80 expose sur Internet | **Oui** (obligatoire) | Non |
+| Port 80 exposé sur Internet | **Oui** (obligatoire) | Non |
 | Fonctionne pour des domaines internes | Non | **Oui** |
 | Wildcard possible | Non | **Oui** |
 | Config supplementaire | Aucune | Token API Cloudflare |
@@ -49,7 +49,7 @@ environment:
 ```
 
 !!! tip "Token API vs Global API Key"
-    Utilise un **API Token** avec uniquement la permission `Zone:DNS:Edit` sur ta zone, pas la Global API Key. Principe de moindre privilege.
+    Utilisé un **API Token** avec uniquement la permission `Zone:DNS:Edit` sur ta zone, pas la Global API Key. Principe de moindre privilege.
 
 ### Labels Docker (par service)
 
@@ -65,10 +65,10 @@ Les certificats sont stockes dans le volume Docker `traefik-certs` au fichier `/
 
 - Renouvellement automatique avant expiration (30 jours avant)
 - Un seul fichier JSON contient tous les certificats
-- Si le fichier est perdu, Traefik re-demande tous les certificats au prochain demarrage
+- Si le fichier est perdu, Traefik re-demande tous les certificats au prochain démarrage
 
 !!! warning "Rate limits Let's Encrypt"
-    Let's Encrypt a des limites : 50 certificats par domaine par semaine. Pour tester, utiliser le serveur **staging** :
+    Let's Encrypt a des limités : 50 certificats par domaine par semaine. Pour tester, utiliser le serveur **staging** :
     ```yaml
     caServer: https://acme-staging-v02.api.letsencrypt.org/directory
     ```
@@ -90,7 +90,7 @@ entryPoints:
 
 Tout le trafic HTTP (port 80) est **automatiquement redirige** vers HTTPS (port 443). Aucun service n'est accessible en clair.
 
-## Verifier un certificat
+## Vérifier un certificat
 
 ```bash
 # Verifier le certificat d'un service

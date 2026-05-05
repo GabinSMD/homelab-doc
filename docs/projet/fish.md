@@ -1,24 +1,24 @@
 # fish — SRE perso
 
-> **Intelligence calme, observe, execute, repare.**
+> **Intelligence calme, observé, exécuté, repare.**
 
-`fish` est l'assistant SRE perso du homelab. Un bot qui surveille les logs/metriques,
-reconnait les incidents connus, propose un fix par notification, et execute
-apres approbation humaine. Nomme d'apres Scofield (Prison Break).
+`fish` est l'assistant SRE perso du homelab. Un bot qui surveillé les logs/metriques,
+reconnait les incidents connus, propose un fix par notification, et exécuté
+après approbation humaine. Nomme d'après Scofield (Prison Break).
 
-## Etat (2026-04-20)
+## État (2026-04-20)
 
-**MVP livre et prouve en production.** Premier cycle end-to-end valide :
+**MVP livre et prouvé en production.** Premier cycle end-to-end valide :
 
 - 🔔 iPhone buzz → **Approve** tap
 - ⏱ **3 secondes** plus tard fish a repare homepage via SSH
-- 📊 AuditDB SQLite log propre : classifier + proposal + execution
+- 📊 AuditDB SQLite log propre : classifier + proposal + exécution
 
 **15 commits** sur `homelab-config/fish/` ce jour, **163 tests verts**, 0 regression.
 
 ## Architecture
 
-```
+```text
                     penny (Pi 4)               fish LXC 105 (lancelot)
                     ────────────               ─────────────────────────
                     Traefik, Authelia,
@@ -95,22 +95,22 @@ mensuel EUR (pricing Sonnet $3/$15 Mtok). **Confidence deterministe** =
 ### Catalog
 YAML schema pydantic, 5 patterns seed depuis les memoires d'incidents :
 - `beszel-oidc-reset` — PocketBase resetting `meta.appURL` post-restart
-- `docker-compose-stopped-post-reboot` — `unless-stopped` ne restart pas apres `docker compose down`+reboot
-- `pmxcfs-ro-post-recovery` — `/etc/pve` RO apres recovery corosync (fix : restart pve-cluster)
+- `docker-compose-stopped-post-reboot` — `unless-stopped` ne restart pas après `docker compose down`+reboot
+- `pmxcfs-ro-post-recovery` — `/etc/pve` RO après recovery corosync (fix : restart pve-cluster)
 - `dockerd-sigbus-loop` — log-driver journald SIGBUS sur ARM (fix : swap vers json-file)
 - `apt-security-updates-pending` — apt upgrades non appliques
 
-Chaque pattern declare : required_signals, target_host, fix_script,
+Chaque pattern déclaré : required_signals, target_host, fix_script,
 timeout_s, verify_script, on_failure (rollback ou escalate).
 
 ### Proposer
-Orchestre le cycle observe → classify → propose → wait approval → exec.
+Orchestre le cycle observé → classify → propose → wait approval → exec.
 Decouple `proposal.status` (decision humaine) de `execution.status`
-(resultat technique). Dry-run mode pour valider avant premier exec reel.
+(résultat technique). Dry-run mode pour valider avant premier exec reel.
 
 ### NtfyNotifier
 POST ntfy.sh avec `X-Actions` Approve/Deny. Callbacks recus via
-Tailscale Funnel → fish aiohttp :8080. Confirmation buzz apres 1er click
+Tailscale Funnel → fish aiohttp :8080. Confirmation buzz après 1er click
 pour feedback visuel. Re-clicks gated (handler 200 "already decided").
 
 ### SSHExecutor
@@ -124,12 +124,12 @@ jamais `shell=True`.
 `notif_sent` + `llm_usage` (owned by BudgetGuard). PRAGMA `foreign_keys=ON`
 enforced via `AuditDB.connect()` helper. stdout/stderr truncated 64 KiB.
 
-## Securite (Option B)
+## Sécurité (Option B)
 
 Architecture choisie via `/plan-eng-review` 2026-04-20 :
 
-- User dedie **`fish`** sur chaque host cible (separation bot/humain → audit propre)
-- SSH via port **2806** real sshd, pas Tailscale SSH (evite bypass transparent)
+- User dedie **`fish`** sur chaque host cible (séparation bot/humain → audit propre)
+- SSH via port **2806** real sshd, pas Tailscale SSH (évite bypass transparent)
 - Key `fish-to-penny` en `authorized_keys` avec `command="sudo -n /usr/local/bin/fish-wrapper"` + `from="192.168.1.0/24,100.64.0.0/10"` + no-port-forwarding
 - Sudoers : `fish ALL=(root) NOPASSWD: /usr/local/bin/fish-wrapper` uniquement
 - Wrapper = security boundary : verbe + pattern_id + script dans allow-lists sinon deny + log syslog
@@ -140,13 +140,13 @@ Architecture choisie via `/plan-eng-review` 2026-04-20 :
 **Claude API Sonnet 4.6** = ~0.005-0.007€ par event classifie.
 Avec le filtre `detected_level=~"error|warn|warning|critical|fatal"` + deny
 `fail2ban|monitor` (bruit), homelab reel produit **~1-5€/mois**. BudgetGuard hard-stop
-20€/mois par securite. 4.6€ depenses pendant tout le developpement.
+20€/mois par sécurité. 4.6€ depenses pendant tout le développement.
 
 ## Design decisions
 
 - **Claude API first, Ollama swap plus tard** : `LLMProvider` abstract permet swap quand Minisforum "luther" arrivera.
 - **Catalog-gated exec (jamais improvise)** : LLM produit un `pattern_id` OU `UNKNOWN_INCIDENT`, executor prend le script depuis catalog. Zero remote code exec du LLM.
-- **Approval humain obligatoire par defaut** : `promote_to_autoexec_after: 3` permet plus tard auto-exec apres N successes, mais chaque pattern decide.
+- **Approval humain obligatoire par defaut** : `promote_to_autoexec_after: 3` permet plus tard auto-exec après N successes, mais chaque pattern decide.
 - **FK enforced partout** : attrape les bugs d'ordre d'insertion en dev (CEO review catch), pas en prod.
 - **Rate limiter per (host, service)** : empeche un flood de logs de brûler le budget Claude.
 - **Tailscale Funnel pour callbacks** : callback URL public HTTPS sans Cloudflare Tunnel + sans port forward box.
@@ -177,7 +177,7 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 
 ### v1.5 (livre 2026-05-04)
 - [x] fish main wire vers vrais incidents observer — Step B `homelab_monitor` push to Loki (commit `2dad768`)
-- [x] Sops-seal la cle SSH fish-to-penny — sealed dans `/etc/fish/ssh_keys/fish-to-penny.enc`, plaintext shred 2026-05-04
+- [x] Sops-seal la clé SSH fish-to-penny — sealed dans `/etc/fish/ssh_keys/fish-to-penny.enc`, plaintext shred 2026-05-04
 - [x] systemd fish.service survive reboot LXC — `fish-unseal.service` + `fish.service` enabled
 - [ ] Replicate Option B sur galahad + lancelot — bloque par soak fish week 8 reeval
 - [ ] Grafana dashboard "fish activity" — proposals/jour, approval rate, success rate, cost/mois
@@ -187,14 +187,14 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 - [x] UNKNOWN_INCIDENT auto-draft pattern YAML — drafter shipped, dedup 7j, race-protected, failed-block actif
 - [x] Step A : promote_to_autoexec_after 1 sur `docker-compose-stopped-post-reboot` (commit `2dad768`) — premier vrai pattern auto-exec en prod
 - [ ] Ollama local quand Minisforum "luther" arrive — backup LLM si budget Claude API explose
-- [ ] Home Assistant integration (voice : "fish, repare le homelab")
-- [ ] Scribe mode : observe shell history → propose auto-runbooks
+- [ ] Home Assistant intégration (voice : "fish, repare le homelab")
+- [ ] Scribe mode : observé shell history → propose auto-runbooks
 
-### v3 — apres soak semaine 8 (mi-juin 2026), decision data-driven
+### v3 — après soak semaine 8 (mi-juin 2026), decision data-driven
 - [ ] Multi-step reasoning (chain de patterns A→B fallback)
-- [ ] Learning loop sur outcomes (auto-promote pattern apres N successes)
+- [ ] Learning loop sur outcomes (auto-promote pattern après N successes)
 - [ ] Dynamic args choice (LLM decide args fix script vs hardcode YAML)
-- [ ] Pivot Hybrid si signal/noise <50% (Alertmanager + scripts + LLM reserve UNKNOWN)
+- [ ] Pivot Hybrid si signal/noise <50% (Alertmanager + scripts + LLM réservé UNKNOWN)
 
 ## Repo
 

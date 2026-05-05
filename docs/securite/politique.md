@@ -1,6 +1,6 @@
-# Securite
+# Sécurité
 
-Doctrine securite : **qui on defend contre quoi, jusqu'ou**, et **comment les credentials sont gerees**.
+Doctrine sécurité : **qui on defend contre quoi, jusqu'ou**, et **comment les credentials sont gerees**.
 
 Pour les mesures techniques par couche (sysctl, firewall rules, SSH, containers) : [hardening.md](hardening.md).
 Pour les actions restantes : [roadmap.md](roadmap.md).
@@ -8,20 +8,20 @@ Pour la procedure en cas d'incident : [break-glass.md](../operations/break-glass
 
 ---
 
-## Modele de menace
+## Modèle de menace
 
-| Acteur | Capacite | Mesures |
+| Acteur | Capacité | Mesures |
 |---|---|---|
-| Script kiddies internet | Scans automatises, brute-force | Pas de port forward, Tailscale only, fail2ban, SSH cles uniquement |
+| Script kiddies internet | Scans automatises, brute-force | Pas de port forward, Tailscale only, fail2ban, SSH clés uniquement |
 | FAI / MITM | Interception trafic | TLS partout, WireGuard mesh (Tailscale), DNSSEC |
-| Voisin LAN compromis | Acces reseau local | Firewall iptables DROP, services admin limites LAN+TS, Authelia 2FA |
+| Voisin LAN compromis | Acces réseau local | Firewall iptables DROP, services admin limités LAN+TS, Authelia 2FA |
 | Vol physique RPi/SSD | Acces direct au disque | Backups off-site OK — chiffrement disque **a faire** (Phase OPNsense) |
 | Invite / famille | WiFi domestique | A couvrir avec OPNsense + VLANs (Phase 2) |
-| Supply chain Docker | Image malveillante | Watchtower surveille versions — signature verification **a faire** (P2) |
-| Compromission cle SSH | sudo NOPASSWD = root immediat | Passphrase + YubiKey ssh-agent — **a deployer cote client** (P2) |
+| Supply chain Docker | Image malveillante | Watchtower surveillé versions — signature vérification **a faire** (P2) |
+| Compromission clé SSH | sudo NOPASSWD = root immédiat | Passphrase + YubiKey ssh-agent — **a déployer côté client** (P2) |
 | Phishing TOTP (AITM) | Replay credentials | WebAuthn FIDO2 (YubiKey) actif sur Authelia |
 
-**Hors perimetre** : APT etat-nation, compromission providers (Cloudflare / LE / Tailscale), vol master Vaultwarden (SPOF assume).
+**Hors perimetre** : APT état-nation, compromission providers (Cloudflare / LE / Tailscale), vol master Vaultwarden (SPOF assume).
 
 ---
 
@@ -32,41 +32,41 @@ Pour la procedure en cas d'incident : [break-glass.md](../operations/break-glass
 **Un seul compte nominatif partout** : `gabins`.
 
 - Jamais `admin`, `pi`, ou `gabin` : noms previsibles = cibles automatisees.
-- `gabins` (avec `s`) : legere variation pour casser les scripts.
+- `gabins` (avec `s`) : légère variation pour casser les scripts.
 - Format futur : `<prenom><initiale_nom>` (ex: `gabins`).
 
-Comptes legacy (`admin`, `gabin`) : **tous supprimes** la ou ils existaient (Grafana admin desactive, Proxmox gabin@authelia retire, etc.).
+Comptes legacy (`admin`, `gabin`) : **tous supprimes** la ou ils existaient (Grafana admin désactivé, Proxmox gabin@authelia retire, etc.).
 
 ### Comptes de service
 
-Format `svc-<fonction>` : `svc-homepage`, `svc-backup`. Pas de mot de passe utilisateur — tokens API ou cles SSH exclusivement.
+Format `svc-<fonction>` : `svc-homepage`, `svc-backup`. Pas de mot de passe utilisateur — tokens API ou clés SSH exclusivement.
 
 Exceptions admises (pas SSO) :
-- **`root@pam`** sur Proxmox : inevitable (compte systeme). Protection : SSH cle + fail2ban + ACL `gabins@authelia` Administrator prime.
-- **`gabins` AdGuard (bcrypt local)** : AdGuard ne supporte pas OIDC. Mitigation prevue : ForwardAuth Authelia devant.
+- **`root@pam`** sur Proxmox : inevitable (compte système). Protection : SSH clé + fail2ban + ACL `gabins@authelia` Administrator prime.
+- **`gabins` AdGuard (bcrypt local)** : AdGuard ne supporte pas OIDC. Mitigation prévue : ForwardAuth Authelia devant.
 
 ### Mots de passe
 
 | Niveau | Services | Longueur | Rotation |
 |---|---|---|---|
 | Critique | Authelia, Vaultwarden master, Proxmox root@pam | 32 chars | A la compromission |
-| Eleve | AdGuard local, Portainer fallback | 32 chars | A la compromission |
+| Élevé | AdGuard local, Portainer fallback | 32 chars | A la compromission |
 | OIDC clients | Secrets OIDC (Proxmox, Portainer, Beszel, Grafana) | 256 bits | 12 mois max |
 
-Generation : `openssl rand -base64 48 | head -c 32`.
+Génération : `openssl rand -base64 48 | head -c 32`.
 Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne ou un message.
 
 ### Authentification forte
 
-| Service | Methode | Auto-login | Internal login |
+| Service | Méthode | Auto-login | Internal login |
 |---|---|---|---|
-| Authelia | TOTP + WebAuthn FIDO2 YubiKey | — (source de verite) | — |
+| Authelia | TOTP + WebAuthn FIDO2 YubiKey | — (source de vérité) | — |
 | Proxmox galahad/lancelot | OIDC Authelia (two_factor) | Non (realm selector) | `root@pam` (inevit.) |
 | Portainer | OIDC Authelia (two_factor) | **Oui** (SSO + hide internal) | `gabins` local (break-glass) |
-| Grafana | OIDC Authelia (two_factor) + PKCE S256 | **Oui** (`auto_login=true`) | Admin desactive en DB |
-| Beszel | OIDC Authelia (one_factor) | Non (PocketBase) | Superuser `/_/` separe |
+| Grafana | OIDC Authelia (two_factor) + PKCE S256 | **Oui** (`auto_login=true`) | Admin désactivé en DB |
+| Beszel | OIDC Authelia (one_factor) | Non (PocketBase) | Superuser `/_/` séparé |
 | Homepage / AdGuard | ForwardAuth Authelia | **Oui** (transparent) | AdGuard bcrypt seul |
-| SSH | Cle Ed25519 uniquement | — | — |
+| SSH | Clé Ed25519 uniquement | — | — |
 | Vaultwarden | Master password + TOTP | — | — |
 | Tailscale | WireGuard + SSO identity | — | — |
 
@@ -75,24 +75,24 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 | Element | Rotation | Procedure |
 |---|---|---|
 | Mot de passe gabins (OS) | A la compromission | SSH via Tailscale, `passwd` |
-| Cles SSH | Par appareil | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
+| Clés SSH | Par appareil | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
 | Tokens API (Cloudflare, Tailscale, B2) | 12 mois max | UI provider -> nouveau token -> `.env` -> restart service |
 | Secrets OIDC | 12 mois max | `openssl rand -base64 32` -> hash pbkdf2 -> update Authelia + service |
-| Authelia internals (jwt/session/storage) | A la compromission uniquement | Migration DB necessaire si `encryption_key` change |
+| Authelia internals (jwt/session/storage) | A la compromission uniquement | Migration DB nécessaire si `encryption_key` change |
 | Master Vaultwarden | Au choix | UI Vaultwarden |
 
 ### Session Authelia
 
-| Parametre | Valeur | Note |
+| Paramètre | Valeur | Note |
 |---|---|---|
-| `expiration` | 4h | Session active |
+| `expiration` | 4h | Session activé |
 | `inactivity` | 30m | Timeout si idle |
 | `remember_me` | 7d | Cookie persistent (compromise browser = max 7j). Non differenciable par groupe en Authelia v4. |
 
 ### Revocation Tailscale
 
 1. [login.tailscale.com](https://login.tailscale.com) > Machines
-2. Selectionner appareil > **Disable** (acces immediat coupe)
+2. Selectionner appareil > **Disable** (acces immédiat coupe)
 3. Si perdu definitivement : **Remove**
 4. Reauth globale : **Settings > Keys > Auth keys > Revoke**
 
@@ -103,7 +103,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 ### Authentification primaire
 
 - Master Authelia `gabins` — plain password
-- Backup codes TOTP Authelia (si generes)
+- Backup codes TOTP Authelia (si générés)
 - YubiKey backup codes
 
 ### Internals Authelia
@@ -124,7 +124,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 ### OS / Infra
 
 - `root@pam` Proxmox galahad + lancelot
-- Passphrases cles SSH (par machine)
+- Passphrases clés SSH (par machine)
 - bcrypt AdGuard gabins
 - Portainer admin (fallback)
 
@@ -142,10 +142,10 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 - `HOMEPAGE_VAR_BESZEL_USER` + `_PASS`
 - `HOMEPAGE_VAR_ADGUARD_USER` + `_PASS`
 
-### Hors Vault (volontaire — eviter la dependance circulaire)
+### Hors Vault (volontaire — éviter la dépendance circulaire)
 
-- **Restic backup password** : cle USB physique + copie papier. Si Vault perdu + restic perdu = backups illisibles.
-- **Master password Vaultwarden** : dans la tete + papier en coffre.
+- **Restic backup password** : clé USB physique + copie papier. Si Vault perdu + restic perdu = backups illisibles.
+- **Master password Vaultwarden** : dans la tête + papier en coffre.
 
 ---
 

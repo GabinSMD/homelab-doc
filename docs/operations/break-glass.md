@@ -2,7 +2,7 @@
 
 Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre, defaillance materielle, corruption).
 
-!!! danger "Ce document doit etre imprime et stocke avec la YubiKey hors-domicile (YK2)"
+!!! danger "Ce document doit être imprime et stocké avec la YubiKey hors-domicile (YK2)"
     En cas de destruction totale, l'acces a ce site sera perdu. Garder une copie papier ou PDF a jour.
 
 ---
@@ -13,11 +13,11 @@ Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre
 |---|---|---|
 | **RTO** (Recovery Time Objective) | 4h | Zero a services critiques operationnels |
 | **RPO** (Recovery Point Objective) | 24h | Backup quotidien a 3h du matin |
-| **Services critiques** | DNS, Vaultwarden, Traefik, Authelia | Tout le reste en depend |
+| **Services critiques** | DNS, Vaultwarden, Traefik, Authelia | Tout le reste en dépend |
 
 ---
 
-## Architecture de reference
+## Architecture de référence
 
 Connaitre l'architecture est indispensable pour savoir quoi restaurer et dans quel ordre.
 
@@ -53,9 +53,9 @@ graph TB
     adguard1 -.->|failover| lxc100
 ```
 
-### Dependances critiques (ordre de demarrage)
+### Dépendances critiques (ordre de démarrage)
 
-```
+```text
 1. DNS          → AdGuard Home (penny ou dns-failover)
 2. Reverse Proxy → Traefik (penny) — necessite CF_DNS_API_TOKEN
 3. Passwords    → Vaultwarden (LXC 102 galahad) — PAS de dependance SSO
@@ -64,13 +64,13 @@ graph TB
 ```
 
 !!! info "Vaultwarden est volontairement isole du SSO"
-    Il n'utilise PAS Authelia pour eviter une dependance circulaire. Il reste accessible meme si Authelia est en panne.
+    Il n'utilisé PAS Authelia pour éviter une dépendance circulaire. Il reste accessible même si Authelia est en panne.
 
 ---
 
 ## Preparation AVANT l'incident
 
-### YubiKeys break-glass (remplace la cle USB depuis 2026-04-19)
+### YubiKeys break-glass (remplacé la clé USB depuis 2026-04-19)
 
 Deux YubiKeys sont des recipiants sops independants. Chacune peut dechiffrer TOUS les secrets sans l'autre.
 
@@ -106,14 +106,14 @@ rm /tmp/yk-id.txt
 ### Coffre physique (hors-domicile, avec YK2)
 
 - [ ] YubiKey 2 (YK2) physique
-- [ ] PIN YK2 (note separee ou Vaultwarden)
+- [ ] PIN YK2 (note séparée ou Vaultwarden)
 - [ ] Master password Vaultwarden (memorise ou papier scelle)
 - [ ] Codes de recuperation TOTP
 - [ ] Ce document en PDF
 
 ### Comptes externes (doivent rester actifs)
 
-| Compte | Usage | Verification |
+| Compte | Usage | Vérification |
 |---|---|---|
 | Backblaze B2 | Bucket `gabin-homelab-backups` | `source ~/.restic-env && restic snapshots` |
 | Cloudflare | Zone `gabin-simond.fr`, token DNS:Edit | Dashboard Cloudflare |
@@ -123,11 +123,11 @@ rm /tmp/yk-id.txt
 
 ---
 
-## Scenarios de panne
+## Scénarios de panne
 
-### Scenario 0 : Panne d'un seul LXC (dns-failover / vault / logs)
+### Scénario 0 : Panne d'un seul LXC (dns-failover / vault / logs)
 
-**Duree estimee** : 15-30 min | **Impact** : service concerne uniquement
+**Durée estimee** : 15-30 min | **Impact** : service concerne uniquement
 
 === "LXC 100 — dns-failover (AdGuard secondaire)"
 
@@ -154,7 +154,7 @@ rm /tmp/yk-id.txt
 === "LXC 102 — vault (Vaultwarden)"
 
     !!! danger "Impact critique : acces aux mots de passe perdu"
-        S'assurer que l'app mobile Bitwarden est synchro avec les donnees recentes AVANT de detruire le LXC.
+        S'assurer que l'app mobile Bitwarden est synchro avec les données recentes AVANT de detruire le LXC.
 
     ```bash
     ssh gabins@pve1
@@ -184,9 +184,9 @@ rm /tmp/yk-id.txt
 
 ---
 
-### Scenario 1 : penny mort, cluster Proxmox OK
+### Scénario 1 : penny mort, cluster Proxmox OK
 
-**Duree estimee** : 1-2h | **Impact** : DNS primaire, Traefik, Authelia, Homepage — mais Vaultwarden reste UP
+**Durée estimee** : 1-2h | **Impact** : DNS primaire, Traefik, Authelia, Homepage — mais Vaultwarden reste UP
 
 !!! tip "Bonne nouvelle"
     Vaultwarden (LXC 102) et AdGuard secondaire (LXC 100) restent operationnels. Les mots de passe et la resolution DNS de base continuent de fonctionner.
@@ -195,8 +195,8 @@ rm /tmp/yk-id.txt
 
 1. **Acquerir le materiel de remplacement** :
    - Raspberry Pi 4 (8 Go RAM) + alimentation officielle 5.1V/3A
-   - Carte SD 64 Go (ou recuperer l'existante si intacte)
-   - SSD USB (ou recuperer l'existant)
+   - Carte SD 64 Go (ou récupérer l'existante si intacte)
+   - SSD USB (ou récupérer l'existant)
 2. **Flasher DietPi** sur la SD depuis un autre appareil ([dietpi.com](https://dietpi.com))
 
 #### Phase 2 — OS de base (T+15min a T+30min)
@@ -218,7 +218,7 @@ mkdir -p /mnt/ssd
 mount /dev/sda1 /mnt/ssd
 ```
 
-#### Phase 3 — Restaurer les configs systeme (T+30min a T+45min)
+#### Phase 3 — Restaurer les configs système (T+30min a T+45min)
 
 ```bash
 # Cloner le repo config (ou restaurer depuis la cle USB)
@@ -318,7 +318,7 @@ else
 fi
 ```
 
-#### Phase 6 — Reseau et verification (T+1h45 a T+2h)
+#### Phase 6 — Réseau et vérification (T+1h45 a T+2h)
 
 ```bash
 # Installer et configurer Tailscale
@@ -341,7 +341,7 @@ source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_
 restic snapshots  # doit lister les snapshots existants
 ```
 
-#### Verification post-restauration penny
+#### Vérification post-restauration penny
 
 | Check | Commande | Attendu |
 |---|---|---|
@@ -357,12 +357,12 @@ restic snapshots  # doit lister les snapshots existants
 
 ---
 
-### Scenario 2 : Cluster Proxmox detruit (galahad + lancelot)
+### Scénario 2 : Cluster Proxmox detruit (galahad + lancelot)
 
-**Duree estimee** : 2-3h | **Impact** : Vaultwarden, DNS secondaire, Grafana, Proxmox UI
+**Durée estimee** : 2-3h | **Impact** : Vaultwarden, DNS secondaire, Grafana, Proxmox UI
 
 !!! warning "Vaultwarden est sur le cluster"
-    Verifier l'acces a l'app mobile Bitwarden (sync offline) avant de commencer. Les tokens critiques doivent aussi etre sur la cle USB.
+    Vérifier l'acces a l'app mobile Bitwarden (sync offline) avant de commencer. Les tokens critiques doivent aussi être sur la clé USB.
 
 #### Phase 1 — Reinstaller Proxmox VE (T+0 a T+45min)
 
@@ -489,7 +489,7 @@ curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
 ```
 
-#### Verification post-restauration cluster
+#### Vérification post-restauration cluster
 
 | Check | Commande | Attendu |
 |---|---|---|
@@ -499,21 +499,21 @@ tailscale up
 | LXC 102 UP | `pct status 102` | `running` |
 | DNS secondaire | `dig home.gabin-simond.fr @192.168.1.30` | `192.168.1.28` |
 | Vaultwarden | `curl -sk https://vault.home.gabin-simond.fr` | Page de login |
-| OIDC Proxmox | Login via Authelia sur l'UI web | Session active |
+| OIDC Proxmox | Login via Authelia sur l'UI web | Session activé |
 | Grafana | `curl -sk https://logs.home.gabin-simond.fr` | Page de login |
 
 ---
 
-### Scenario 3 : Tout detruit (penny + cluster)
+### Scénario 3 : Tout detruit (penny + cluster)
 
-**Duree estimee** : 4h + delai d'achat materiel
+**Durée estimee** : 4h + delai d'achat materiel
 
 !!! danger "Prerequis absolus"
-    - **YK1 ou YK2** avec son PIN (remplace la cle USB)
+    - **YK1 ou YK2** avec son PIN (remplacé la clé USB)
     - `age-plugin-yubikey` installe sur la machine de travail (`brew install age-plugin-yubikey`)
-    - Acces au master password Vaultwarden (memoire ou coffre papier)
+    - Acces au master password Vaultwarden (mémoire ou coffre papier)
     - Acces au compte GitHub (pour cloner `homelab-config`) — ou clone local
-    - Cles SSH pour acceder aux machines (cle FIDO2 sur la YubiKey, ou cle Ed25519 backup)
+    - Clés SSH pour acceder aux machines (clé FIDO2 sur la YubiKey, ou clé Ed25519 backup)
 
 #### Strategie : paralleliser les restaurations
 
@@ -542,7 +542,7 @@ gantt
 
 #### Ordre de restauration
 
-```
+```text
 T+0     Achat/recuperation du materiel
         Flasher DietPi sur la SD card
 
@@ -570,26 +570,26 @@ T+3.5h  Agents Beszel + Tailscale sur tout le cluster
 T+4h    OPERATIONNEL
 ```
 
-#### Gestion de la dependance d'amorçage (bootstrap)
+#### Gestion de la dépendance d'amorçage (bootstrap)
 
-**Probleme** : Pour configurer Traefik, il faut le token Cloudflare. Ce token est dans Vaultwarden. Mais Vaultwarden est sur le cluster qu'on est aussi en train de reconstruire.
+**Problème** : Pour configurer Traefik, il faut le token Cloudflare. Ce token est dans Vaultwarden. Mais Vaultwarden est sur le cluster qu'on est aussi en train de reconstruire.
 
 **Solution (3 niveaux de fallback)** :
 
-1. **App mobile Bitwarden** : synchro offline, disponible immediatement
-2. **Cle USB chiffree** : contient le `.env` avec `CF_DNS_API_TOKEN`, `TS_AUTHKEY`, et tous les tokens
-3. **Coffre papier** : master password Vaultwarden → acces via un client Bitwarden sur un autre appareil, mais necessite que le LXC 102 soit deja restaure
+1. **App mobile Bitwarden** : synchro offline, disponible immédiatement
+2. **Clé USB chiffree** : contient le `.env` avec `CF_DNS_API_TOKEN`, `TS_AUTHKEY`, et tous les tokens
+3. **Coffre papier** : master password Vaultwarden → acces via un client Bitwarden sur un autre appareil, mais nécessité que le LXC 102 soit déjà restaure
 
-**En pratique** : dechiffrer `.env.enc` avec la YubiKey (`age-plugin-yubikey --identity > /tmp/yk-id.txt && SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv -d .env.enc > .env`) pour demarrer penny independamment du cluster.
+**En pratique** : dechiffrer `.env.enc` avec la YubiKey (`age-plugin-yubikey --identity > /tmp/yk-id.txt && SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv -d .env.enc > .env`) pour démarrer penny independamment du cluster.
 
 ---
 
-### Scenario 4 : Corruption Authelia (DB ou cle OIDC)
+### Scénario 4 : Corruption Authelia (DB ou clé OIDC)
 
-**Duree estimee** : 15-30 min | **Impact** : SSO indisponible, les services a ForwardAuth sont bloques
+**Durée estimee** : 15-30 min | **Impact** : SSO indisponible, les services a ForwardAuth sont bloques
 
 !!! note "Vaultwarden et AdGuard restent accessibles"
-    Vaultwarden n'utilise pas Authelia. AdGuard utilise ForwardAuth mais reste fonctionnel en acces direct (`192.168.1.28:3000`).
+    Vaultwarden n'utilisé pas Authelia. AdGuard utilisé ForwardAuth mais reste fonctionnel en acces direct (`192.168.1.28:3000`).
 
 ```bash
 # Verifier les logs
@@ -635,9 +635,9 @@ docker compose up -d authelia
 
 ---
 
-### Scenario 5 : Perte d'acces reseau (FAI, DNS externe, Cloudflare)
+### Scénario 5 : Perte d'acces réseau (FAI, DNS externe, Cloudflare)
 
-**Duree estimee** : variable | **Impact** : pas d'acces distant, certificats TLS non renouvelables
+**Durée estimee** : variable | **Impact** : pas d'acces distant, certificats TLS non renouvelables
 
 ```bash
 # Diagnostic
@@ -664,7 +664,7 @@ tailscale status                        # Tailscale connecte ?
 
 ---
 
-### Scenario 6 : Perte de cle SSH ou YubiKey
+### Scénario 6 : Perte de clé SSH ou YubiKey
 
 **Impact** : acces SSH compromis ou bloque
 
@@ -700,14 +700,14 @@ done
 | Backblaze B2 | Acces backups | help@backblaze.com |
 | Cloudflare | Zone DNS bloquee | dashboard support |
 | Tailscale | Tailnet issue | support@tailscale.com |
-| YubiKey (Yubico) | Cle defaillante | support.yubico.com |
+| YubiKey (Yubico) | Clé defaillante | support.yubico.com |
 | DietPi | Bug OS | github.com/MichaIng/DietPi/issues |
 
 ---
 
-## Checklist de verification finale
+## Checklist de vérification finale
 
-A executer apres **toute** restauration, quel que soit le scenario :
+A exécuter après **toute** restauration, quel que soit le scénario :
 
 ```bash
 #!/bin/bash
@@ -758,24 +758,24 @@ echo "=== FIN ==="
 
 ## Tests de la procedure
 
-La procedure doit etre testee **au moins une fois par an** sur un environnement jetable (spare RPi, VM locale, etc.).
+La procedure doit être testee **au moins une fois par an** sur un environnement jetable (spare RPi, VM locale, etc.).
 
-| Date | Scenario | Duree reelle | Problemes rencontres | Actions correctives |
+| Date | Scénario | Durée reelle | Problèmes rencontres | Actions correctives |
 |---|---|---|---|---|
 | 2026-04-13 | DR drill Vaultwarden | 7s | Aucun | — |
 | — | Reconstruction complete penny | — | A faire | — |
 | — | Reconstruction cluster | — | A faire | — |
-| — | Scenario 3 (tout detruit) | — | A faire | — |
+| — | Scénario 3 (tout detruit) | — | A faire | — |
 | — | Rotation secrets Authelia | — | A faire | — |
 
 !!! tip "Nouveau test = nouveau apprentissage"
-    Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a jour ce document apres chaque test.
+    Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a jour ce document après chaque test.
 
 ---
 
 ## Maintenance de ce document
 
-- **Frequence de revision** : a chaque changement d'architecture (nouveau service, nouveau LXC, migration)
-- **Mise a jour cle USB** : mensuelle (premiere semaine du mois)
-- **Test DR** : annuel minimum, trimestriel recommande
+- **Fréquence de révision** : a chaque changement d'architecture (nouveau service, nouveau LXC, migration)
+- **Mise a jour clé USB** : mensuelle (première semaine du mois)
+- **Test DR** : annuel minimum, trimestriel recommandé
 - **Responsable** : GabinSMD

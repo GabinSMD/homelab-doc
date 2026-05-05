@@ -16,20 +16,20 @@ Gestionnaire de mots de passe auto-heberge, compatible avec les clients Bitwarde
 
 Vaultwarden conserve intentionnellement son propre master password, sans SSO Authelia.
 
-!!! warning "Dependance circulaire"
+!!! warning "Dépendance circulaire"
     Si Authelia tombe (RPi crash, SSD deconnecte), tous les services SSO deviennent inaccessibles.
-    Si Vaultwarden depend aussi d'Authelia, on perd l'acces au coffre-fort de mots de passe
-    necessaire pour reparer les autres services.
+    Si Vaultwarden dépend aussi d'Authelia, on perd l'acces au coffre-fort de mots de passe
+    nécessaire pour reparer les autres services.
 
-Vaultwarden est le **filet de securite** : il stocke tous les credentials (Authelia, Proxmox, AdGuard, etc.)
-et reste accessible meme quand le reste est casse.
+Vaultwarden est le **filet de sécurité** : il stocké tous les credentials (Authelia, Proxmox, AdGuard, etc.)
+et reste accessible même quand le reste est casse.
 
 ## Configuration
 
 | Variable | Valeur |
 |---|---|
 | `DOMAIN` | `https://vault.home.gabin-simond.fr` |
-| `SIGNUPS_ALLOWED` | `true` (a desactiver apres creation du compte) |
+| `SIGNUPS_ALLOWED` | `true` (a désactiver après création du compte) |
 
 ## Clients recommandes
 
@@ -37,11 +37,11 @@ et reste accessible meme quand le reste est casse.
 - **Mobile** : Bitwarden (iOS / Android)
 - **Desktop** : Bitwarden Desktop
 
-Configurer l'URL du serveur dans les parametres du client : `https://vault.home.gabin-simond.fr`
+Configurer l'URL du serveur dans les paramètres du client : `https://vault.home.gabin-simond.fr`
 
-## Donnees
+## Données
 
 | | |
 |---|---|
 | Volume | `vaultwarden-data` |
-| Contenu | Base SQLite, cles RSA, attachments |
+| Contenu | Base SQLite, clés RSA, attachments |

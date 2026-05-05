@@ -1,6 +1,6 @@
 # AdGuard Home
 
-DNS et DHCP avec ad-blocking pour tout le reseau.
+DNS et DHCP avec ad-blocking pour tout le réseau.
 
 ## Acces
 
@@ -11,12 +11,12 @@ DNS et DHCP avec ad-blocking pour tout le reseau.
 | Image | `adguard/adguardhome:latest` |
 | Auth | ForwardAuth Authelia + bcrypt local |
 
-## Role
+## Rôle
 
-- **DNS resolver** principal pour le reseau local
+- **DNS resolver** principal pour le réseau local
 - **Ad-blocking** au niveau DNS (listes de blocage)
 - **DNS-over-TLS** sur le port 853
-- **DHCP** (optionnel, peut etre gere par OPNsense a terme)
+- **DHCP** (optionnel, peut être géré par OPNsense a terme)
 
 ## Ports
 
@@ -37,16 +37,16 @@ DNS et DHCP avec ad-blocking pour tout le reseau.
 ## Stockage
 
 - **Config** : bind mount `/mnt/ssd/config/adguard/` → `/opt/adguardhome/conf`
-- **Donnees** : Docker volume `adguard-data` → `/opt/adguardhome/work`
+- **Données** : Docker volume `adguard-data` → `/opt/adguardhome/work`
 
 ## Instances
 
-| Instance | Machine | IP | Role |
+| Instance | Machine | IP | Rôle |
 |---|---|---|---|
 | **Primaire** | RPi 4 (Docker, host network) | `192.168.1.28` | DNS principal, ad-blocking |
 | **Secondaire** | LXC 100 "dns-failover" sur galahad | `192.168.1.30` | DNS de secours, ad-blocking |
 
-Les deux instances ont la meme configuration : memes upstream (Quad9 DoH), memes blocklists, memes `user_rules` conditionnelles.
+Les deux instances ont la même configuration : mêmes upstream (Quad9 DoH), mêmes blocklists, mêmes `user_rules` conditionnelles.
 
 ### Synchronisation
 
@@ -81,18 +81,18 @@ La seule rewrite statique conservee est pour le switch manageable, qui n'est pas
 |---|---|---|
 | `switch.lan` | `192.168.1.2` | HTTP only, hors scope HSTS `home.gabin-simond.fr` |
 
-Le domaine `switch.lan` (sans `.home.gabin-simond.fr`) evite le HSTS `includeSubdomains` qui forcerait HTTPS sur un equipement qui ne le supporte pas. Acceder via `http://switch.lan` ou directement `http://192.168.1.2`.
+Le domaine `switch.lan` (sans `.home.gabin-simond.fr`) évite le HSTS `includeSubdomains` qui forcerait HTTPS sur un equipement qui ne le supporte pas. Acceder via `http://switch.lan` ou directement `http://192.168.1.2`.
 
 ## LXC "dns-failover" — health check externe
 
-Le meme LXC qui heberge AdGuard secondaire surveille le RPi depuis l'exterieur :
+Le même LXC qui heberge AdGuard secondaire surveillé le RPi depuis l'exterieur :
 
-| Check | Methode | Seuil |
+| Check | Méthode | Seuil |
 |---|---|---|
-| Ping ICMP | `ping 192.168.1.28` | 3 min sans reponse |
+| Ping ICMP | `ping 192.168.1.28` | 3 min sans réponse |
 | Traefik HTTP | `curl http://192.168.1.28:8080/ping` | idem |
 | DNS | `dig @192.168.1.28 google.com` | info supplementaire |
 
-Si le RPi ne repond plus apres 3 min → alerte ntfy urgente.
-Si le RPi repond au ping mais Traefik est down → alerte ntfy haute.
-Quand le RPi revient → notification "RECOVERED" avec duree du downtime.
+Si le RPi ne répond plus après 3 min → alerte ntfy urgente.
+Si le RPi répond au ping mais Traefik est down → alerte ntfy haute.
+Quand le RPi revient → notification "RECOVERED" avec durée du downtime.

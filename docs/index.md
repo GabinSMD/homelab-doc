@@ -1,6 +1,6 @@
 # Homelab
 
-Documentation du homelab : architecture, services, securite et operations.
+Documentation du homelab : architecture, services, sécurité et opérations.
 
 ## Architecture actuelle
 
@@ -35,7 +35,7 @@ graph TB
     adguard1 -.->|failover| lxc100
 ```
 
-- **penny** (RPi 4) — appliance reseau : DNS, reverse proxy, SSO, VPN, monitoring
+- **penny** (RPi 4) — appliance réseau : DNS, reverse proxy, SSO, VPN, monitoring
 - **galahad** (ZimaBoard) — Proxmox VE 9 : Vaultwarden (LXC 102), DNS failover (LXC 100)
 - **lancelot** (ZimaBoard) — Proxmox VE 9 : Loki + Grafana (LXC 101)
 
@@ -44,22 +44,22 @@ graph TB
 | Je veux... | Aller a |
 |---|---|
 | Voir la liste des services et leurs URLs | [Services — Vue d'ensemble](services/index.md) |
-| Comprendre le reseau et le DNS | [Reseau actuel](architecture/reseau.md) |
+| Comprendre le réseau et le DNS | [Réseau actuel](architecture/reseau.md) |
 | Voir le hardware et les IPs | [Machines](architecture/hardware.md) |
-| Comprendre la politique de securite | [Securite — Politique](securite/politique.md) |
-| Savoir ce qui est harden | [Securite — Hardening](securite/hardening.md) |
-| Restaurer apres un crash | [Break-glass](operations/break-glass.md) |
-| Verifier les backups | [Backups](operations/backups.md) |
-| Diagnostiquer un probleme | [Depannage](operations/depannage.md) |
+| Comprendre la politique de sécurité | [Sécurité — Politique](securite/politique.md) |
+| Savoir ce qui est harden | [Sécurité — Hardening](securite/hardening.md) |
+| Restaurer après un crash | [Break-glass](operations/break-glass.md) |
+| Vérifier les backups | [Backups](operations/backups.md) |
+| Diagnostiquer un problème | [Dépannage](operations/depannage.md) |
 | Ajouter un nouveau service | [Guide — Ajouter un service](guides/ajouter-service.md) |
 
 ## Naming
 
 Chaque machine porte un nom de code du monde de l'espionnage. Voir le [casting complet](projet/about.md).
 
-| Machine | Nom | Reference | Role |
+| Machine | Nom | Référence | Rôle |
 |---|---|---|---|
-| RPi 4 | **penny** | Miss Moneypenny (James Bond) | Appliance reseau |
+| RPi 4 | **penny** | Miss Moneypenny (James Bond) | Appliance réseau |
 | ZimaBoard #1 | **galahad** | Galahad (Kingsman) | Proxmox compute |
 | ZimaBoard #2 | **lancelot** | Lancelot (Kingsman) | Proxmox compute |
 | _Futur_ Minisforum | **luther** | Luther Stickell (Mission Impossible) | Compute + NAS |
@@ -67,7 +67,7 @@ Chaque machine porte un nom de code du monde de l'espionnage. Voir le [casting c
 
 ## Organisation des fichiers (RPi 4)
 
-```
+```text
 /                           # SD Card (ext4, 64 Go)
 ├── /boot/firmware/         # Boot (config.txt, cmdline.txt)
 └── / (rootfs)              # OS DietPi

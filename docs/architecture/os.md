@@ -4,10 +4,10 @@ DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabil
 
 ## Stabilite SSD (bridge USB-SATA ASMedia ASM1156)
 
-!!! danger "Probleme"
-    Le boitier Argon ONE M.2 utilise un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **deconnexions aleatoires** sur RPi 4 a cause de la gestion d'energie PCIe.
+!!! danger "Problème"
+    Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **deconnexions aleatoires** sur RPi 4 a cause de la gestion d'energie PCIe.
 
-### Parametres kernel (`cmdline.txt`)
+### Paramètres kernel (`cmdline.txt`)
 
 ```bash
 pcie_aspm=off                       # Desactive PCIe ASPM (cause principale des decos)
@@ -15,7 +15,7 @@ usbcore.autosuspend=-1              # Desactive USB autosuspend
 usb-storage.quirks=174c:1156:u      # Force usb-storage au lieu de UAS pour ce device
 ```
 
-### Regles udev
+### Règles udev
 
 `/etc/udev/rules.d/50-argon-ssd.rules` :
 
@@ -50,10 +50,10 @@ PARTUUID=503f5518-01 /boot/firmware   vfat noatime,lazytime,rw                  
 UUID=b32ed1bb-... /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
 ```
 
-!!! info "Points cles"
-    - `noatime,lazytime` sur toutes les partitions — reduit les ecritures
-    - `nofail` sur le SSD — le systeme boot meme si le SSD n'est pas branche
-    - `errors=remount-ro` — protege le filesystem en cas d'erreur I/O
+!!! info "Points clés"
+    - `noatime,lazytime` sur toutes les partitions — réduit les ecritures
+    - `nofail` sur le SSD — le système boot même si le SSD n'est pas branche
+    - `errors=remount-ro` — protégé le filesystem en cas d'erreur I/O
     - Pas de swap (swappiness=1)
 
 ## Headless / economie de ressources
@@ -92,15 +92,15 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 
 - `data-root` sur le SSD — images, volumes, et overlays sur le disque rapide
 - `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
-- `log-level: warn` — limite le bruit dans les logs
-- `icc: false` — inter-container communication OFF sur bridge par defaut (securite)
+- `log-level: warn` — limité le bruit dans les logs
+- `icc: false` — inter-container communication OFF sur bridge par defaut (sécurité)
 - `no-new-privileges: true` — empeche l'escalade de privileges dans les containers
 
 Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](../securite/hardening.md#docker-tous-containers).
 
 ## Watchdog hardware (BCM2835)
 
-Le RPi 4 integre un watchdog hardware qui reboot automatiquement la machine si le kernel freeze.
+Le RPi 4 intégré un watchdog hardware qui reboot automatiquement la machine si le kernel freeze.
 
 ### Fonctionnement
 
@@ -116,7 +116,7 @@ dtparam=watchdog=on
 
 **`/etc/modules` :**
 
-```
+```text
 bcm2835_wdt
 ```
 
@@ -133,19 +133,19 @@ priority          = 1
 
 ### Ce que le watchdog couvre et ne couvre PAS
 
-| Scenario | Couvert ? | Pourquoi |
+| Scénario | Couvert ? | Pourquoi |
 |---|---|---|
 | Kernel freeze / panic | Oui | Le daemon ne peut plus alimenter le timer |
-| Load moyenne > 24 | Oui | Le daemon detecte et reboot |
-| Interface eth0 down | Oui | Le daemon detecte et reboot |
+| Load moyenne > 24 | Oui | Le daemon détecté et reboot |
+| Interface eth0 down | Oui | Le daemon détecté et reboot |
 | Deconnexion SSD | **Non** | Le kernel tourne toujours, seul Docker est impacte |
 | Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
 | Temperature critique | **Non** | Couvert par homelab_monitor.sh |
 
-!!! warning "Le watchdog ne remplace pas le monitoring"
-    Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **premiere ligne** (quelque chose va mal mais le systeme tourne encore). Les deux sont complementaires.
+!!! warning "Le watchdog ne remplacé pas le monitoring"
+    Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **première ligne** (quelque chose va mal mais le système tourne encore). Les deux sont complementaires.
 
-### Verification
+### Vérification
 
 ```bash
 # Etat du watchdog
@@ -160,23 +160,23 @@ echo c > /proc/sysrq-trigger              # Provoque un kernel panic
 
 ### Healthchecks
 
-Les containers avec healthcheck sont surveilles par Docker. Si un check echoue 3 fois de suite, le container passe en `unhealthy`.
+Les containers avec healthcheck sont surveilles par Docker. Si un check échoué 3 fois de suite, le container passe en `unhealthy`.
 
-| Container | Healthcheck | Methode |
+| Container | Healthcheck | Méthode |
 |---|---|---|
-| Traefik | `wget http://localhost:8080/ping` | Endpoint `/ping` active dans traefik.yml |
+| Traefik | `wget http://localhost:8080/ping` | Endpoint `/ping` activé dans traefik.yml |
 | AdGuard | `wget http://localhost:3000` | Interface web |
 | Tailscale | `tailscale status` | CLI interne |
-| Vaultwarden | Healthcheck integre a l'image | — |
-| Homepage | Healthcheck integre a l'image | — |
-| Authelia | Healthcheck integre a l'image | — |
-| Watchtower | Healthcheck integre a l'image | — |
-| Portainer | Aucun (image distroless) | Surveille par homelab_monitor.sh |
-| Beszel | Aucun (image distroless) | Surveille par homelab_monitor.sh |
+| Vaultwarden | Healthcheck intégré a l'image | — |
+| Homepage | Healthcheck intégré a l'image | — |
+| Authelia | Healthcheck intégré a l'image | — |
+| Watchtower | Healthcheck intégré a l'image | — |
+| Portainer | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
+| Beszel | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
 
 ### Autoheal
 
-Le container `willfarrell/autoheal` surveille tous les containers toutes les 30 secondes. Si un container est `unhealthy`, il le restart automatiquement.
+Le container `willfarrell/autoheal` surveillé tous les containers toutes les 30 secondes. Si un container est `unhealthy`, il le restart automatiquement.
 
 ```yaml
 autoheal:
@@ -188,27 +188,27 @@ autoheal:
     - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-## Resume
+## Résumé
 
 | Optimisation | Effet |
 |---|---|
 | PCIe ASPM off | Empeche les deconnexions SSD |
 | USB autosuspend off | Double protection SSD |
-| UAS desactive | Force `usb-storage` (plus stable) |
+| UAS désactivé | Force `usb-storage` (plus stable) |
 | SSD non-rotational | I/O scheduler optimise |
 | Logs en tmpfs | Pas d'usure SD |
-| Swap desactive | Pas d'usure SSD/SD |
+| Swap désactivé | Pas d'usure SSD/SD |
 | GPU 16 Mo | Plus de RAM pour les services |
 | Headless | Framebuffers a 0 |
-| WiFi off | Economie energie, securite |
+| WiFi off | Economie energie, sécurité |
 | fstrim hebdo | Maintenance SSD |
 | Watchdog BCM2835 | Reboot auto si kernel freeze (15s) |
-| Healthchecks Docker | Detection containers zombie |
+| Healthchecks Docker | Détection containers zombie |
 | Autoheal | Restart auto des containers unhealthy |
 
-## Limites connues
+## Limités connues
 
 !!! note "Limitations hardware du bridge ASMedia"
     - **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
-    - **USB 3.0 plafonne a ~200 MB/s** — bus partage avec Ethernet Gigabit sur RPi 4
+    - **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
     - **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS

@@ -4,20 +4,20 @@ Guide d'installation de Proxmox VE 9 (Trixie) sur ZimaBoard, qui boot sur eMMC.
 
 ## Prerequis
 
-- Cle USB bootable avec l'ISO Proxmox VE 9
-- Acces reseau (Ethernet)
+- Clé USB bootable avec l'ISO Proxmox VE 9
+- Acces réseau (Ethernet)
 - Un poste avec navigateur pour l'interface web
 
-## Probleme : l'installeur Proxmox ne supporte pas l'eMMC
+## Problème : l'installeur Proxmox ne supporte pas l'eMMC
 
 L'installeur Proxmox ne reconnait pas les devices `mmcblk` (eMMC) comme cible d'installation.
 Il faut patcher l'installeur **avant** de lancer l'installation.
 
 ## Marche a suivre
 
-### 1. Booter sur la cle USB Proxmox
+### 1. Booter sur la clé USB Proxmox
 
-Brancher la cle USB et booter dessus. A l'ecran de l'installeur, **ne pas lancer l'installation**.
+Brancher la clé USB et booter dessus. A l'ecran de l'installeur, **ne pas lancer l'installation**.
 
 ### 2. Ouvrir un shell
 
@@ -33,7 +33,7 @@ cd /mnt/ssd/homelab-config/scripts
 python3 -m http.server 8888
 ```
 
-Depuis le shell de l'installeur Proxmox, activer le reseau puis appliquer le patch :
+Depuis le shell de l'installeur Proxmox, activer le réseau puis appliquer le patch :
 
 ```bash
 ip link set enp1s0 up
@@ -43,12 +43,12 @@ dhclient -r enp1s0
 ```
 
 !!! note "Pourquoi `dhclient -r` ?"
-    Liberer le bail DHCP apres le patch pour que l'installeur Proxmox puisse configurer le reseau lui-meme proprement.
+    Liberer le bail DHCP après le patch pour que l'installeur Proxmox puisse configurer le réseau lui-même proprement.
 
 Le script patche `Proxmox::Sys::Block.pm` pour ajouter le support des devices `mmcblk`.
 
 !!! info "Que fait le patch ?"
-    Il ajoute un pattern matching pour `/dev/mmcblkX` dans la fonction qui genere les noms de partitions, permettant a l'installeur de creer `/dev/mmcblk0p1`, `/dev/mmcblk0p2`, etc.
+    Il ajoute un pattern matching pour `/dev/mmcblkX` dans la fonction qui généré les noms de partitions, permettant a l'installeur de créer `/dev/mmcblk0p1`, `/dev/mmcblk0p2`, etc.
 
 ### 4. Lancer l'installation
 
@@ -57,7 +57,7 @@ Selectionner le device eMMC comme cible.
 
 ### 5. Post-installation
 
-Apres le reboot sur Proxmox, executer le script de post-installation :
+Après le reboot sur Proxmox, exécuter le script de post-installation :
 
 ```bash
 wget -O- <IP_DU_RPI>:8888/proxmox-post-install.sh | bash
@@ -65,21 +65,21 @@ wget -O- <IP_DU_RPI>:8888/proxmox-post-install.sh | bash
 
 Ce script :
 
-- **Supprime les repos enterprise** (qui necessitent un abonnement payant)
-- **Nettoie les anciens fichiers `.list`** (evite le warning "old suite bookworm")
+- **Supprime les repos enterprise** (qui nécessitent un abonnement payant)
+- **Nettoie les anciens fichiers `.list`** (évite le warning "old suite bookworm")
 - **Ajoute le repo `pve-no-subscription`** (format `.sources` avec `Signed-By`)
-- **Met a jour le systeme** (`apt update && apt dist-upgrade`)
+- **Met a jour le système** (`apt update && apt dist-upgrade`)
 - **Supprime le popup "No valid subscription"** (patch du JS de l'interface web)
 
 !!! warning "Deconnexion de l'interface web"
-    En derniere etape, le script redemarre `pveproxy` pour appliquer le patch.
+    En dernière étape, le script redémarre `pveproxy` pour appliquer le patch.
     La session web sera coupee — il suffit de recharger la page et se reconnecter.
 
 ### 6. DNS et acces web
 
-Chaque noeud est accessible de deux facons :
+Chaque nœud est accessible de deux facons :
 
-| Noeud | Acces direct (fallback) | Acces via Traefik |
+| Nœud | Acces direct (fallback) | Acces via Traefik |
 |---|---|---|
 | galahad | `https://192.168.1.18:8006` | `https://galahad.home.gabin-simond.fr` |
 | lancelot | `https://192.168.1.19:8006` | `https://lancelot.home.gabin-simond.fr` |
@@ -97,18 +97,18 @@ La configuration se fait a trois endroits :
 3. **Acces** — local et Tailscale uniquement (pas de DNS public)
 
 !!! tip "Fallback"
-    Si le RPi/Traefik est down, les noeuds restent accessibles via `https://IP:8006` (certificat auto-signe, warning navigateur).
+    Si le RPi/Traefik est down, les nœuds restent accessibles via `https://IP:8006` (certificat auto-signe, warning navigateur).
 
 ## Scripts
 
-| Script | Emplacement | Role |
+| Script | Emplacement | Rôle |
 |---|---|---|
 | `proxmox-fix-emmc.sh` | `homelab-config/scripts/` | Patch installeur pour support eMMC |
 | `proxmox-post-install.sh` | `homelab-config/scripts/` | Repos, update, suppression nag popup |
 
 ### 7. Configurer l'authentification Authelia (OIDC)
 
-Apres avoir configure Authelia sur le RPi (voir [authelia.md](../services/authelia.md)), ajouter le realm OIDC sur un noeud du cluster :
+Après avoir configuré Authelia sur le RPi (voir [authelia.md](../services/authelia.md)), ajouter le realm OIDC sur un nœud du cluster :
 
 ```bash
 pveum realm add authelia --type openid \
@@ -126,11 +126,11 @@ pveum realm modify authelia --comment 'Authelia'
 pveum acl modify / --user gabins@authelia --role Administrator
 ```
 
-La config se propage automatiquement via `/etc/pve/domains.cfg` — pas besoin de repeter sur chaque noeud.
+La config se propage automatiquement via `/etc/pve/domains.cfg` — pas besoin de repeter sur chaque nœud.
 
 !!! info "Trois realms conserves"
-    **Authelia** (OIDC, defaut) pour le quotidien, **Linux PAM** pour l'acces d'urgence via `root@pam`, **PVE** pour les comptes de service/API. Ne jamais supprimer PAM — c'est le filet de securite si Authelia est down.
+    **Authelia** (OIDC, defaut) pour le quotidien, **Linux PAM** pour l'acces d'urgence via `root@pam`, **PVE** pour les comptes de service/API. Ne jamais supprimer PAM — c'est le filet de sécurité si Authelia est down.
 
 ## Repetition
 
-Repeter les etapes 1 a 6 pour chaque ZimaBoard. L'etape 7 (realm OIDC) ne se fait qu'une seule fois, la config est partagee dans le cluster.
+Repeter les étapes 1 a 6 pour chaque ZimaBoard. L'étape 7 (realm OIDC) ne se fait qu'une seule fois, la config est partagée dans le cluster.

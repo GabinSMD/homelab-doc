@@ -4,7 +4,7 @@
 
 ### Raspberry Pi 4 (services Docker)
 
-| Composant | Detail |
+| Composant | Détail |
 |---|---|
 | Board | Raspberry Pi 4 Model B Rev 1.4 (8 Go RAM) |
 | Boitier | Argon ONE M.2 (avec ventilateur actif via `argononed`) |
@@ -28,9 +28,9 @@
 
 Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe nativement.
 
-## Materiel prevu
+## Materiel prévu
 
-| Machine | Specs | Role | Budget |
+| Machine | Specs | Rôle | Budget |
 |---|---|---|---|
 | Switch 2.5GbE | keepLINK 9XHML-X 8p managed | Switch pour tests Phase 1 | ~62€ |
 | Appliance firewall | 4x 2.5GbE, fanless (Topton/CWWK N100) | OPNsense dedie | 100-180€ |
@@ -41,10 +41,10 @@ Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe n
 
 ## Cablage
 
-!!! success "Cat 8 deja en place"
+!!! success "Cat 8 déjà en place"
     Cable **Cat 8 (S/FTP)** tire dans toutes les pieces principales lors de la renovation.
     Supporte 25/40GbE theorique — largement perenne.
 
 !!! warning "Mise a la terre obligatoire"
-    Le blindage S/FTP **doit** etre relie a la terre aux deux extremites (patch panel + keystone), sinon ca peut creer des interferences pires que du non-blinde.
-    Les connecteurs et keystones doivent etre blindes / Cat 8 compatibles.
+    Le blindage S/FTP **doit** être relie a la terre aux deux extremites (patch panel + keystone), sinon ca peut créer des interferences pires que du non-blinde.
+    Les connecteurs et keystones doivent être blindes / Cat 8 compatibles.

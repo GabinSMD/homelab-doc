@@ -14,7 +14,7 @@
 | galahad | 0 | 0 |
 | lancelot | 0 | 0 |
 
-**⚠ Gap** : galahad + lancelot n'ont **pas** `egress-audit.sh` deployé. Leurs logs sont vides. **Action requise avant phase 2** : deployer le script sur les 2 nodes PVE + attendre 48-72h de collecte.
+**⚠ Gap** : galahad + lancelot n'ont **pas** `egress-audit.sh` deployé. Leurs logs sont vides. **Action requise avant phase 2** : déployer le script sur les 2 nodes PVE + attendre 48-72h de collecte.
 
 ## Destinations observées sur penny (5 jours)
 
@@ -53,7 +53,7 @@
 8. **GitHub (clone+API)** : `github.com`, `api.github.com`, `raw.githubusercontent.com`, `objects.githubusercontent.com`, `codeload.github.com` — port 443 TCP
 9. **APT Debian + Proxmox** : `deb.debian.org`, `security.debian.org`, `download.proxmox.com`, `enterprise.proxmox.com` — ports 80 + 443 TCP
 10. **Cloudflare API** (DNS-01 challenge) : `api.cloudflare.com` — port 443 TCP
-11. **Watchtower image check** : utilise Docker socket → les registries suffisent
+11. **Watchtower image check** : utilisé Docker socket → les registries suffisent
 
 ## Stratégie iptables phase 2
 
@@ -66,7 +66,7 @@ Résoudre les hostnames et hard-coder les /24 observés. Risque de casser quand 
 
 **B. ipset dynamique** (recommandé)
 Un cron périodique résout les hostnames critiques et met à jour un ipset :
-```
+```text
 ipset create allowed-egress hash:ip family inet maxelem 65536 timeout 86400
 iptables -A OUTPUT -m set --match-set allowed-egress dst -j ACCEPT
 ```
@@ -151,7 +151,7 @@ Avant `iptables -P OUTPUT DROP`, lancer `at now + 5 minutes <<< "iptables -P OUT
 
 ## Plan d'exécution
 
-1. **Deployer `egress-audit.sh` sur galahad + lancelot** (leur pipeline sortant est inconnu — PBS uploads, cluster corosync, registry pulls, updates Proxmox)
+1. **Déployer `egress-audit.sh` sur galahad + lancelot** (leur pipeline sortant est inconnu — PBS uploads, cluster corosync, registry pulls, updates Proxmox)
 2. **Attendre 48-72h** de collecte sur les 3 hosts
 3. **Refaire l'analyse sur les 3** (relancer ce doc)
 4. **Implémenter `egress-ipset-refresh.sh`** + tester hors DROP (mode shadow)
