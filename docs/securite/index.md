@@ -1,6 +1,6 @@
 # Sécurité
 
-Doctrine, implementations et suivi de la sécurité du homelab.
+Doctrine, implémentations et suivi de la sécurité du homelab.
 
 | Page | Question | Contenu |
 |---|---|---|

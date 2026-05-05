@@ -2,7 +2,7 @@
 
 Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
-## OS : DietPi plutot que Raspberry Pi OS
+## OS : DietPi plutôt que Raspberry Pi OS
 
 **Contexte** : Choisir une distribution pour un RPi 4 en mode serveur headless.
 
@@ -12,7 +12,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 - Plus léger que Raspberry Pi OS (moins de paquets pre-installes, pas de desktop)
 - Logs en tmpfs par defaut (protégé la SD card)
-- Outils integres (`dietpi-config`, `dietpi-drive_manager`) pour gérer le hardware
+- Outils intégrés (`dietpi-config`, `dietpi-drive_manager`) pour gérer le hardware
 - Base Debian (mêmes paquets, même ecosysteme)
 - Optimise pour ARM / SBC
 
@@ -20,7 +20,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Reverse proxy : Traefik plutot que Nginx Proxy Manager
+## Reverse proxy : Traefik plutôt que Nginx Proxy Manager
 
 **Contexte** : Exposer des services internes en HTTPS avec des certificats automatiques.
 
@@ -33,11 +33,11 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Renouvellement TLS automatique via DNS challenge Cloudflare (pas besoin d'exposer le port 80 sur Internet)
 - Configuration as code (versionnable)
 
-**Alternative rejetee** : Nginx Proxy Manager — interface web plus simple, mais config stockée en base de données (moins versionnable), et le DNS challenge nécessité des plugins supplementaires.
+**Alternative rejetee** : Nginx Proxy Manager — interface web plus simple, mais config stockée en base de données (moins versionnable), et le DNS challenge nécessité des plugins supplémentaires.
 
 ---
 
-## DNS : AdGuard Home plutot que Pi-hole
+## DNS : AdGuard Home plutôt que Pi-hole
 
 **Contexte** : DNS resolver local avec ad-blocking.
 
@@ -51,13 +51,13 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Binaire unique, plus léger que Pi-hole (qui dépend de lighttpd, PHP, etc.)
 - Configuration en un seul fichier YAML
 
-**Alternative rejetee** : Pi-hole — très populaire et bien documenté, mais stack plus lourde, interface vieillissante, et le DNS chiffre nécessité des composants supplementaires.
+**Alternative rejetee** : Pi-hole — très populaire et bien documenté, mais stack plus lourde, interface vieillissante, et le DNS chiffré nécessité des composants supplémentaires.
 
 ---
 
-## VPN : Tailscale plutot que WireGuard self-hosted
+## VPN : Tailscale plutôt que WireGuard self-hosted
 
-**Contexte** : Acces distant securise au homelab.
+**Contexte** : Acces distant sécurisé au homelab.
 
 **Decision** : Tailscale
 
@@ -67,7 +67,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Mesh VPN (tous les devices se voient directement)
 - MagicDNS pour la resolution de noms
 - Gratuit pour un usage personnel (100 devices)
-- Le trafic est chiffre en WireGuard point-a-point (le serveur de coordination ne voit pas le contenu)
+- Le trafic est chiffré en WireGuard point-a-point (le serveur de coordination ne voit pas le contenu)
 
 **Alternative consideree** : Headscale (Tailscale self-hosted) — rejete car ajoute un SPOF sur le RPi pour un gain de souverainete minimal (le coordination server ne voit pas le trafic).
 
@@ -119,23 +119,23 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 **Pourquoi** :
 
 - Modèle de menace homelab domicile : risque vol physique faible (cambriolage normal cible cash/electro, pas un ZimaBoard).
-- Données vraiment sensibles = Vaultwarden master password — déjà chiffre Argon2id par design.
-- Backups B2 déjà chiffres client-side (restic AES-256).
+- Données vraiment sensibles = Vaultwarden master password — déjà chiffré Argon2id par design.
+- Backups B2 déjà chiffrés client-side (restic AES-256).
 - ZFS encryption protégé uniquement disque eteint OU saisie/RMA. Pas un attaquant root, pas une compromission réseau.
-- Cout : reinstall complete Proxmox en ZFS-on-root + boot non-unattended (passphrase au boot = casse `homelab_monitor.sh`, watchdog auto-recovery, restart via WoL).
+- Cout : reinstall complète Proxmox en ZFS-on-root + boot non-unattended (passphrase au boot = casse `homelab_monitor.sh`, watchdog auto-recovery, restart via WoL).
 - Workaround clef USB physique = fragilise (clef perdue = données perdues).
 
 **A reconsiderer si** : demenagement avec serveurs en transit, ou stockage données client/médical/financier.
 
-**Alternative gain supérieur** : YubiKey FIDO2 SSH (vrai gain — supprime le risque "clé SSH volee = root immédiat").
+**Alternative gain supérieur** : YubiKey FIDO2 SSH (vrai gain — supprimé le risque "clé SSH volee = root immédiat").
 
 ---
 
-## Wallos supprime
+## Wallos supprimé
 
 **Contexte** : Wallos (tracker d'abonnements) installe initialement, peu utilisé.
 
-**Decision** : Supprime (container + volumes + routes Traefik + entree Homepage).
+**Decision** : Supprimé (container + volumes + routes Traefik + entree Homepage).
 
 **Pourquoi** : surface d'attaque additionnelle pour un usage marginal. Suppression > maintenance.
 
@@ -158,7 +158,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Firewall : Appliance dediee plutot que VM Proxmox
+## Firewall : Appliance dediee plutôt que VM Proxmox
 
 **Contexte** : Faire tourner OPNsense pour la segmentation VLANs.
 
@@ -167,7 +167,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 **Pourquoi** :
 
 - Pas de SPOF — si un nœud Proxmox tombe, le réseau continue de fonctionner
-- Libere les deux ZimaBoard pour du compute (3 nœuds Proxmox avec quorum)
+- Libéré les deux ZimaBoard pour du compute (3 nœuds Proxmox avec quorum)
 - 4 ports 2.5GbE natifs (pas de VLAN-on-a-stick)
 - ~120€ — investissement raisonnable vu ce que ca debloque
 
@@ -175,7 +175,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Stockage : SSD USB plutot que boot sur SSD
+## Stockage : SSD USB plutôt que boot sur SSD
 
 **Contexte** : Le RPi 4 peut booter sur USB, mais l'Argon ONE M.2 utilisé un bridge USB-SATA.
 
@@ -183,7 +183,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 **Pourquoi** :
 
-- Le bridge ASMedia ASM1156 a des problèmes de stabilite (deconnexions PCIe ASPM) — garder l'OS sur la SD card assure que le système boot même si le SSD a un souci
+- Le bridge ASMedia ASM1156 a des problèmes de stabilité (déconnexions PCIe ASPM) — garder l'OS sur la SD card assure que le système boot même si le SSD a un souci
 - `nofail` dans fstab — le système démarre sans le SSD
 - Les logs en tmpfs protegent la SD card de l'usure
 - Docker data-root sur le SSD — les ecritures lourdes vont sur le SSD, pas la SD
@@ -192,7 +192,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Updates Docker : Watchtower plutot que WUD
+## Updates Docker : Watchtower plutôt que WUD
 
 **Contexte** : WUD (What's Up Docker) surveillait les mises a jour images mais exposait une API web anonyme sur le réseau interne (item sécurité P2 ouvert, auth interne cassee).
 
@@ -211,7 +211,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ---
 
-## Cluster quorum : qdevice sur penny plutot que 3e node PVE
+## Cluster quorum : qdevice sur penny plutôt que 3e node PVE
 
 **Contexte** : Cluster 2-node perd systematiquement quorum quand un node tombe (confirme incident 2026-04-19 lancelot down ~6h, galahad paralyse même quorate=1/2).
 
@@ -223,15 +223,15 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - **1 vote arbitraire** — penny ne heberge pas de LXC, juste le vote. Simple a maintenir.
 - **30 min déploiement** vs investissement hardware + setup Proxmox sur un 3e machine (~500€ + 1 journee)
 - **Pattern officiel Proxmox** : documenté, supporte, `pvecm qdevice setup` built-in
-- Survit aux pannes les plus frequentes (1 node down)
+- Survit aux pannes les plus fréquentes (1 node down)
 
 **Alternative rejetee** : Attendre le Minisforum N5 Max (phase 4 roadmap) — trop d'attente vu l'incident recurrent. qdevice est une étape intermediate qui peut rester même après le 3e node.
 
-**Tradeoff** : penny devient indirectement critique pour les opérations cluster (pas juste pour ses services). Si penny + 1 node PVE tombent simultanement = 1/3 vote = perte quorum. Double-fault extreme, acceptable.
+**Tradeoff** : penny devient indirectement critique pour les opérations cluster (pas juste pour ses services). Si penny + 1 node PVE tombent simultanement = 1/3 vote = perte quorum. Double-fault extrême, acceptable.
 
 ---
 
-## Docker log-driver : json-file plutot que journald (ARM)
+## Docker log-driver : json-file plutôt que journald (ARM)
 
 **Contexte** : Sur ARM (penny RPi 4), dockerd crash SIGBUS dans le reader `sdjournal` quand journald rotate les files. 5 restarts docker en 24h le 2026-04-19, containers massivement down.
 
@@ -244,7 +244,7 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - **Compatible shipping Loki** — Alloy a `loki.source.docker` qui lit via socket API (pas via journald), fonctionne idem
 - **Bug ARM-specific** — Pi rotate agressivement journald (SystemMaxUse serre), x86 moins impacte
 
-**Alternative rejetee** : Downgrade Docker ou journald SystemMaxUse=... — workarounds fragiles, bug reapparait au prochain update Docker. json-file elimine categoriquement la classe de crash.
+**Alternative rejetee** : Downgrade Docker ou journald SystemMaxUse=... — workarounds fragiles, bug reapparait au prochain update Docker. json-file éliminé categoriquement la classe de crash.
 
 **Impact** : `journalctl CONTAINER_NAME=X` ne marche plus (logs pas dans journald). `docker logs X` continue de marcher. Shipping Loki via Alloy continue.
 
@@ -263,22 +263,22 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - **WAL Alloy** — chaque Alloy buffer localement si un sink est down, rejoue au retour. Zero perte.
 - **Cout quasi-nul** — même images Docker, même storage (replica dans container sur penny SSD)
 
-**Alternative rejetee** : Loki cluster-mode (microservices) — overkill pour 3 hosts, complexite opérationnelle >> gain resilience.
+**Alternative rejetee** : Loki cluster-mode (microservices) — overkill pour 3 hosts, complexite opérationnelle >> gain résilience.
 
 ---
 
-## Secrets at-rest : sops + age + tmpfs plutot que Vault / Bitwarden CLI
+## Secrets at-rest : sops + age + tmpfs plutôt que Vault / Bitwarden CLI
 
-**Contexte** : Secrets Authelia (JWT, OIDC keys) et CrowdSec credentials etaient en clair dans le repo `homelab-config` (sur Github prive mais toujours exposé a qui volerait le token). Besoin : chiffrement at-rest, dechiffrement automatique au boot.
+**Contexte** : Secrets Authelia (JWT, OIDC keys) et CrowdSec credentials etaient en clair dans le repo `homelab-config` (sur Github prive mais toujours exposé a qui volerait le token). Besoin : chiffrement at-rest, déchiffrement automatique au boot.
 
 **Decision** : `sops` + age + scellement in-place + unseal vers tmpfs `/run/homelab/` au boot (systemd unit) (2026-04-17 → 2026-04-19 finalise)
 
 **Pourquoi** :
 
-- **Git-friendly** — sops chiffre au niveau champ YAML, diff lisible, pas de blob opaque
+- **Git-friendly** — sops chiffré au niveau champ YAML, diff lisible, pas de blob opaque
 - **age** — clé moderne (X25519), plus simple que GPG, supporte YubiKey (`age-plugin-yubikey`) pour DR physique
-- **tmpfs** — secrets dechiffres jamais sur disque, efface au shutdown. Le service Docker bind-mount la tmpfs dans le container (RO pour authelia, RW pour crowdsec car entrypoint reecrit)
-- **Boot-time** — `homelab-unseal.service` systemd fait le dechiffrement, puis `docker.service` démarre (dépendance ordre)
+- **tmpfs** — secrets déchiffrés jamais sur disque, efface au shutdown. Le service Docker bind-mount la tmpfs dans le container (RO pour authelia, RW pour crowdsec car entrypoint reecrit)
+- **Boot-time** — `homelab-unseal.service` systemd fait le déchiffrement, puis `docker.service` démarre (dépendance ordre)
 - **Fail-safe** — si unseal échoué, Docker démarre mais les bind-mounts pointent vers des fichiers inexistants → containers cassent en erreur explicite (vs demarrent avec secrets vides = drift silencieux)
 
 **Alternative rejetee** :

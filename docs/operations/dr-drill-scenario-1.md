@@ -21,7 +21,7 @@
 - [ ] Installer Tailscale (pas indispensable mais confortable)
 
 ### Phase 2 — Restore de la clé age (5 min)
-La clé age est la racine de confiance. Sans elle, rien ne dechiffre.
+La clé age est la racine de confiance. Sans elle, rien ne déchiffré.
 - [ ] Récupérer la clé depuis YubiKey (PIV slot 9c) OU depuis vault.home
 - [ ] La placer dans `/root/.config/sops/age/keys.txt` (chmod 600)
 - [ ] `sops --version` pour vérifier que sops trouve la clé :
@@ -68,7 +68,7 @@ La clé age est la racine de confiance. Sans elle, rien ne dechiffre.
 **Scénario 2** (futur) : perte de la clé age primaire, restore via yubikey-only.
 **Scénario 3** (futur) : B2 inaccessible, restore depuis dump local NFS/PBS.
 
-## Critères de succes
+## Critères de succès
 
 - Temps total < 2h
 - Zero intervention manuelle sur un fichier de config (tout vient du restore)

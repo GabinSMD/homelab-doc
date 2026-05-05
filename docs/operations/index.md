@@ -1,6 +1,6 @@
 # Opérations
 
-Surveillance, sauvegardes, procedures d'urgence et dépannage.
+Surveillance, sauvegardes, procédures d'urgence et dépannage.
 
 | Page | Quand l'utiliser |
 |---|---|

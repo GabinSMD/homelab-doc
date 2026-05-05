@@ -42,9 +42,9 @@ Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe n
 ## Cablage
 
 !!! success "Cat 8 déjà en place"
-    Cable **Cat 8 (S/FTP)** tire dans toutes les pieces principales lors de la renovation.
+    Cable **Cat 8 (S/FTP)** tire dans toutes les pièces principales lors de la renovation.
     Supporte 25/40GbE theorique — largement perenne.
 
 !!! warning "Mise a la terre obligatoire"
-    Le blindage S/FTP **doit** être relie a la terre aux deux extremites (patch panel + keystone), sinon ca peut créer des interferences pires que du non-blinde.
+    Le blindage S/FTP **doit** être relie a la terre aux deux extrémités (patch panel + keystone), sinon ca peut créer des interferences pires que du non-blinde.
     Les connecteurs et keystones doivent être blindes / Cat 8 compatibles.

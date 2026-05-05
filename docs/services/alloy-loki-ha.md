@@ -31,8 +31,8 @@ flowchart LR
 | Host | Paquet | Config | Sources collectees |
 |------|--------|--------|-------------------|
 | penny | `alloy` apt | `/etc/alloy/config.alloy` | journald + docker sockets + Traefik access.log + autres fichiers |
-| galahad | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si present) |
-| lancelot | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si present) |
+| galahad | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si présent) |
+| lancelot | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si présent) |
 
 **LXC 100/102/103** : pas d'Alloy. Logs uniquement locaux, perdus si le LXC meurt (avant restauration). Trade-off accepte : vault a son backup restic, PBS ne log pas grand chose, dns-failover pareil.
 

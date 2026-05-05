@@ -1,4 +1,4 @@
-# Procedure Break-Glass
+# Procédure Break-Glass
 
 Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre, defaillance materielle, corruption).
 
@@ -63,7 +63,7 @@ graph TB
 5. Tout le reste → depend de 1-4
 ```
 
-!!! info "Vaultwarden est volontairement isole du SSO"
+!!! info "Vaultwarden est volontairement isolé du SSO"
     Il n'utilisé PAS Authelia pour éviter une dépendance circulaire. Il reste accessible même si Authelia est en panne.
 
 ---
@@ -72,7 +72,7 @@ graph TB
 
 ### YubiKeys break-glass (remplacé la clé USB depuis 2026-04-19)
 
-Deux YubiKeys sont des recipiants sops independants. Chacune peut dechiffrer TOUS les secrets sans l'autre.
+Deux YubiKeys sont des recipiants sops indépendants. Chacune peut déchiffrer TOUS les secrets sans l'autre.
 
 | YubiKey | Localisation | Usage |
 |---|---|---|
@@ -86,7 +86,7 @@ Deux YubiKeys sont des recipiants sops independants. Chacune peut dechiffrer TOU
 - `crowdsec/online_api_credentials.yaml`, `local_api_credentials.yaml`
 - `system/secrets/restic-env.enc` — password restic + credentials Backblaze B2
 
-**Workflow de dechiffrement avec YubiKey** (sur n'importe quel host avec `age-plugin-yubikey` installe) :
+**Workflow de déchiffrement avec YubiKey** (sur n'importe quel host avec `age-plugin-yubikey` installe) :
 
 ```bash
 # Installer age-plugin-yubikey (macOS)
@@ -108,7 +108,7 @@ rm /tmp/yk-id.txt
 - [ ] YubiKey 2 (YK2) physique
 - [ ] PIN YK2 (note séparée ou Vaultwarden)
 - [ ] Master password Vaultwarden (memorise ou papier scelle)
-- [ ] Codes de recuperation TOTP
+- [ ] Codes de récupération TOTP
 - [ ] Ce document en PDF
 
 ### Comptes externes (doivent rester actifs)
@@ -506,7 +506,7 @@ tailscale up
 
 ### Scénario 3 : Tout detruit (penny + cluster)
 
-**Durée estimee** : 4h + delai d'achat materiel
+**Durée estimee** : 4h + délai d'achat materiel
 
 !!! danger "Prerequis absolus"
     - **YK1 ou YK2** avec son PIN (remplacé la clé USB)
@@ -542,33 +542,17 @@ gantt
 
 #### Ordre de restauration
 
-```text
-T+0     Achat/recuperation du materiel
-        Flasher DietPi sur la SD card
-
-T+0.5h  PARALLELISER :
-        ├── penny : OS, configs, SSD (Phase 2-3 du Scenario 1)
-        └── galahad + lancelot : Proxmox installer boot USB
-
-T+1h    penny : Docker up, restauration volumes depuis B2
-        galahad : post-install.sh, creation cluster
-
-T+1.5h  penny : Authelia restauree, Traefik + DNS UP
-        lancelot : rejoint le cluster
-
-T+2h    LXC 100 (dns-failover) : AdGuard secondaire UP
-        LXC 102 (vault) : Vaultwarden restaure depuis B2
-
-T+2.5h  LXC 101 (logs) : Grafana + Loki
-        SSO reconfigure : OIDC Proxmox + Portainer + Grafana
-
-T+3h    Tests end-to-end (voir checklist ci-dessous)
-
-T+3.5h  Agents Beszel + Tailscale sur tout le cluster
-        Verification backup fonctionne (restic snapshots)
-
-T+4h    OPERATIONNEL
-```
+| Heure | penny | Cluster (galahad + lancelot) |
+|-------|-------|------------------------------|
+| **T+0** | Achat/récupération du matériel — Flasher DietPi sur la SD card | — |
+| **T+0.5h** | OS, configs, SSD (Phase 2-3 du Scénario 1) | Proxmox installer boot USB |
+| **T+1h** | Docker up, restauration volumes depuis B2 | galahad : post-install.sh, création cluster |
+| **T+1.5h** | Authelia restaurée, Traefik + DNS UP | lancelot : rejoint le cluster |
+| **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis B2 |
+| **T+2.5h** | — | LXC 101 (logs) Grafana + Loki, SSO reconfiguré (OIDC Proxmox/Portainer/Grafana) |
+| **T+3h** | Tests end-to-end (voir checklist ci-dessous) | — |
+| **T+3.5h** | Agents Beszel + Tailscale, vérification backup (restic snapshots) | — |
+| **T+4h** | **OPÉRATIONNEL** | — |
 
 #### Gestion de la dépendance d'amorçage (bootstrap)
 
@@ -577,10 +561,10 @@ T+4h    OPERATIONNEL
 **Solution (3 niveaux de fallback)** :
 
 1. **App mobile Bitwarden** : synchro offline, disponible immédiatement
-2. **Clé USB chiffree** : contient le `.env` avec `CF_DNS_API_TOKEN`, `TS_AUTHKEY`, et tous les tokens
+2. **Clé USB chiffrée** : contient le `.env` avec `CF_DNS_API_TOKEN`, `TS_AUTHKEY`, et tous les tokens
 3. **Coffre papier** : master password Vaultwarden → acces via un client Bitwarden sur un autre appareil, mais nécessité que le LXC 102 soit déjà restaure
 
-**En pratique** : dechiffrer `.env.enc` avec la YubiKey (`age-plugin-yubikey --identity > /tmp/yk-id.txt && SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv -d .env.enc > .env`) pour démarrer penny independamment du cluster.
+**En pratique** : déchiffrer `.env.enc` avec la YubiKey (`age-plugin-yubikey --identity > /tmp/yk-id.txt && SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv -d .env.enc > .env`) pour démarrer penny independamment du cluster.
 
 ---
 
@@ -756,14 +740,14 @@ echo "=== FIN ==="
 
 ---
 
-## Tests de la procedure
+## Tests de la procédure
 
-La procedure doit être testee **au moins une fois par an** sur un environnement jetable (spare RPi, VM locale, etc.).
+La procédure doit être testee **au moins une fois par an** sur un environnement jetable (spare RPi, VM locale, etc.).
 
 | Date | Scénario | Durée reelle | Problèmes rencontres | Actions correctives |
 |---|---|---|---|---|
 | 2026-04-13 | DR drill Vaultwarden | 7s | Aucun | — |
-| — | Reconstruction complete penny | — | A faire | — |
+| — | Reconstruction complète penny | — | A faire | — |
 | — | Reconstruction cluster | — | A faire | — |
 | — | Scénario 3 (tout detruit) | — | A faire | — |
 | — | Rotation secrets Authelia | — | A faire | — |

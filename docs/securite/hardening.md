@@ -41,7 +41,7 @@ Quick wins non encore appliques (chacun gagne 1-3 points) :
 
 ### Surface d'attaque réduite
 
-| Mesure | Implementation |
+| Mesure | Implémentation |
 |---|---|
 | WiFi désactivé | `dtoverlay=disable-wifi` dans `config.txt` |
 | Bluetooth désactivé | Stack BT non installee |
@@ -191,7 +191,7 @@ blacklist tipc
 
 ### Watchdog hardware
 
-Voir [os.md](../architecture/os.md#watchdog-hardware-bcm2835) pour la configuration complete. Timeout 15s, module `bcm2835_wdt`.
+Voir [os.md](../architecture/os.md#watchdog-hardware-bcm2835) pour la configuration complète. Timeout 15s, module `bcm2835_wdt`.
 
 ### Comptes
 
@@ -220,7 +220,7 @@ Actif, reboot auto a 4h si nécessaire (après backups 3h). Upgrades sécurité 
 
 ### Docker daemon
 
-Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. Points sécurité : `icc: false` (inter-container OFF), `no-new-privileges: true`.
+Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complète. Points sécurité : `icc: false` (inter-container OFF), `no-new-privileges: true`.
 
 ---
 
@@ -291,9 +291,9 @@ Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de
 | Vecteur | Mitigation |
 |---|---|
 | Acces externe (Internet/LAN) sur services backend | Tous via Traefik HTTPS + Authelia (ForwardAuth ou OIDC) |
-| Acces interne ancien WUD | Resolu — WUD remplacé par Watchtower (headless, pas d'API/UI). |
+| Acces interne ancien WUD | Résolu — WUD remplacé par Watchtower (headless, pas d'API/UI). |
 | Container compromis -> Docker API | socket-proxy whitelistee (CONTAINERS/NETWORKS/EVENTS/IMAGES, pas EXEC/SECRETS/VOLUMES) |
-| Container compromis -> Authelia internals | Sessions chiffrees + storage encryption_key |
+| Container compromis -> Authelia internals | Sessions chiffrées + storage encryption_key |
 
 ### A faire (P2)
 
@@ -343,9 +343,9 @@ Clients socket direct : **Portainer uniquement** (admin tool nécessité acces c
 | Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
 | Beszel, Watchtower | ⚠️ non teste | — | candidats potentiels |
 
-### Ports directs supprimes
+### Ports directs supprimés
 
-Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports directs **supprimes** :
+Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports directs **supprimés** :
 - Portainer : 8000, 9443
 - Homepage : 3100
 - Watchtower : pas de port (headless)

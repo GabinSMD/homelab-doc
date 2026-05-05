@@ -28,11 +28,11 @@ graph LR
     Git[Configs + Scripts] -->|git push| GitHub[GitHub<br/>homelab-config prive]
 ```
 
-**Chiffrement** : AES-256 côté client (restic pour penny + Vaultwarden). PBS chiffre au niveau datastore (AES-256-GCM).
+**Chiffrement** : AES-256 côté client (restic pour penny + Vaultwarden). PBS chiffré au niveau datastore (AES-256-GCM).
 
 **Règle 3-2-1 :**
 
-- **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Backblaze B2 (restic chiffre)
+- **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Backblaze B2 (restic chiffré)
 - **2** supports : SSD/eMMC + cloud
 - **1** copie hors-site : Backblaze B2
 
@@ -53,7 +53,7 @@ graph LR
 
 ### Comptes PBS
 
-Voir [comptes.md](../securite/comptes.md) pour la convention complete.
+Voir [comptes.md](../securite/comptes.md) pour la convention complète.
 
 | Compte | Rôle | Usage |
 |---|---|---|
@@ -92,7 +92,7 @@ Le hook lance un watcher en arriere-plan a `backup-start` qui surveillé l'appar
 
 ## Restic-direct vers B2 (4 chaines parallel)
 
-Chaque LXC critique a un backup `restic` independant direct vers B2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
+Chaque LXC critique a un backup `restic` indépendant direct vers B2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
 
 ### Vue d'ensemble
 
@@ -118,7 +118,7 @@ Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur ch
 
 Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/system/lxc-scripts/`.
 
-### Integrite : restic-check-monthly.sh multi-repo
+### Intégrité : restic-check-monthly.sh multi-repo
 
 Cron penny `1er de chaque mois 04:00` : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
 
@@ -126,7 +126,7 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 ### Freshness monitor
 
-`homelab_monitor.sh / check_restic_repos_freshness` query B2 directement toutes les heures (cache 1h par repo) pour detecter si un cron silencieusement casse. Seuil par repo (vault 3h car hourly, autres 30h car daily).
+`homelab_monitor.sh / check_restic_repos_freshness` query B2 directement toutes les heures (cache 1h par repo) pour détecter si un cron silencieusement casse. Seuil par repo (vault 3h car hourly, autres 30h car daily).
 
 ---
 
@@ -169,17 +169,17 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 **Fonctionnement** :
 
-1. Vérification preflight (`.restic-env` present, `restic` installe)
+1. Vérification preflight (`.restic-env` présent, `restic` installe)
 2. Stage chaque volume Docker vers `/mnt/ssd/.restic-staging/<label>/`
-3. `restic backup` : staging + configs → B2 (chiffre AES-256)
+3. `restic backup` : staging + configs → B2 (chiffré AES-256)
 4. Nettoyage du staging
 5. `restic forget` : retention 7 daily / 4 weekly / 6 monthly + prune
-6. Notification ntfy (succes ou échec avec durée)
+6. Notification ntfy (succès ou échec avec durée)
 
-**Vérification d'integrite** : `restic-check-monthly.sh` (1er du mois, 4h)
+**Vérification d'intégrité** : `restic-check-monthly.sh` (1er du mois, 4h)
 
 - Vérification structure (indexes, packs)
-- Vérification 10% données aleatoires (détection bit rot)
+- Vérification 10% données aléatoires (détection bit rot)
 - Alerte ntfy en cas d'échec
 
 ### Destinations
@@ -259,14 +259,14 @@ docker compose up -d authelia
 rm -rf /tmp/restore
 ```
 
-### Restauration complete (nouveau RPi)
+### Restauration complète (nouveau RPi)
 
-Voir [break-glass.md](break-glass.md) pour la procedure pas-a-pas.
+Voir [break-glass.md](break-glass.md) pour la procédure pas-a-pas.
 
 1. Installer DietPi
 2. Cloner `homelab-config` depuis GitHub
 3. Suivre le README (copier boot, udev, fstab, network, docker)
-4. Restaurer `.restic-env` depuis la clé USB chiffree
+4. Restaurer `.restic-env` depuis la clé USB chiffrée
 5. `restic restore latest` depuis B2
 6. Restaurer les volumes et configs
 7. Regenerer les secrets Authelia si nécessaire (voir README)
@@ -284,7 +284,7 @@ B2_ACCOUNT_ID=<keyID>
 B2_ACCOUNT_KEY=<applicationKey>
 ```
 
-!!! danger "Ce fichier doit être sur la clé USB chiffree"
+!!! danger "Ce fichier doit être sur la clé USB chiffrée"
     Sans `.restic-env`, les backups B2 sont illisibles. Perte de ce fichier = perte des backups.
 
 Bucket `gabin-homelab-backups` sur Backblaze B2, region US West.
@@ -296,4 +296,4 @@ Application key limitée a ce bucket uniquement (read + write).
 
 - [Comptes PBS](../securite/comptes.md#proxmox-backup-server-lxc-103) — convention comptes et tokens
 - [Monitoring](monitoring.md) — checks backup freshness
-- [Break-glass](break-glass.md) — procedure reconstruction d'urgence
+- [Break-glass](break-glass.md) — procédure reconstruction d'urgence

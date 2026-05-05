@@ -1,6 +1,6 @@
 # Guides
 
-Procedures pas-a-pas pour les opérations courantes.
+Procédures pas-a-pas pour les opérations courantes.
 
 | Guide | Quand |
 |---|---|

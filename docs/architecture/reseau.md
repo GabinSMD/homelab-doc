@@ -74,7 +74,7 @@ graph TB
     TSClient -->|HTTPS via Tailscale| Traefik
 ```
 
-### Les DNS rewrites (la piece clé)
+### Les DNS rewrites (la pièce clé)
 
 AdGuard Home utilisé des **règles de reecritures conditionnelles** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet** :
 
@@ -95,7 +95,7 @@ AdGuard Home utilisé des **règles de reecritures conditionnelles** dans `user_
     Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
     Elles ecraseraient les règles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, même aux clients Tailscale — rendant les services inaccessibles via VPN.
 
-    **Seule exception** : `switch.lan` → `192.168.1.2` (equipement HTTP-only, hors du domaine `home.*` pour éviter le HSTS).
+    **Seule exception** : `switch.lan` → `192.168.1.2` (équipement HTTP-only, hors du domaine `home.*` pour éviter le HSTS).
 
 !!! success "AdGuard en `network_mode: host`"
     AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
@@ -223,10 +223,10 @@ Pas de compte multi-utilisateur pour l'instant (homelab personnel).
 
 ### Revocation
 
-Procedure en cas de vol / perte / compromission d'un device :
+Procédure en cas de vol / perte / compromission d'un device :
 
 1. [login.tailscale.com](https://login.tailscale.com) > **Machines**
-2. Selectionner le device > **Disable** (acces coupe immédiatement)
+2. Sélectionner le device > **Disable** (acces coupe immédiatement)
 3. Si perdu definitivement : **Remove**
 4. Rotation globale clés : **Settings > Keys > Auth keys > Revoke**
 5. Les autres devices doivent re-authentifier (sauf ceux avec *key expiry disabled*)

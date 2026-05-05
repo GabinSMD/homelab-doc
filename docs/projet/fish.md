@@ -18,57 +18,45 @@ après approbation humaine. Nomme d'après Scofield (Prison Break).
 
 ## Architecture
 
-```text
-                    penny (Pi 4)               fish LXC 105 (lancelot)
-                    ────────────               ─────────────────────────
-                    Traefik, Authelia,
-                    AdGuard, Beszel…                  ┌─ Observer ──────────────┐
-                                                      │  Loki tail (WebSocket)  │
-                    Alloy docker logs →  Loki ────────┤  Prometheus poll (30s)  │
-                    journald LXC  ────►              │  Event bus (asyncio.Q)  │
-                                                      │  Dedup + trigger rules  │
-                                                      └──────────┬──────────────┘
-                                                                 │
-                                                      ┌──────────▼──────────────┐
-                                                      │  Classifier             │
-                                                      │  Claude Sonnet API      │
-                                                      │  BudgetGuard (20€/mo)   │
-                                                      │  Deterministic confid.  │
-                                                      └──────────┬──────────────┘
-                                                                 │
-                                                      ┌──────────▼──────────────┐
-                                                      │  Proposer               │
-                                                      │  Catalog YAML match     │
-                                                      │  AuditDB (SQLite WAL)   │
-                                                      └──────────┬──────────────┘
-                                                                 │
-                                                      ┌──────────▼──────────────┐
-                        📱 ntfy.sh topic  ◄─────────  │  NtfyNotifier + callbacks│
-                                       │              │  Tailscale Funnel 8080   │
-                                       │              │  fish.tail8850a4.ts.net  │
-                                       ▼              └──────────┬──────────────┘
-                                                                 │
-                          User tap Approve                       │
-                              │                                  │
-                              ▼                                  │
-                      ntfy.sh POST /approve/N  ──────────────────┤
-                                                                 │
-                                                      ┌──────────▼──────────────┐
-                                                      │  SSHExecutor            │
-                                                      │  HostMutex per-target   │
-                                                      │  Retry 1x on exit 255   │
-                                                      │  SIGTERM+5s+SIGKILL     │
-                                                      └──────────┬──────────────┘
-                                                                 │
-                                                      ssh fish@penny:2806
-                                                                 │
-                    ┌────────────────────────────────────────────▼─┐
-                    │ sudo -n /usr/local/bin/fish-wrapper          │
-                    │  validates verb (run|verify|rollback)        │
-                    │  validates pattern_id (/etc/fish/allow-list) │
-                    │  validates script (/etc/fish/allow-scripts)  │
-                    │  exec /opt/fish/catalog/scripts/<script>.sh  │
-                    └──────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph penny["penny (Pi 4)"]
+        Services[Traefik, Authelia,<br/>AdGuard, Beszel...]
+        AlloyDocker[Alloy docker logs]
+        Loki[Loki]
+        Journald[journald LXC]
+    end
+
+    subgraph fish["fish LXC 105 (lancelot)"]
+        Observer[Observer<br/>Loki tail WebSocket<br/>Prometheus poll 30s<br/>Event bus asyncio.Q<br/>Dedup + trigger rules]
+        Classifier[Classifier<br/>Claude Sonnet API<br/>BudgetGuard 20EUR/mo<br/>Deterministic confidence]
+        Proposer[Proposer<br/>Catalog YAML match<br/>AuditDB SQLite WAL]
+        Notifier[NtfyNotifier + callbacks<br/>Tailscale Funnel 8080<br/>fish.tail8850a4.ts.net]
+        Executor[SSHExecutor<br/>HostMutex per-target<br/>Retry 1x on exit 255<br/>SIGTERM+5s+SIGKILL]
+    end
+
+    Phone[Phone ntfy.sh topic]
+    User([User tap Approve])
+    Wrapper["sudo -n fish-wrapper<br/>validates verb run|verify|rollback<br/>validates pattern_id /etc/fish/allow-list<br/>validates script /etc/fish/allow-scripts<br/>exec /opt/fish/catalog/scripts/&lt;script&gt;.sh"]
+
+    AlloyDocker --> Loki
+    Loki --> Observer
+    Journald --> Observer
+    Observer --> Classifier
+    Classifier --> Proposer
+    Proposer --> Notifier
+    Notifier -->|push| Phone
+    Phone --> User
+    User -->|"POST /approve/N"| Notifier
+    Notifier --> Executor
+    Executor -->|ssh fish@penny:2806| Wrapper
+
+    style Observer fill:#e3f2fd,stroke:#1976d2
+    style Classifier fill:#fff3cd,stroke:#ffc107
+    style Proposer fill:#fff3cd,stroke:#ffc107
+    style Notifier fill:#d4edda,stroke:#28a745
+    style Executor fill:#f8d7da,stroke:#dc3545
+    style Wrapper fill:#f8d7da,stroke:#dc3545
 ```
 
 ## Stack technique
@@ -84,16 +72,16 @@ après approbation humaine. Nomme d'après Scofield (Prison Break).
 
 ### Observer
 Tail Loki (WebSocket `/loki/api/v1/tail`) + poll Prometheus (30s) + event bus
-asyncio avec dedup LRU (10 000 event_ids) et trigger rules fenetre-glissante.
+asyncio avec dedup LRU (10 000 event_ids) et trigger rules fenêtre-glissante.
 
 ### Classifier
-Wrapper `LLMProvider` abstrait. Implementation Claude : POST /v1/messages,
+Wrapper `LLMProvider` abstrait. Implémentation Claude : POST /v1/messages,
 retry fallback Opus si JSON malforme, `BudgetGuard` SQLite track cout
 mensuel EUR (pricing Sonnet $3/$15 Mtok). **Confidence deterministe** =
 `len(match_signals) / len(pattern.required_signals)`, pas de LLM self-report.
 
 ### Catalog
-YAML schema pydantic, 5 patterns seed depuis les memoires d'incidents :
+YAML schema pydantic, 5 patterns seed depuis les mémoires d'incidents :
 - `beszel-oidc-reset` — PocketBase resetting `meta.appURL` post-restart
 - `docker-compose-stopped-post-reboot` — `unless-stopped` ne restart pas après `docker compose down`+reboot
 - `pmxcfs-ro-post-recovery` — `/etc/pve` RO après recovery corosync (fix : restart pve-cluster)

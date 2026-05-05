@@ -3,7 +3,7 @@
 État au **2026-05-05** (refresh complet post-Phase 2 egress firewall). Priorité : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
-> Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
+> Pour les implémentations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
 > Pour le contexte projet global : [projet/roadmap.md](../projet/roadmap.md).
 
 ---
@@ -27,7 +27,7 @@ Tu as :
 - restic check + drill mensuels ✓
 - Sops + age + 2 YubiKeys DR ✓
 
-**Mais jamais reconstruit penny depuis zero**. Le drill mensuel vérifie integrite données, pas full restore. Scénario reel : SSD meurt → Pi neuf → restore B2 + sops → est-ce que ca reboot dans un état exploitable en X heures ?
+**Mais jamais reconstruit penny depuis zero**. Le drill mensuel vérifie intégrité données, pas full restore. Scénario reel : SSD meurt → Pi neuf → restore B2 + sops → est-ce que ca reboot dans un état exploitable en X heures ?
 
 **Effort** : 1/2 journee. Pi 4 spare ou VM x86. Suivre [break-glass](../operations/break-glass.md) + [dr-drill-scénario-1](../operations/dr-drill-scenario-1.md), chronometrer, noter les surprises.
 
@@ -74,7 +74,7 @@ Les 3 images sont scratch/distroless (Go static binary) : **aucun** outil CLI (w
 
 #### YubiKey sur clés SSH client — DONE
 
-`sk-ssh-ed25519@openssh.com` keys presentes dans `/home/gabins/.ssh/authorized_keys` sur penny + galahad + lancelot, et `/root/.ssh/authorized_keys` sur penny. Clés touch-required pour sudo.
+`sk-ssh-ed25519@openssh.com` keys présentés dans `/home/gabins/.ssh/authorized_keys` sur penny + galahad + lancelot, et `/root/.ssh/authorized_keys` sur penny. Clés touch-required pour sudo.
 
 #### Mot de passe GRUB (galahad + lancelot) — DEFERE
 
@@ -100,7 +100,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 #### Hardening cosmetiques
 
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique). Done partiellement : penny — a propager galahad+lancelot.
-- SMTP migration port 25 → 587 auth submission (PVE postfix) — supprime risk spam relay si compromission. Effort : 1h + setup credentials relay (Mailgun gratuit ou similaire).
+- SMTP migration port 25 → 587 auth submission (PVE postfix) — supprimé risk spam relay si compromission. Effort : 1h + setup credentials relay (Mailgun gratuit ou similaire).
 - ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE.
 
 ### P4 — Defere / decision documentée
@@ -115,8 +115,8 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 ??? success "Observabilite / documentation"
     - Threat model documenté ([politique.md](politique.md))
     - Politique rotation / revocation documentée
-    - Procedure revocation Tailscale ([réseau.md](../architecture/reseau.md))
-    - Break-glass procedure ([break-glass.md](../operations/break-glass.md))
+    - Procédure revocation Tailscale ([réseau.md](../architecture/reseau.md))
+    - Break-glass procédure ([break-glass.md](../operations/break-glass.md))
     - DR drill Vaultwarden (RTO 7s)
     - Scope token Cloudflare vérifie (1 zone)
 
@@ -127,8 +127,8 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Traefik route `backup.home.gabin-simond.fr` → PBS UI
     - Authelia OIDC realm "authelia" pour login PBS + comptes break-glass locaux
     - vzdump-permfix-hook.sh sur galahad + lancelot (workaround pct.conf permissions, TEMPORAIRE — a supprimer après migration ZFS)
-    - **Vaultwarden restic-direct** (LXC 102 → B2:restic-vault, SQLite atomic snapshot, cron 02h, independant de PBS)
-    - Off-site B2 chiffre (restic AES-256) pour penny configs + volumes Docker
+    - **Vaultwarden restic-direct** (LXC 102 → B2:restic-vault, SQLite atomic snapshot, cron 02h, indépendant de PBS)
+    - Off-site B2 chiffré (restic AES-256) pour penny configs + volumes Docker
     - Restic unique backend B2 natif (`b2:gabin-homelab-backups:restic`)
     - Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
     - Retention 7d/4w/6m + prune automatique
@@ -191,14 +191,14 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **Topic ntfy randomise** (hex 32 chars, plus de topic prévisible) — 2026-04-14
 
 ??? success "Containers"
-    - docker-socket-proxy + réseau `socket` isole
+    - docker-socket-proxy + réseau `socket` isolé
     - `cap_drop: ALL` sur Authelia, Traefik, Homepage, Watchtower, Beszel
     - `no-new-privileges: true` global
     - ICC disabled sur bridge par defaut
     - Plus aucun port direct exposé (tout via Traefik HTTPS)
     - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, Watchtower
     - **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
-    - **Cosign installe** (apt Trixie) — vérifie : aucune des 3 images critiques n'est signed upstream, attendre evolution
+    - **Cosign installe** (apt Trixie) — vérifie : aucune des 3 images critiques n'est signed upstream, attendre évolution
     - Healthchecks Beszel + Portainer + beszel-agent : non applicable (images scratch/distroless, aucun outil CLI disponible)
 
 ??? success "Systemd-units hardening"
@@ -222,7 +222,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - **Topic ntfy corrige** dans repo git + Grafana contact point (2026-04-14)
     - Retention 30 jours
 
-??? success "Surveillance / resilience"
+??? success "Surveillance / résilience"
     - Watchdog hardware BCM2835 (penny)
     - Autoheal (restart containers unhealthy)
     - Auto-recovery SSD (device rename détection)
@@ -261,7 +261,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Survit perte lancelot : replica continue sur penny
     - WAL Alloy rejoue si un sink down = zero perte
 
-??? success "Backup tiers independants PBS"
+??? success "Backup tiers indépendants PBS"
     - 4 chaines restic-direct vers B2 : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19)
     - `restic-check-monthly.sh` multi-repo : structure + 10% data subset sur les 4 repos — 2026-04-19
     - Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily)
@@ -272,9 +272,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Matrice par type de système (machines, PVE, PBS, Authelia, Docker, LXC, services web)
 
 ??? success "Migrations terminees"
-    - Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isole de logs sur lancelot, 2026-04-13)
-    - Volume Docker orphelin `config_vaultwarden-data` supprime de penny (2026-04-14)
+    - Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isolé de logs sur lancelot, 2026-04-13)
+    - Volume Docker orphelin `config_vaultwarden-data` supprimé de penny (2026-04-14)
     - Proxmox cluster : pve1/pve2 -> galahad/lancelot
     - **Galahad + lancelot déjà sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster
     - Tailscale : container -> host natif (SSH natif)
-    - Wallos : supprime
+    - Wallos : supprimé

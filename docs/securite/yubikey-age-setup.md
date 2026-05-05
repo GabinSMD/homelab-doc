@@ -2,9 +2,9 @@
 
 **Objectif** : deplacer la confiance de la clé age logicielle (fichier) vers une clé **hardware** (YubiKey PIV). La clé privee ne quitte jamais la YubiKey.
 
-**Statut actuel** : la clé age logicielle est sauvegardee EN TANT QUE BACKUP sur la YubiKey (dans un secure note ou OATH slot). Ceci permet une recuperation manuelle, mais sops ne l'utilisé pas nativement — il lit toujours le fichier `/root/.config/sops/age/keys.txt`.
+**Statut actuel** : la clé age logicielle est sauvegardee EN TANT QUE BACKUP sur la YubiKey (dans un secure note ou OATH slot). Ceci permet une récupération manuelle, mais sops ne l'utilisé pas nativement — il lit toujours le fichier `/root/.config/sops/age/keys.txt`.
 
-**Objectif de cet upgrade** : generer une NOUVELLE identité age stockée directement dans le slot PIV de la YubiKey (clé privee ECDSA P-256 non-exportable). Sops utilisera `age-plugin-yubikey` pour dechiffrer sans avoir besoin du fichier de clé.
+**Objectif de cet upgrade** : générer une NOUVELLE identité age stockée directement dans le slot PIV de la YubiKey (clé privee ECDSA P-256 non-exportable). Sops utilisera `age-plugin-yubikey` pour déchiffrer sans avoir besoin du fichier de clé.
 
 ---
 
@@ -22,9 +22,9 @@
 
 ## Prerequis
 
-- YubiKey 5 series (PIV support — le 4 ne suffit pas pour ECDSA)
+- YubiKey 5 séries (PIV support — le 4 ne suffit pas pour ECDSA)
 - PIN YubiKey defini (pas le default `123456`)
-- PUK YubiKey defini (recuperation)
+- PUK YubiKey defini (récupération)
 - Management key YubiKey changee (pas la default)
 - Si pas encore fait : `ykman piv access change-pin` + `change-puk` + `change-management-key`
 
@@ -49,7 +49,7 @@ apt install -y pcscd
 systemctl enable --now pcscd
 ```
 
-## Phase 2 — Generer une identité PIV sur la YubiKey
+## Phase 2 — Générer une identité PIV sur la YubiKey
 
 **Attention** : slot PIV 9c (signature) consommera une génération de clé. Si un certificat existe déjà sur ce slot, il sera ecrase.
 
@@ -95,9 +95,9 @@ for f in authelia/secrets/* crowdsec/online_api_credentials.yaml crowdsec/local_
 done
 ```
 
-`updatekeys` relit `.sops.yaml`, re-chiffre la DEK avec les NOUVEAUX recipients. Les anciens restent valides tant qu'on ne les retire pas de `.sops.yaml`.
+`updatekeys` relit `.sops.yaml`, re-chiffré la DEK avec les NOUVEAUX recipients. Les anciens restent valides tant qu'on ne les retire pas de `.sops.yaml`.
 
-## Phase 5 — Tester le dechiffrement via YubiKey
+## Phase 5 — Tester le déchiffrement via YubiKey
 
 Retirer temporairement la clé fichier pour forcer l'utilisation du plugin :
 
@@ -135,11 +135,11 @@ systemctl status homelab-unseal   # active (exited)
 
 ## Rotation de la clé
 
-Tous les ~12 mois, generer une nouvelle identité YubiKey :
+Tous les ~12 mois, générer une nouvelle identité YubiKey :
 1. `age-plugin-yubikey --generate --slot 2 ...` (autre slot)
 2. Ajouter le nouveau recipient dans `.sops.yaml`
 3. `sops updatekeys` partout
-4. Tester dechiffrement avec nouvelle clé
+4. Tester déchiffrement avec nouvelle clé
 5. Retirer l'ancien recipient de `.sops.yaml`
 6. `sops updatekeys` partout
 
@@ -149,4 +149,4 @@ Si YubiKey perdue/compromise :
 1. Retirer immédiatement le recipient `age1yubikey1...` compromis de `.sops.yaml`
 2. `sops updatekeys` sur tous les fichiers (force le re-encrypt DEK)
 3. Revoquer le slot PIV : `ykman piv keys delete <slot>` (si tu recuperes la clé)
-4. Generer un nouveau slot (cf. Phase 2)
+4. Générer un nouveau slot (cf. Phase 2)

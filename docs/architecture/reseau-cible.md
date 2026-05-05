@@ -29,7 +29,7 @@ graph TB
 
 ### Raspberry Pi 4 — Appliance réseau
 
-!!! success "Independant du cluster"
+!!! success "Indépendant du cluster"
     Si le cluster Proxmox tombe, le réseau continue de fonctionner.
 
 - **AdGuard Home** — DNS principal + ad-blocking
@@ -53,7 +53,7 @@ Fonctions :
 
 - Inter-VLAN routing avec règles firewall strictes
 - DHCP server par VLAN
-- OPNsense bare-metal pour la fiabilite
+- OPNsense bare-metal pour la fiabilité
 
 ### ZimaBoard #1 + #2 — Compute
 
@@ -68,7 +68,7 @@ Deux nœuds Proxmox VE pour les services applicatifs en LXC/VM.
 Nœud Proxmox le plus puissant, double rôle.
 
 - **NAS** — partagé NFS/SMB vers les autres nœuds
-- **Jellyfin** — media server avec transcodage hardware (Intel Quick Sync)
+- **Jellyfin** — média server avec transcodage hardware (Intel Quick Sync)
 - **Services lourds** — VMs/LXC gourmands
 - ZFS mirror recommandé (minimum 2 disques)
 
@@ -79,7 +79,7 @@ Nœud Proxmox le plus puissant, double rôle.
 | 10 | Management | `10.0.10.0/24` | Admin switch, Proxmox, OPNsense, RPi SSH |
 | 20 | Services | `10.0.20.0/24` | Containers, VMs, NAS, DNS, reverse proxy |
 | 30 | LAN perso | `10.0.30.0/24` | Devices personnels (PC, tel, tablettes) |
-| 40 | IoT | `10.0.40.0/24` | Domotique, cameras — isole |
+| 40 | IoT | `10.0.40.0/24` | Domotique, cameras — isolé |
 | 50 | Invites | `10.0.50.0/24` | WiFi guest — acces internet uniquement |
 
 ## Matrice de flux
@@ -135,12 +135,12 @@ graph LR
 
 - :material-check: Acces internet **limité**
 - :material-check: Acces DNS uniquement (VLAN 20, port 53)
-- :material-close: **Isole** de tout le reste (pas de LAN, pas de management)
+- :material-close: **Isolé** de tout le reste (pas de LAN, pas de management)
 
 ### VLAN 50 — Invites
 
 - :material-check: Acces internet uniquement
-- :material-close: **Isole** de tout (pas de LAN, pas de services, pas d'IoT)
+- :material-close: **Isolé** de tout (pas de LAN, pas de services, pas d'IoT)
 
 ## WiFi et VLANs
 

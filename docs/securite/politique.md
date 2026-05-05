@@ -4,7 +4,7 @@ Doctrine sécurité : **qui on defend contre quoi, jusqu'ou**, et **comment les 
 
 Pour les mesures techniques par couche (sysctl, firewall rules, SSH, containers) : [hardening.md](hardening.md).
 Pour les actions restantes : [roadmap.md](roadmap.md).
-Pour la procedure en cas d'incident : [break-glass.md](../operations/break-glass.md).
+Pour la procédure en cas d'incident : [break-glass.md](../operations/break-glass.md).
 
 ---
 
@@ -35,7 +35,7 @@ Pour la procedure en cas d'incident : [break-glass.md](../operations/break-glass
 - `gabins` (avec `s`) : légère variation pour casser les scripts.
 - Format futur : `<prenom><initiale_nom>` (ex: `gabins`).
 
-Comptes legacy (`admin`, `gabin`) : **tous supprimes** la ou ils existaient (Grafana admin désactivé, Proxmox gabin@authelia retire, etc.).
+Comptes legacy (`admin`, `gabin`) : **tous supprimés** la ou ils existaient (Grafana admin désactivé, Proxmox gabin@authelia retire, etc.).
 
 ### Comptes de service
 
@@ -72,7 +72,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 
 ### Rotation / revocation
 
-| Element | Rotation | Procedure |
+| Element | Rotation | Procédure |
 |---|---|---|
 | Mot de passe gabins (OS) | A la compromission | SSH via Tailscale, `passwd` |
 | Clés SSH | Par appareil | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
@@ -92,7 +92,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 ### Revocation Tailscale
 
 1. [login.tailscale.com](https://login.tailscale.com) > Machines
-2. Selectionner appareil > **Disable** (acces immédiat coupe)
+2. Sélectionner appareil > **Disable** (acces immédiat coupe)
 3. Si perdu definitivement : **Remove**
 4. Reauth globale : **Settings > Keys > Auth keys > Revoke**
 
@@ -154,5 +154,5 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 - [Hardening](hardening.md) — mesures techniques par couche (sysctl, firewall, SSH, containers)
 - [Authelia (SSO)](../services/authelia.md) — configuration SSO et clients OIDC
 - [Tailscale ACLs](../architecture/reseau.md) — acces distant et politique ACL
-- [Backups](../operations/backups.md) — procedure et architecture de sauvegarde
-- [Break-glass](../operations/break-glass.md) — procedure de reconstruction en cas d'incident
+- [Backups](../operations/backups.md) — procédure et architecture de sauvegarde
+- [Break-glass](../operations/break-glass.md) — procédure de reconstruction en cas d'incident
