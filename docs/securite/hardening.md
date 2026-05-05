@@ -2,7 +2,7 @@
 
 Ce document centralise toutes les mesures de durcissement appliquees, par couche, avec commandes reproductibles.
 
-Pour la doctrine generale (modele de menace, politique credentials), voir [politique.md](politique.md).
+Pour la doctrine générale (modèle de menace, politique credentials), voir [politique.md](politique.md).
 
 Pour la roadmap des actions restantes, voir [roadmap.md](roadmap.md).
 
@@ -16,7 +16,7 @@ Pour la roadmap des actions restantes, voir [roadmap.md](roadmap.md).
 | galahad | **68/100** | 2026-04-13 (re-run) | 0 | Debian 13 / Proxmox 9 |
 | lancelot | **70/100** | 2026-04-13 (re-run) | +1 | Debian 13 / Proxmox 9 — auditd reactive |
 
-Lynis weekly cron : dimanche 5h, push ntfy avec priorite variable selon le score.
+Lynis weekly cron : dimanche 5h, push ntfy avec priorité variable selon le score.
 
 ### Suggestions Lynis restantes (commun aux 3 hosts)
 
@@ -39,14 +39,14 @@ Quick wins non encore appliques (chacun gagne 1-3 points) :
 
 ## penny (RPi 4 / DietPi)
 
-### Surface d'attaque reduite
+### Surface d'attaque réduite
 
 | Mesure | Implementation |
 |---|---|
-| WiFi desactive | `dtoverlay=disable-wifi` dans `config.txt` |
-| Bluetooth desactive | Stack BT non installee |
-| HDMI desactive | `hdmi_ignore_hotplug=1`, `max_framebuffers=0` |
-| Audio desactive | `dtparam=audio=off` |
+| WiFi désactivé | `dtoverlay=disable-wifi` dans `config.txt` |
+| Bluetooth désactivé | Stack BT non installee |
+| HDMI désactivé | `hdmi_ignore_hotplug=1`, `max_framebuffers=0` |
+| Audio désactivé | `dtparam=audio=off` |
 | GPU minimal | 16 Mo (au lieu des 64 par defaut) |
 
 ### SSH (`/etc/ssh/sshd_config`)
@@ -68,7 +68,7 @@ X11Forwarding no
 ```
 
 !!! note "dietpi.conf override"
-    Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent etre aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+    Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent être aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
 
 ### Firewall iptables
 
@@ -79,7 +79,7 @@ Policy `INPUT DROP`. Ports ouverts uniquement :
 | 53 (TCP/UDP) | AdGuard DNS | Tous |
 | 80, 443 | Traefik HTTPS | Tous |
 | 853 | DNS-over-TLS | Tous |
-| 2806 | SSH | Tous (cle requise) |
+| 2806 | SSH | Tous (clé requise) |
 | 3000 | AdGuard web UI | LAN + Tailscale |
 | 2049 (TCP) | NFS (PBS datastore) | LAN + Tailscale |
 | 111 (TCP/UDP) | rpcbind / portmapper (NFS) | LAN + Tailscale |
@@ -93,7 +93,7 @@ Persistance via `netfilter-persistent`.
 
 ## Systemd drop-ins : PrivateMounts=yes (anti-leak namespace)
 
-**Contexte** : tout service systemd avec `ProtectSystem=strict|full` ou `ProtectKernelModules=yes` et sans `PrivateMounts=yes` leak ses bind-mounts RO (namespace shared par defaut) vers le mount tree host global. Resultat : `/etc`, `/usr`, `/boot` deviennent RO pour toutes les sessions — `apt install` casse, `pct set` casse, etc.
+**Contexte** : tout service systemd avec `ProtectSystem=strict|full` ou `ProtectKernelModules=yes` et sans `PrivateMounts=yes` leak ses bind-mounts RO (namespace shared par defaut) vers le mount tree host global. Résultat : `/etc`, `/usr`, `/boot` deviennent RO pour toutes les sessions — `apt install` casse, `pct set` casse, etc.
 
 Fix systematique : drop-in `PrivateMounts=yes` sur chaque service hardene.
 
@@ -117,7 +117,7 @@ systemctl daemon-reload
 systemctl restart <svc>
 ```
 
-### Scan detection
+### Scan détection
 
 Pour trouver un service leaky sur un host :
 
@@ -131,7 +131,7 @@ for svc in $(systemctl list-units --type=service --state=active --no-legend | aw
 done
 ```
 
-### Verification mount state
+### Vérification mount state
 
 ```bash
 findmnt /etc /usr /boot 2>&1
@@ -139,7 +139,7 @@ findmnt /etc /usr /boot 2>&1
 touch /etc/.testwrite && rm /etc/.testwrite && echo OK
 ```
 
-Voir `operations/depannage.md` section "/etc, /usr, /boot read-only" pour remediation si re-apparait.
+Voir `operations/depannage.md` section "/etc, /usr, /boot read-only" pour remediation si re-apparaît.
 
 ### sysctl hardening (`/etc/sysctl.d/99-hardening.conf`)
 
@@ -173,14 +173,14 @@ SHA_CRYPT_MAX_ROUNDS 500000
 
 ### Core dumps desactives (`/etc/security/limits.d/disable-core.conf`)
 
-```
+```text
 * hard core 0
 * soft core 0
 ```
 
 ### Modules kernel bloques (`/etc/modprobe.d/`)
 
-```
+```text
 blacklist firewire-core
 blacklist firewire-ohci
 blacklist dccp
@@ -196,7 +196,7 @@ Voir [os.md](../architecture/os.md#watchdog-hardware-bcm2835) pour la configurat
 ### Comptes
 
 - `root` : mot de passe fort (vault), SSH disabled
-- `gabins` : uid 1002, sudo NOPASSWD, cle SSH
+- `gabins` : uid 1002, sudo NOPASSWD, clé SSH
 - `sguardian`, `smanager` (legacy DietPi) : `nologin + locked`
 
 ### fail2ban
@@ -216,11 +216,11 @@ Rules dans `/etc/audit/rules.d/homelab.rules` :
 
 ### unattended-upgrades
 
-Actif, reboot auto a 4h si necessaire (apres backups 3h). Upgrades securite Debian uniquement.
+Actif, reboot auto a 4h si nécessaire (après backups 3h). Upgrades sécurité Debian uniquement.
 
 ### Docker daemon
 
-Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. Points securite : `icc: false` (inter-container OFF), `no-new-privileges: true`.
+Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. Points sécurité : `icc: false` (inter-container OFF), `no-new-privileges: true`.
 
 ---
 
@@ -230,7 +230,7 @@ Voir [os.md](../architecture/os.md#daemonjson) pour la configuration complete. P
 
 Idem penny mais :
 - Port 2807 (galahad) / 2808 (lancelot)
-- `PermitRootLogin prohibit-password` (Proxmox necessite root pour operations cluster : pvecm, corosync)
+- `PermitRootLogin prohibit-password` (Proxmox nécessité root pour opérations cluster : pvecm, corosync)
 - `PasswordAuthentication no`
 
 ### Firewall Proxmox cluster (`/etc/pve/firewall/cluster.fw`)
@@ -267,37 +267,37 @@ IN ACCEPT -i tailscale0 -log nolog
 
 ### SSH
 
-Tous les LXC ont le meme hardening SSH :
+Tous les LXC ont le même hardening SSH :
 
 ```ini
 PermitRootLogin no
 PasswordAuthentication no
 ```
 
-Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de SSH root). SSH direct via `gabins` + cle Ed25519 si necessaire pour les scripts (monitoring, backup).
+Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de SSH root). SSH direct via `gabins` + clé Ed25519 si nécessaire pour les scripts (monitoring, backup).
 
 ---
 
-## Reseaux Docker — isolation et ICC
+## Réseaux Docker — isolation et ICC
 
-| Reseau | Type | ICC | Containers | Note |
+| Réseau | Type | ICC | Containers | Note |
 |---|---|---|---|---|
-| `proxy` | bridge | enabled | traefik, authelia, portainer, homepage, wud, beszel | ICC enabled by design pour Traefik -> backends. **Implication** : tout container compromis sur ce reseau peut joindre les autres en HTTP interne (ex: homepage -> wud:3001 anonyme, traefik:8080 admin API). |
-| `socket` | bridge `internal: true` | enabled | socket-proxy, traefik, homepage, wud, autoheal | Pas d'acces internet. ICC limite a la API socket-proxy whitelistee. |
-| `host` | host | N/A | adguard, beszel-agent, tailscale | Stack reseau de l'host |
+| `proxy` | bridge | enabled | traefik, authelia, portainer, homepage, wud, beszel | ICC enabled by design pour Traefik -> backends. **Implication** : tout container compromis sur ce réseau peut joindre les autres en HTTP interne (ex: homepage -> wud:3001 anonyme, traefik:8080 admin API). |
+| `socket` | bridge `internal: true` | enabled | socket-proxy, traefik, homepage, wud, autoheal | Pas d'acces internet. ICC limité a la API socket-proxy whitelistee. |
+| `host` | host | N/A | adguard, beszel-agent, tailscale | Stack réseau de l'host |
 
 ### Mitigations en place
 
 | Vecteur | Mitigation |
 |---|---|
 | Acces externe (Internet/LAN) sur services backend | Tous via Traefik HTTPS + Authelia (ForwardAuth ou OIDC) |
-| Acces interne ancien WUD | Resolu — WUD remplace par Watchtower (headless, pas d'API/UI). |
+| Acces interne ancien WUD | Resolu — WUD remplacé par Watchtower (headless, pas d'API/UI). |
 | Container compromis -> Docker API | socket-proxy whitelistee (CONTAINERS/NETWORKS/EVENTS/IMAGES, pas EXEC/SECRETS/VOLUMES) |
 | Container compromis -> Authelia internals | Sessions chiffrees + storage encryption_key |
 
 ### A faire (P2)
 
-- ICC=false sur reseau `proxy` : casserait Traefik routing -> necessite split en sous-reseaux (1 par backend, partage avec Traefik).
+- ICC=false sur réseau `proxy` : casserait Traefik routing -> nécessité split en sous-réseaux (1 par backend, partagé avec Traefik).
 
 ---
 
@@ -310,14 +310,14 @@ Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de
 
 ### Socket proxy
 
-`tecnativa/docker-socket-proxy` sur reseau `socket` (internal, pas d'internet). Whitelist :
+`tecnativa/docker-socket-proxy` sur réseau `socket` (internal, pas d'internet). Whitelist :
 - `CONTAINERS`, `NETWORKS`, `SERVICES`, `TASKS`, `EVENTS`, `IMAGES`, `INFO`, `VERSION`, `PING`
 - `POST: 1` (pour autoheal)
 - Bloque : `EXEC`, `SECRETS`, `BUILD`, `VOLUMES`, `CONFIGS`, `SWARM`, `NODES`, `AUTH`, `SYSTEM`
 
 Clients socket-proxy : Traefik, Homepage, Watchtower, autoheal.
 
-Clients socket direct : **Portainer uniquement** (admin tool necessite acces complet).
+Clients socket direct : **Portainer uniquement** (admin tool nécessité acces complet).
 
 ### Per-container (`cap_drop` + `cap_add`)
 
@@ -329,8 +329,8 @@ Clients socket direct : **Portainer uniquement** (admin tool necessite acces com
 | Homepage | ALL | (aucune, read-only) |
 | Beszel | ALL | (aucune) |
 | Watchtower | ALL | (aucune) |
-| socket-proxy | ALL (par design) | (gere par le proxy) |
-| AdGuard | non applicable | DHCP + host network necessite plus |
+| socket-proxy | ALL (par design) | (géré par le proxy) |
+| AdGuard | non applicable | DHCP + host network nécessité plus |
 | Portainer | non applicable | admin tool |
 
 ### read_only (rootfs immuable)
@@ -339,7 +339,7 @@ Clients socket direct : **Portainer uniquement** (admin tool necessite acces com
 |---|---|---|---|
 | Traefik | ✅ OK | `/tmp`, `/run` | teste 2026-04-13 |
 | Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
-| Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'etat |
+| Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'état |
 | Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
 | Beszel, Watchtower | ⚠️ non teste | — | candidats potentiels |
 
@@ -350,11 +350,11 @@ Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports 
 - Homepage : 3100
 - Watchtower : pas de port (headless)
 - Beszel : 8090
-- Traefik dashboard : 8080 (accessible uniquement via reseau `socket` pour healthcheck)
+- Traefik dashboard : 8080 (accessible uniquement via réseau `socket` pour healthcheck)
 
 ### Healthchecks
 
-Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart les containers `unhealthy` apres 3 echecs consecutifs.
+Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart les containers `unhealthy` après 3 échecs consecutifs.
 
 ---
 
@@ -367,7 +367,7 @@ Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart l
 
 ---
 
-## Verification rapide
+## Vérification rapide
 
 Check complet en une commande :
 

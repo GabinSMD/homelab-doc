@@ -1,10 +1,10 @@
 # Fish observability
 
-Cette page documente comment fish voit le homelab et où il bipe — pas le design fish (voir [Projet Fish](../projet/fish.md)) mais l'architecture de l'observation et la delivery.
+Cette page documenté comment fish voit le homelab et où il bipe — pas le design fish (voir [Projet Fish](../projet/fish.md)) mais l'architecture de l'observation et la delivery.
 
 ## Surface d'observation de fish
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Fish (LXC 105)                             │
 │                                                                     │
@@ -38,7 +38,7 @@ Cette page documente comment fish voit le homelab et où il bipe — pas le desi
                         penny via Alloy)
 ```
 
-**3 streams Loki que fish observe** :
+**3 streams Loki que fish observé** :
 
 1. **`job=docker`** : stdout des containers Docker (adguard, traefik, authelia, etc.) shipped par Alloy
 2. **`job=journald`** : journalctl des hosts galahad/lancelot/penny shipped par Alloy
@@ -48,7 +48,7 @@ Le 3ème stream est ce qui ferme un gap critique : avant le 04/05, fish ne voyai
 
 ## Loki query filter (fish.config.loki_query)
 
-```
+```text
 {job=~".+"}
   !~ "^\\[EGRESS-"
   !~ "martian source"
@@ -72,7 +72,7 @@ Décomposé :
 
 ## Ntfy delivery — pourquoi 2 topics
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────┐
 │  Topic 1 : ae8fcbd80e6c5fa1b6c39f013da61d4e (homelab generic)      │
 │                                                                    │
@@ -129,7 +129,7 @@ Le centralisme intelligent est sur l'observation. La delivery reste distribuée 
 ## Healthchecks.io — le canary deadman
 
 Voir [notif-hygiene](../operations/notif-hygiene.md) pour le setup. C'est complémentaire de fish-observability :
-- Fish observe via Loki → détecte les pannes des SERVICES qu'il watch
+- Fish observé via Loki → détecte les pannes des SERVICES qu'il watch
 - Healthchecks.io ping → détecte la panne du **HOST penny** qui run fish + monitor
 
 Sans healthchecks, "silence côté ntfy" = "tout va bien" OU "penny est mort", indistinguable.

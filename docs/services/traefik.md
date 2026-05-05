@@ -9,7 +9,7 @@ Reverse proxy avec TLS automatique via Let's Encrypt et DNS challenge Cloudflare
 | URL | `https://traefik.home.gabin-simond.fr` (dashboard) |
 | Host | penny (Docker) |
 | Image | `traefik:latest` (digest pinned) |
-| Port interne | 8080 (dashboard, non expose) |
+| Port interne | 8080 (dashboard, non exposé) |
 | Auth | ForwardAuth Authelia |
 
 ## Fonctionnement
@@ -35,7 +35,7 @@ sequenceDiagram
 
 ## Configuration
 
-Traefik est configure via :
+Traefik est configuré via :
 
 - **Labels Docker** sur chaque conteneur — definissent les routes (services sur penny)
 - **File provider** (`traefik/dynamic/`) — routes vers les services hors Docker (Proxmox, LXC)
@@ -81,7 +81,7 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 !!! warning "Pas de CSP global"
     CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers--pas-de-csp-global-per-route-headers).
 
-### Specifiques (par route)
+### Spécifiques (par route)
 
 | Middleware | Usage | Cible |
 |---|---|---|
@@ -98,15 +98,15 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 - **minVersion** : TLS 1.2 (TLS 1.3 actif par defaut)
 - **Cipher suites** : Mozilla intermediate (ChaCha20 + AES-GCM, ECDHE only)
 - **Curves** : X25519, P256, P384
-- **sniStrict** : rejette les requetes avec SNI non-route
+- **sniStrict** : rejette les requêtes avec SNI non-route
 - **Redirect HTTP → HTTPS** : tout le trafic port 80 redirige vers 443
 
-Pour les details TLS et certificats, voir le [guide TLS](../guides/tls.md).
+Pour les détails TLS et certificats, voir le [guide TLS](../guides/tls.md).
 
-## Reseau
+## Réseau
 
-Tous les services proxifies sont sur le reseau Docker `proxy` (bridge).
-Tailscale et Beszel Agent utilisent le reseau host.
+Tous les services proxifies sont sur le réseau Docker `proxy` (bridge).
+Tailscale et Beszel Agent utilisent le réseau host.
 AdGuard (host mode) est route via le file provider.
 
 ## Fichiers

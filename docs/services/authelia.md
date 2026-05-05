@@ -23,7 +23,7 @@ graph LR
     Authelia -->|ForwardAuth| Traefik_dash[Traefik dashboard]
 ```
 
-## Clients OIDC configures
+## Clients OIDC configurés
 
 | Service | Client ID | Policy | PKCE | Consent |
 |---|---|---|---|---|
@@ -32,10 +32,10 @@ graph LR
 | Grafana | `grafana` | `two_factor` | S256 | `pre-configured` (1y) |
 | Beszel | `beszel` | `one_factor` | auto | `pre-configured` (1y) |
 
-`consent_mode: pre-configured` evite le consent screen a chaque login (1 acceptation = 1 an de validite).
+`consent_mode: pre-configured` évite le consent screen a chaque login (1 acceptation = 1 an de validite).
 
 !!! warning "Beszel OIDC — pre-requis"
-    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS specifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [depannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
+    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS spécifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [dépannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
 
 ## ForwardAuth middleware
 
@@ -47,19 +47,19 @@ Pour les services sans OIDC natif :
 - Homepage (`home.gabin-simond.fr`)
 - Watchtower (headless, pas de route Traefik)
 
-Middleware declare via label sur le container Authelia :
-```
+Middleware déclaré via label sur le container Authelia :
+```text
 traefik.http.middlewares.authelia.forwardAuth.address=http://authelia:9091/api/authz/forward-auth
 ```
 
 ## MFA
 
-| Methode | Statut |
+| Méthode | Statut |
 |---|---|
-| TOTP | Active (`issuer: Homelab`, period 30s, skew 1) |
-| WebAuthn FIDO2 | Active — 2 YubiKeys enregistrees (`attachment: cross-platform`) |
+| TOTP | Activé (`issuer: Homelab`, period 30s, skew 1) |
+| WebAuthn FIDO2 | Activé — 2 YubiKeys enregistrees (`attachment: cross-platform`) |
 
-Policy par defaut : `two_factor`. Beszel est en `one_factor` car c'est pas un enjeu securite critique (monitoring readonly).
+Policy par defaut : `two_factor`. Beszel est en `one_factor` car c'est pas un enjeu sécurité critique (monitoring readonly).
 
 ## Configuration Proxmox
 
@@ -117,7 +117,7 @@ GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "false"
 GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true"
 ```
 
-Voir [grafana.md](grafana.md) pour le detail complet.
+Voir [grafana.md](grafana.md) pour le détail complet.
 
 ## Configuration Beszel
 
@@ -131,7 +131,7 @@ Voir [grafana.md](grafana.md) pour le detail complet.
 | Token URL | `https://auth.home.gabin-simond.fr/api/oidc/token` |
 | User API URL | `https://auth.home.gabin-simond.fr/api/oidc/userinfo` |
 
-L'authentification par mot de passe est desactivee via la variable d'environnement `DISABLE_PASSWORD_AUTH=true` dans le docker-compose. Cela empeche PocketBase de reactiver le formulaire email/mot de passe a chaque redemarrage du container.
+L'authentification par mot de passe est désactivée via la variable d'environnement `DISABLE_PASSWORD_AUTH=true` dans le docker-compose. Cela empeche PocketBase de reactiver le formulaire email/mot de passe a chaque redémarrage du container.
 
 ## Fichiers
 
@@ -139,8 +139,8 @@ L'authentification par mot de passe est desactivee via la variable d'environneme
 |---|---|---|
 | `configuration.yml` | `/mnt/ssd/config/authelia/` | Non (secrets) — `.example` dans le repo |
 | `users_database.yml` | `/mnt/ssd/config/authelia/` | Non (hashes) — `.example` dans le repo |
-| `oidc.pem` (JWKS) | `/mnt/ssd/config/authelia/` | Non (cle privee) |
-| `db.sqlite3` | `/mnt/ssd/config/authelia/` | Non (donnees) |
+| `oidc.pem` (JWKS) | `/mnt/ssd/config/authelia/` | Non (clé privee) |
+| `db.sqlite3` | `/mnt/ssd/config/authelia/` | Non (données) |
 
 ## Regenerer les secrets
 

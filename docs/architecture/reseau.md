@@ -1,10 +1,10 @@
-# Reseau
+# Réseau
 
-Etat actuel du reseau homelab : topologie, adressage, DNS, VPN mesh et certificats TLS.
+État actuel du réseau homelab : topologie, adressage, DNS, VPN mesh et certificats TLS.
 
 ## Topologie actuelle
 
-Reseau plat `192.168.1.0/24` derriere une Freebox (gateway `192.168.1.254`). Pas de VLANs pour l'instant — la segmentation est prevue dans l'[architecture cible](reseau-cible.md). L'acces distant est assure par un mesh VPN Tailscale (WireGuard) superpose au LAN. Il **n'y a aucun port forwarde** sur la Freebox — tout le trafic inter-devices distant passe par le tunnel WireGuard.
+Réseau plat `192.168.1.0/24` derriere une Freebox (gateway `192.168.1.254`). Pas de VLANs pour l'instant — la segmentation est prévue dans l'[architecture cible](reseau-cible.md). L'acces distant est assure par un mesh VPN Tailscale (WireGuard) superpose au LAN. Il **n'y a aucun port forwarde** sur la Freebox — tout le trafic inter-devices distant passe par le tunnel WireGuard.
 
 ```mermaid
 graph TB
@@ -31,7 +31,7 @@ graph TB
 
 ## Machines et adresses
 
-| Hostname | Type | Role | IP LAN | IP Tailscale |
+| Hostname | Type | Rôle | IP LAN | IP Tailscale |
 |---|---|---|---|---|
 | `penny` (homelab) | RPi 4 (DietPi) | Serveur principal (Docker, Traefik, AdGuard) | `192.168.1.28` | `100.97.239.90` |
 | `galahad` | ZimaBoard (Proxmox) | Hyperviseur (LXC vault + dns-failover) | `192.168.1.18` | `100.98.58.121` |
@@ -74,41 +74,41 @@ graph TB
     TSClient -->|HTTPS via Tailscale| Traefik
 ```
 
-### Les DNS rewrites (la piece cle)
+### Les DNS rewrites (la piece clé)
 
-AdGuard Home utilise des **regles de reecritures conditionnelles** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet** :
+AdGuard Home utilisé des **règles de reecritures conditionnelles** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet** :
 
-```
+```text
 ||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
 ||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
-#### Que font ces regles ?
+#### Que font ces règles ?
 
-| Regle | Client vu par AdGuard | Reponse DNS | Pourquoi |
+| Règle | Client vu par AdGuard | Réponse DNS | Pourquoi |
 |---|---|---|---|
-| 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale) | Clients du reseau local |
+| 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale) | Clients du réseau local |
 | 2eme | Tailscale (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale) | Clients VPN distants |
 
 !!! danger "Ne pas utiliser les DNS Rewrites statiques"
     La section **DNS Rewrites** d'AdGuard (Filters > DNS Rewrites) ne doit **pas** contenir d'entrees pour `*.home.gabin-simond.fr`.
     Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
-    Elles ecraseraient les regles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, meme aux clients Tailscale — rendant les services inaccessibles via VPN.
+    Elles ecraseraient les règles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, même aux clients Tailscale — rendant les services inaccessibles via VPN.
 
-    **Seule exception** : `switch.lan` → `192.168.1.2` (equipement HTTP-only, hors du domaine `home.*` pour eviter le HSTS).
+    **Seule exception** : `switch.lan` → `192.168.1.2` (equipement HTTP-only, hors du domaine `home.*` pour éviter le HSTS).
 
 !!! success "AdGuard en `network_mode: host`"
     AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
 
     Avantages :
 
-    - **2 regles DNS** au lieu de 4 — plus de bricolage avec le bridge Docker
-    - **Stats par client** dans AdGuard — on voit quel device fait quelles requetes
+    - **2 règles DNS** au lieu de 4 — plus de bricolage avec le bridge Docker
+    - **Stats par client** dans AdGuard — on voit quel device fait quelles requêtes
     - **Reverse proxy** toujours actif via Traefik file provider (`dynamic/dns.yml`)
 
 #### Wildcard `home.gabin-simond.fr`
 
-La regle utilise `||home.gabin-simond.fr^` — c'est un **wildcard**. Ca matche :
+La règle utilisé `||home.gabin-simond.fr^` — c'est un **wildcard**. Ca matche :
 
 - `home.gabin-simond.fr`
 - `traefik.home.gabin-simond.fr`
@@ -116,9 +116,9 @@ La regle utilise `||home.gabin-simond.fr^` — c'est un **wildcard**. Ca matche 
 - `monservice.home.gabin-simond.fr`
 - ... tout sous-domaine de `home.gabin-simond.fr`
 
-**Resultat : pas besoin d'ajouter une regle DNS par service.** Tout nouveau service avec un sous-domaine `*.home.gabin-simond.fr` est automatiquement redirige.
+**Résultat : pas besoin d'ajouter une règle DNS par service.** Tout nouveau service avec un sous-domaine `*.home.gabin-simond.fr` est automatiquement redirige.
 
-### Flow complet d'une requete
+### Flow complet d'une requête
 
 === "Depuis le LAN"
 
@@ -148,7 +148,7 @@ Pour les domaines **non locaux** (tout sauf `*.home.gabin-simond.fr`), AdGuard f
 |---|---|---|
 | Quad9 | DNS-over-HTTPS | `https://dns10.quad9.net/dns-query` |
 
-Bootstrap DNS (pour resoudre `dns10.quad9.net` lui-meme) :
+Bootstrap DNS (pour résoudre `dns10.quad9.net` lui-même) :
 
 - `9.9.9.10`
 - `149.112.112.10`
@@ -165,11 +165,11 @@ Mode : **load balance** entre les upstreams.
 | Magic DNS | Actif |
 | HTTPS certs | Actif (cert `.ts.net` automatique) |
 
-Le VPN mesh Tailscale est gere depuis [login.tailscale.com](https://login.tailscale.com).
+Le VPN mesh Tailscale est géré depuis [login.tailscale.com](https://login.tailscale.com).
 
 ### Tailscale SSH
 
-Mode `check` (MFA navigateur a chaque connexion) active sur `homelab` (penny), `galahad`, `lancelot`. Aucun port 22 expose sur aucun host.
+Mode `check` (MFA navigateur a chaque connexion) activé sur `homelab` (penny), `galahad`, `lancelot`. Aucun port 22 exposé sur aucun host.
 
 ```bash
 ssh gabins@homelab    # penny via MagicDNS Tailscale
@@ -177,11 +177,11 @@ ssh gabins@galahad    # ZimaBoard #1
 ssh gabins@lancelot   # ZimaBoard #2
 ```
 
-Fallback OpenSSH dispo sur les 3 hosts (ports 2806/2807/2808), cle Ed25519 uniquement.
+Fallback OpenSSH dispo sur les 3 hosts (ports 2806/2807/2808), clé Ed25519 uniquement.
 
 ### Politique ACL
 
-La configuration ACL exacte vit dans la console Tailscale et est versionnee par Tailscale (pas dans ce repo). Resume de la politique :
+La configuration ACL exacte vit dans la console Tailscale et est versionnee par Tailscale (pas dans ce repo). Résumé de la politique :
 
 #### Groupes
 
@@ -200,7 +200,7 @@ Pas de compte multi-utilisateur pour l'instant (homelab personnel).
 | `tag:lxc` | dns-failover (et futurs LXCs sur Tailscale) |
 | `tag:client` | iphone, macbook, desktop |
 
-#### Regles d'acces (principe)
+#### Règles d'acces (principe)
 
 - `group:admin` : acces complet a tous les tags.
 - `tag:client` : acces aux services homelab (ports 80, 443, 53, 3000, 8006) mais pas SSH (sauf via Tailscale SSH).
@@ -208,7 +208,7 @@ Pas de compte multi-utilisateur pour l'instant (homelab personnel).
 
 #### SSH ACL
 
-```
+```text
 {
   "sshRules": [
     {
@@ -226,16 +226,16 @@ Pas de compte multi-utilisateur pour l'instant (homelab personnel).
 Procedure en cas de vol / perte / compromission d'un device :
 
 1. [login.tailscale.com](https://login.tailscale.com) > **Machines**
-2. Selectionner le device > **Disable** (acces coupe immediatement)
+2. Selectionner le device > **Disable** (acces coupe immédiatement)
 3. Si perdu definitivement : **Remove**
-4. Rotation globale cles : **Settings > Keys > Auth keys > Revoke**
+4. Rotation globale clés : **Settings > Keys > Auth keys > Revoke**
 5. Les autres devices doivent re-authentifier (sauf ceux avec *key expiry disabled*)
 
-Voir aussi la politique de securite dans [politique.md](../securite/politique.md) et les mesures de hardening dans [hardening.md](../securite/hardening.md).
+Voir aussi la politique de sécurité dans [politique.md](../securite/politique.md) et les mesures de hardening dans [hardening.md](../securite/hardening.md).
 
 ### Key expiry
 
-Desactive sur les serveurs (`homelab`, `dns-failover`, `galahad`, `lancelot`) pour eviter qu'un serveur headless perde l'acces mesh sans intervention humaine. Les clients (iphone, macbook, desktop) gardent l'expiry par defaut (180 jours) + re-auth interactive.
+Désactivé sur les serveurs (`homelab`, `dns-failover`, `galahad`, `lancelot`) pour éviter qu'un serveur headless perde l'acces mesh sans intervention humaine. Les clients (iphone, macbook, desktop) gardent l'expiry par defaut (180 jours) + re-auth interactive.
 
 ### Commandes utiles
 
@@ -249,7 +249,7 @@ tailscale netcheck          # diagnostics NAT / DERP
 
 ## TLS / Certificats
 
-Traefik gere automatiquement les certificats TLS via Let's Encrypt avec le **DNS challenge Cloudflare**.
+Traefik géré automatiquement les certificats TLS via Let's Encrypt avec le **DNS challenge Cloudflare**.
 
 ```mermaid
 sequenceDiagram
@@ -270,5 +270,5 @@ sequenceDiagram
 
 - Pas besoin d'exposer le port 80 sur Internet
 - Fonctionne pour des domaines internes (pas accessibles depuis Internet)
-- Cloudflare gere la zone DNS `gabin-simond.fr`
-- Traefik utilise le token API Cloudflare (`CF_DNS_API_TOKEN`) pour creer/supprimer les records TXT automatiquement
+- Cloudflare géré la zone DNS `gabin-simond.fr`
+- Traefik utilisé le token API Cloudflare (`CF_DNS_API_TOKEN`) pour créer/supprimer les records TXT automatiquement

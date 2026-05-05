@@ -22,7 +22,7 @@ graph TD
 
 ## homelab_monitor.sh
 
-Script bash executé **chaque minute** via cron. Surveille :
+Script bash executé **chaque minute** via cron. Surveillé :
 
 | Check | Seuil | Alerte |
 |---|---|---|
@@ -33,8 +33,8 @@ Script bash executé **chaque minute** via cron. Surveille :
 | Temperature | > 70°C warning, > 80°C critique | :octicons-alert-16: variable |
 | Alimentation | Throttling / under-voltage | :octicons-alert-16: haute |
 | Espace disque SD/SSD | > 80% warning, > 95% critique | :octicons-alert-16: variable |
-| RAM + OOM kill | > 90% ou OOM detecte | :octicons-alert-16: critique |
-| Docker daemon | Ne repond plus | :octicons-alert-16: critique |
+| RAM + OOM kill | > 90% ou OOM détecté | :octicons-alert-16: critique |
+| Docker daemon | Ne répond plus | :octicons-alert-16: critique |
 | Containers | Stopped / unhealthy | :octicons-alert-16: haute |
 | **Auto-repair docker** | Stack vide + daemon UP > 2 min | :octicons-alert-16: info (wrench) |
 | **House alive** | Freebox injoignable TCP 80/443 | :octicons-alert-16: urgent |
@@ -47,14 +47,14 @@ Script bash executé **chaque minute** via cron. Surveille :
 
 ### Cascade suppression (depuis 2026-04-19)
 
-Quand une alerte parente explique plusieurs enfants, le monitor **supprime** les alertes redondantes pour eviter le spam :
+Quand une alerte parente explique plusieurs enfants, le monitor **supprime** les alertes redondantes pour éviter le spam :
 
 | Si | Alerte(s) supprimee(s) | Justification |
 |---|---|---|
 | `house-down` (Freebox ou internet KO) | `cluster-hosts` (galahad/lancelot), `logs-stack`, `pbs-down` | Pas joignable car la maison est down |
 | `lancelot-down` | `logs-stack`, `pbs-down` | Les 2 LXC (101, 103) vivent sur lancelot |
 
-Le log `(suppressed: parent-flag)` montre la suppression. Tu ne recois qu'**une** notification au lieu de 4 pour le meme incident cause-racine.
+Le log `(suppressed: parent-flag)` montre la suppression. Tu ne recois qu'**une** notification au lieu de 4 pour le même incident cause-racine.
 
 ### Auto-repair docker
 
@@ -64,9 +64,9 @@ Le log `(suppressed: parent-flag)` montre la suppression. Tu ne recois qu'**une*
 cd /mnt/ssd/config/docker && docker compose up -d
 ```
 
-Circuit breaker : max 3 tentatives par 24h (compteur `/var/lib/homelab_monitor/autorepair-docker-attempts`). Au 4e, ntfy urgent "autorepair-capped" et stop (force enquete humaine). Opt-out : `touch /var/lib/homelab_monitor/maintenance` avant une maintenance planifiee.
+Circuit breaker : max 3 tentatives par 24h (compteur `/var/lib/homelab_monitor/autorepair-docker-attempts`). Au 4e, ntfy urgent "autorepair-capped" et stop (force enquête humaine). Opt-out : `touch /var/lib/homelab_monitor/maintenance` avant une maintenance planifiee.
 
-Prouve en live 2026-04-19 : stack down apres recreation loki, auto-repair fire 172s apres detection, 13 containers up. Voir log `/var/log/homelab_monitor.log` entry `AUTOREPAIR: docker compose up -d OK`.
+Prouvé en live 2026-04-19 : stack down après recreation loki, auto-repair fire 172s après détection, 13 containers up. Voir log `/var/log/homelab_monitor.log` entry `AUTOREPAIR: docker compose up -d OK`.
 
 ### House signal (deadman complement HomePod)
 
@@ -98,10 +98,10 @@ Cache 1h par repo pour ne pas faire 4 round-trips B2 chaque minute. Alerte ntfy 
 
 ### Deduplication des alertes
 
-Le script utilise des fichiers d'etat dans `/var/lib/homelab_monitor/` :
+Le script utilisé des fichiers d'état dans `/var/lib/homelab_monitor/` :
 
-- Une alerte n'est envoyee qu'**une seule fois** par incident
-- Une notification **"resolved"** est envoyee quand le probleme disparait
+- Une alerte n'est envoyée qu'**une seule fois** par incident
+- Une notification **"resolved"** est envoyée quand le problème disparait
 - Pas de spam sur ntfy
 
 ### Configuration
@@ -115,25 +115,25 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 ## Services de monitoring
 
-| Service | Role | Acces |
+| Service | Rôle | Acces |
 |---|---|---|
-| **Beszel** + agents | Monitoring systeme (CPU, RAM, disque, reseau) — penny, galahad, lancelot | Dashboard web |
+| **Beszel** + agents | Monitoring système (CPU, RAM, disque, réseau) — penny, galahad, lancelot | Dashboard web |
 | **Watchtower** | Auto-update non-critiques + notification mises a jour critiques via ntfy | Headless (pas de dashboard) |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |
-| **SSD auto-recovery** | Remount + fsck + restart Docker apres deconnexion USB | Script (monitor) |
-| **dns-failover health check** | Surveille penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
+| **SSD auto-recovery** | Remount + fsck + restart Docker après deconnexion USB | Script (monitor) |
+| **dns-failover health check** | Surveillé penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
 
 ## Architecture de resilience
 
-Trois couches complementaires, chacune couvre des scenarios differents :
+Trois couches complementaires, chacune couvre des scénarios différents :
 
-| Couche | Outil | Scenario | Action |
+| Couche | Outil | Scénario | Action |
 |---|---|---|---|
 | 1. Monitoring | homelab_monitor.sh | SSD, temp, RAM, disque, containers | Alerte ntfy |
 | 2. Auto-repair | Autoheal | Container unhealthy | Restart container |
 | 3. Dernier recours | Watchdog hardware | Kernel freeze | Reboot complet |
 
 !!! info "Pas de chevauchement"
-    Le watchdog ne remplace PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se declenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.
+    Le watchdog ne remplacé PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se déclenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.

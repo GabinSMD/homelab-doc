@@ -4,24 +4,24 @@ Pipeline observability : les 3 hosts shipent leurs logs (journald + docker + fic
 
 ## Architecture
 
-```
-+---------+    primary       +------------+
-| penny   |----------------->| Loki LXC   |
-| Alloy   |                  | 101 (lancelot)
-|         |\ replica          | :3100     |
-+---------+ \                +------------+
-             \
-              \
-+---------+    \               +---------------+
-| galahad |-----+------------->| loki-replica  |
-| Alloy   |                    | penny :3101   |
-+---------+                    | (Docker ctn)  |
-                               +---------------+
-+---------+    primary
-| lancelot|------------------->  Loki LXC 101
-| Alloy   |
-|         |-replica----------> loki-replica penny
-+---------+
+```mermaid
+flowchart LR
+    P[penny<br/>Alloy]
+    G[galahad<br/>Alloy]
+    L[lancelot<br/>Alloy]
+
+    LP[Loki LXC 101<br/>lancelot :3100<br/>primary]
+    LR[loki-replica<br/>penny :3101<br/>Docker ctn]
+
+    P -->|primary| LP
+    P -.replica.-> LR
+    G -->|primary| LP
+    G -.replica.-> LR
+    L -->|primary| LP
+    L -.replica.-> LR
+
+    style LP fill:#d4edda,stroke:#28a745
+    style LR fill:#fff3cd,stroke:#ffc107
 ```
 
 **Depuis 2026-04-19** : galahad + lancelot ecrivent aussi vers la replica (avant, seul penny le faisait).
@@ -38,7 +38,7 @@ Pipeline observability : les 3 hosts shipent leurs logs (journald + docker + fic
 
 ## Loki instances
 
-| Instance | Host | Role | Retention |
+| Instance | Host | Rôle | Retention |
 |----------|------|------|-----------|
 | primary | LXC 101 sur lancelot, port 3100 | Canonical, scrape par Grafana | 30 jours |
 | replica | container `loki-replica` sur penny, port 3101 | Backup / query si primary KO | 30 jours |
@@ -68,7 +68,7 @@ loki.source.journal "system" {
 
 Alloy a un WAL interne : si un Loki est down, les chunks sont bufferises localement et rejoues au retour.
 
-## Verification
+## Vérification
 
 ### Labels recus par chaque Loki
 
@@ -104,7 +104,7 @@ systemctl enable --now alloy
 
 ## Impact fix Docker log-driver (2026-04-19)
 
-Docker penny est passe de `journald` a `json-file` log-driver (cf `operations/depannage.md` section "Docker daemon crash loop"). Consequence : **avant**, docker logs arrivaient via journald → Alloy les captait via `loki.source.journal`. **Apres**, docker logs sont dans `/var/lib/docker/containers/*/*-json.log` — Alloy a une source `loki.source.docker` qui lit via socket Docker API, fonctionne idem.
+Docker penny est passe de `journald` a `json-file` log-driver (cf `operations/depannage.md` section "Docker daemon crash loop"). Consequence : **avant**, docker logs arrivaient via journald → Alloy les captait via `loki.source.journal`. **Après**, docker logs sont dans `/var/lib/docker/containers/*/*-json.log` — Alloy a une source `loki.source.docker` qui lit via socket Docker API, fonctionne idem.
 
 Les logs pre-switch (avant 2026-04-19 17:17) sont dans journald encore, queryables avec filter `unit="docker.service"` OU `CONTAINER_NAME=...` (Docker les taguait).
 
@@ -114,10 +114,10 @@ Les logs pre-switch (avant 2026-04-19 17:17) sont dans journald encore, queryabl
 
 ## Alerting Grafana
 
-Contact point ntfy configure. Regles :
+Contact point ntfy configuré. Règles :
 - Authelia auth failures
 - fail2ban bans
 - Traefik 5xx rate
 - auditd sudo events
 
-Topic ntfy hex 32 chars (`ae8fcbd...`), partage avec `homelab_monitor.sh` (meme canal, categories distinctes par title).
+Topic ntfy hex 32 chars (`ae8fcbd...`), partagé avec `homelab_monitor.sh` (même canal, categories distinctes par title).

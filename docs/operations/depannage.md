@@ -1,6 +1,6 @@
-# Maintenance et depannage
+# Maintenance et dépannage
 
-Procedures de maintenance courante et resolution des problemes rencontres.
+Procedures de maintenance courante et resolution des problèmes rencontres.
 
 ---
 
@@ -22,7 +22,7 @@ docker compose up -d   # Redeploy avec les nouvelles images
 docker image prune -f  # Supprime les anciennes images
 ```
 
-!!! tip "Watchtower surveille les mises a jour"
+!!! tip "Watchtower surveillé les mises a jour"
     Watchtower auto-update les services non-critiques et notifie via ntfy quand une mise a jour est disponible pour les services critiques (monitor-only).
 
 ### Firmware RPi
@@ -37,9 +37,9 @@ rpi-update             # Met a jour le firmware (attention, peut casser)
 
 ---
 
-## Verification post-reboot
+## Vérification post-reboot
 
-Checklist apres un reboot :
+Checklist après un reboot :
 
 - [ ] SSD monte sur `/mnt/ssd` en rw
 - [ ] `pcie_aspm=off` actif (`cat /sys/module/pcie_aspm/parameters/policy` → `[off]`)
@@ -59,7 +59,7 @@ Checklist apres un reboot :
 - `usb 2-2: USB disconnect` suivi de re-enumeration
 - `device offline error, dev sdX`
 - Services Docker inaccessibles (Docker root sur le SSD)
-- Le device change de nom (`sda` → `sdb` → `sdc`) apres chaque reconnexion
+- Le device change de nom (`sda` → `sdb` → `sdc`) après chaque reconnexion
 
 ### Cause racine
 
@@ -73,14 +73,14 @@ Le bridge USB-SATA **ASMedia ASM1156** (Argon Forty) est sensible a :
 
 Dans `/boot/firmware/cmdline.txt` :
 
-```
+```text
 pcie_aspm=off usbcore.autosuspend=-1 usb-storage.quirks=174c:1156:u
 ```
 
-| Parametre | Effet |
+| Paramètre | Effet |
 |---|---|
-| `pcie_aspm=off` | Desactive le power management PCIe (fix principal) |
-| `usbcore.autosuspend=-1` | Desactive l'USB autosuspend |
+| `pcie_aspm=off` | Désactivé le power management PCIe (fix principal) |
+| `usbcore.autosuspend=-1` | Désactivé l'USB autosuspend |
 | `usb-storage.quirks=174c:1156:u` | Force `usb-storage` au lieu de UAS pour le bridge ASMedia |
 
 ### Procedure de recovery manuelle
@@ -109,33 +109,33 @@ systemctl start docker
 
 ### Auto-recovery (homelab_monitor.sh)
 
-Le script `homelab_monitor.sh` integre une **recovery automatique** en cas de deconnexion SSD :
+Le script `homelab_monitor.sh` intégré une **recovery automatique** en cas de deconnexion SSD :
 
 1. **Stop Docker** en premier (libere les file handles sur le SSD)
 2. **Double unmount** (`umount -f` + `umount -l`) pour nettoyer les mounts stale
 3. Attend que le device reapparaisse **par UUID** jusqu'a 60s + 3s de stabilisation
 4. `fsck.ext4 -y` sur le **nouveau** device (pas l'ancien)
-5. Verifie le code retour fsck (abort si >= 4)
+5. Vérifie le code retour fsck (abort si >= 4)
 6. Remonte `/mnt/ssd` via fstab (UUID)
-7. Redemarre Docker, attend 10s pour les containers
+7. Redémarre Docker, attend 10s pour les containers
 8. Notification ntfy "SSD RECOVERED" ou "RECOVERY FAILED"
 
 !!! info "Changement de device name (sda → sdb)"
-    Le bridge ASMedia re-enumere le SSD avec un nouveau nom apres chaque deconnexion (`sda` → `sdb` → `sdc`). La recovery utilise l'UUID (pas le nom de device) pour retrouver le SSD quel que soit son nouveau nom. Le fstab utilise aussi l'UUID.
+    Le bridge ASMedia re-enumere le SSD avec un nouveau nom après chaque deconnexion (`sda` → `sdb` → `sdc`). La recovery utilisé l'UUID (pas le nom de device) pour retrouver le SSD quel que soit son nouveau nom. Le fstab utilisé aussi l'UUID.
 
 **Rate limit** : max 3 tentatives par heure. Si les 3 echouent, alerte "SSD Recovery EPUISE — intervention manuelle requise."
 
 ### Investigation historique
 
-Le support Argon a recommande :
+Le support Argon a recommandé :
 
-1. ~~Tester avec un cable USB 3.0 A-A court au lieu du dongle integre~~ **Teste** — meme probleme de deconnexion qu'avec le dongle
-2. Tester avec un SSD different (fanxiang S201 128 Go commande)
-3. ~~Verifier les logs pour ecarter un probleme logiciel~~ **Elimine** — aucun processus particulier au moment du disconnect
+1. ~~Tester avec un cable USB 3.0 A-A court au lieu du dongle intégré~~ **Teste** — même problème de deconnexion qu'avec le dongle
+2. Tester avec un SSD différent (fanxiang S201 128 Go commande)
+3. ~~Vérifier les logs pour ecarter un problème logiciel~~ **Elimine** — aucun processus particulier au moment du disconnect
 
 **Conclusion provisoire** : le bridge ASMedia ASM1156 est la cause, ni le cable ni le dongle. Le SSD de remplacement sera le test definitif.
 
-Donnees SMART : `UDMA_CRC_Error_Count = 4` (erreurs de communication SATA), pas de secteurs realloues.
+Données SMART : `UDMA_CRC_Error_Count = 4` (erreurs de communication SATA), pas de secteurs realloues.
 
 ---
 
@@ -161,7 +161,7 @@ Patcher l'installeur avant de lancer l'installation. Voir le [guide complet](../
 
 Popup a chaque connexion a l'interface web.
 
-**Fix** : le script `proxmox-post-install.sh` patche le fichier JS de l'interface web et redemarre `pveproxy`.
+**Fix** : le script `proxmox-post-install.sh` patche le fichier JS de l'interface web et redémarre `pveproxy`.
 
 ### "Some suites are misconfigured"
 
@@ -181,16 +181,16 @@ Un fichier `.list` legacy avec la suite `bookworm` au lieu de `trixie`.
 
 ### Symptome
 
-Les containers ne peuvent pas resoudre `*.home.gabin-simond.fr` (ex: `auth.home.gabin-simond.fr`).
+Les containers ne peuvent pas résoudre `*.home.gabin-simond.fr` (ex: `auth.home.gabin-simond.fr`).
 Erreur typique : `dial tcp: lookup auth.home.gabin-simond.fr on 127.0.0.11:53: no such host`
 
 ### Cause
 
-Les containers sur le reseau Docker `proxy` utilisent le DNS Docker interne (`127.0.0.11`) qui ne connait pas les rewrites AdGuard.
+Les containers sur le réseau Docker `proxy` utilisent le DNS Docker interne (`127.0.0.11`) qui ne connait pas les rewrites AdGuard.
 
 ### Fix
 
-Ajouter `dns: 192.168.1.28` dans le `docker-compose.yml` pour chaque container qui a besoin de resoudre des domaines locaux (Portainer, Beszel, Homepage, Vaultwarden).
+Ajouter `dns: 192.168.1.28` dans le `docker-compose.yml` pour chaque container qui a besoin de résoudre des domaines locaux (Portainer, Beszel, Homepage, Vaultwarden).
 
 ```yaml
 services:
@@ -209,14 +209,14 @@ Login OIDC via Authelia renvoie `403 — Only superusers can perform this action
 
 ### Cause
 
-PocketBase (backend de Beszel) bloque la creation de comptes via OAuth2 par defaut.
+PocketBase (backend de Beszel) bloque la création de comptes via OAuth2 par defaut.
 
 ### Workaround
 
-1. Aller dans `/_/#/settings` → desactiver la restriction admin-only creation
+1. Aller dans `/_/#/settings` → désactiver la restriction admin-only création
 2. Editer la collection `users` → API Rules → changer le "Create rule" en : `@request.context = "oauth2"`
 3. Reactiver la restriction admin-only
-4. Se connecter via OIDC (le compte est cree avec le role `user`)
+4. Se connecter via OIDC (le compte est créé avec le rôle `user`)
 5. Aller dans `/_/#/collections` → `users` → promouvoir le compte en `admin`
 
 Source : [henrygd/beszel#291](https://github.com/henrygd/beszel/issues/291)
@@ -231,10 +231,10 @@ Erreur `invalid_request` : `The 'redirect_uri' parameter does not match any of t
 
 ### Cause
 
-L'URI de callback du service ne correspond pas exactement a ce qui est configure dans Authelia. Attention aux :
+L'URI de callback du service ne correspond pas exactement a ce qui est configuré dans Authelia. Attention aux :
 
 - Trailing slash (`/` vs pas de `/`)
-- Chemins specifiques (`/api/oauth2-redirect`, `/identity/connect/oidc-signin`)
+- Chemins spécifiques (`/api/oauth2-redirect`, `/identity/connect/oidc-signin`)
 
 ### Diagnostic
 
@@ -262,13 +262,13 @@ Certains services (ex: `auth.home.gabin-simond.fr`, `vault.home.gabin-simond.fr`
 
 ### Cause
 
-Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent les `user_rules` conditionnelles. Les rewrites statiques sont appliquees en premier et renvoient toujours l'IP LAN (`192.168.1.28`), meme aux clients Tailscale qui ont besoin de l'IP Tailscale (`100.97.239.90`).
+Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent les `user_rules` conditionnelles. Les rewrites statiques sont appliquees en premier et renvoient toujours l'IP LAN (`192.168.1.28`), même aux clients Tailscale qui ont besoin de l'IP Tailscale (`100.97.239.90`).
 
 ### Fix
 
-Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` gere deja tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
+Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` géré déjà tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
 
-Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le detail des regles.
+Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le détail des règles.
 
 ---
 
@@ -282,9 +282,9 @@ Login Authelia fonctionne (popup s'ouvre, auth OK) mais retour sur Beszel = page
 
 **1. DNS Docker → NXDOMAIN pour `auth.home.gabin-simond.fr`**
 
-Le wildcard AdGuard `||home.gabin-simond.fr^$dnsrewrite=...,client=192.168.1.0/24` ne matche PAS les containers Docker (`172.20.0.x`). PocketBase ne peut pas resoudre `auth.home...` → token exchange echoue silencieusement.
+Le wildcard AdGuard `||home.gabin-simond.fr^$dnsrewrite=...,client=192.168.1.0/24` ne matche PAS les containers Docker (`172.20.0.x`). PocketBase ne peut pas résoudre `auth.home...` → token exchange échoué silencieusement.
 
-Fix : ajouter un rewrite specifique (non filtre par client) dans AdGuard :
+Fix : ajouter un rewrite spécifique (non filtre par client) dans AdGuard :
 ```yaml
 rewrites:
   - domain: auth.home.gabin-simond.fr
@@ -294,7 +294,7 @@ rewrites:
 
 **2. Image scratch Beszel = pas de CA certificates**
 
-Go HTTP client ne peut pas verifier le cert Let's Encrypt → TLS handshake echoue silencieusement.
+Go HTTP client ne peut pas vérifier le cert Let's Encrypt → TLS handshake échoué silencieusement.
 
 Fix dans `docker-compose.yml` :
 ```yaml
@@ -307,7 +307,7 @@ beszel:
 
 **3. Subject ID mismatch dans PocketBase**
 
-Si les sessions OIDC Authelia sont purgees, le subject ID change. La table `_externalAuths` dans PocketBase garde l'ancien ID → mismatch → 401 apres token exchange reussi.
+Si les sessions OIDC Authelia sont purgees, le subject ID change. La table `_externalAuths` dans PocketBase garde l'ancien ID → mismatch → 401 après token exchange réussi.
 
 ```bash
 # Trouver le nouveau subject dans les logs Authelia (debug) :
@@ -321,7 +321,7 @@ sqlite3 /path/to/beszel/data.db \
 
 - Ne JAMAIS purger les sessions OIDC Authelia sans re-aligner les `_externalAuths`
 - Garder les CA certs montes en permanence dans Beszel
-- Tester l'OIDC apres chaque rotation de secret
+- Tester l'OIDC après chaque rotation de secret
 
 ---
 
@@ -329,7 +329,7 @@ sqlite3 /path/to/beszel/data.db \
 
 ### Cause
 
-Le beszel-agent cache le hostname au demarrage. Si le hostname systeme a ete renomme APRES le demarrage de l'agent, l'ancien nom persiste dans `system_details`.
+Le beszel-agent cache le hostname au démarrage. Si le hostname système a été renomme APRÈS le démarrage de l'agent, l'ancien nom persiste dans `system_details`.
 
 ### Fix
 
@@ -359,7 +359,7 @@ docker run --rm -v config_portainer-data:/data portainer/helper-reset-password
 docker compose up -d portainer
 ```
 
-Le helper genere un nouveau mot de passe aleatoire.
+Le helper généré un nouveau mot de passe aleatoire.
 
 ---
 
@@ -367,7 +367,7 @@ Le helper genere un nouveau mot de passe aleatoire.
 
 ### Cause
 
-Un process Portainer fantome tient le verrou BoltDB. Typiquement apres un reset de mot de passe via `--admin-password` qui n'a pas ete arrete proprement.
+Un process Portainer fantome tient le verrou BoltDB. Typiquement après un reset de mot de passe via `--admin-password` qui n'a pas été arrêté proprement.
 
 ### Fix
 
@@ -410,15 +410,15 @@ ln -sf ext-all-debug.js ext6-all-debug.js
 
 **3. Security headers incompatibles (CSP, COOP)**
 
-`Content-Security-Policy` ou `Cross-Origin-Opener-Policy: same-origin` appliques globalement cassent ExtJS + WebSocket. Les headers de securite ne doivent PAS etre appliques aux routes PVE.
+`Content-Security-Policy` ou `Cross-Origin-Opener-Policy: same-origin` appliques globalement cassent ExtJS + WebSocket. Les headers de sécurité ne doivent PAS être appliques aux routes PVE.
 
 ---
 
-## Stack down apres `docker compose down` + reboot
+## Stack down après `docker compose down` + reboot
 
 ### Symptome
 
-Apres un reboot (ou un `docker compose down` suivi d'une session qui n'a pas pu `up`), **aucun container ne remonte** meme si Docker tourne :
+Après un reboot (ou un `docker compose down` suivi d'une session qui n'a pas pu `up`), **aucun container ne remonte** même si Docker tourne :
 
 ```bash
 docker ps           # vide
@@ -428,12 +428,12 @@ systemctl is-active docker  # active
 
 ### Cause racine
 
-La restart policy du compose est `unless-stopped`. Docker **n'auto-redemarre pas** les containers arretes via `docker stop` ou `docker compose down` — meme a travers un reboot daemon. Seuls les containers crashes (`restart: always`) ou arretes par panne remontent.
+La restart policy du compose est `unless-stopped`. Docker **n'auto-redémarre pas** les containers arretes via `docker stop` ou `docker compose down` — même a travers un reboot daemon. Seuls les containers crashes (`restart: always`) ou arretes par panne remontent.
 
-C'est voulu (securite contre boucle de redemarrage), mais ca veut dire qu'un `down` oublie = stack morte jusqu'au prochain `up`.
+C'est voulu (sécurité contre boucle de redémarrage), mais ca veut dire qu'un `down` oublie = stack morte jusqu'au prochain `up`.
 
 !!! tip "Auto-repair depuis 2026-04-19"
-    `check_docker_autorepair` dans `homelab_monitor.sh` detecte stack vide + daemon actif et lance `docker compose up -d` apres 2 min. Circuit breaker 3 tentatives / 24h : au 3e echec ntfy urgent "autorepair-capped" et stop. Reset : `rm /var/lib/homelab_monitor/autorepair-docker-attempts`.
+    `check_docker_autorepair` dans `homelab_monitor.sh` détecté stack vide + daemon actif et lance `docker compose up -d` après 2 min. Circuit breaker 3 tentatives / 24h : au 3e échec ntfy urgent "autorepair-capped" et stop. Reset : `rm /var/lib/homelab_monitor/autorepair-docker-attempts`.
 
 ### Fix
 
@@ -441,7 +441,7 @@ C'est voulu (securite contre boucle de redemarrage), mais ca veut dire qu'un `do
 cd /mnt/ssd/config/docker && docker compose up -d
 ```
 
-Attendre 15-30 s et verifier healthchecks :
+Attendre 15-30 s et vérifier healthchecks :
 
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Status}}'
@@ -450,8 +450,8 @@ docker ps --format 'table {{.Names}}\t{{.Status}}'
 ### Prevention
 
 - Toujours terminer une session de maintenance par `docker compose up -d` avant de fermer le terminal.
-- En cas de session interrompue (outil bash cassé, etc.), noter l'etat avec `/checkpoint` pour que la session suivante sache qu'il faut redemarrer.
-- Utiliser `homelab_monitor.sh` (hook systemd) pour alerter si `docker ps` renvoie vide apres boot.
+- En cas de session interrompue (outil bash cassé, etc.), noter l'état avec `/checkpoint` pour que la session suivante sache qu'il faut redémarrer.
+- Utiliser `homelab_monitor.sh` (hook systemd) pour alerter si `docker ps` renvoie vide après boot.
 
 ---
 
@@ -459,18 +459,18 @@ docker ps --format 'table {{.Names}}\t{{.Status}}'
 
 ### Symptome
 
-```
+```text
 Error: failed copying from /tmp/tempXXXXX to /etc/crowdsec/local_api_credentials.yaml:
   open /etc/crowdsec/local_api_credentials.yaml: read-only file system
 ```
 
-Container `crowdsec` en etat `Restarting (1)` en boucle, meme apres nettoyage du volume `crowdsec-data`.
+Container `crowdsec` en état `Restarting (1)` en boucle, même après nettoyage du volume `crowdsec-data`.
 
 ### Cause
 
-L'entrypoint CrowdSec **reecrit `local_api_credentials.yaml` et `online_api_credentials.yaml` a chaque boot** (`config_set` sur machine id/URL), meme quand la machine est deja registered. Si le bind-mount est en `:ro`, le `mv /tmp/xxx → /etc/crowdsec/...` echoue.
+L'entrypoint CrowdSec **reecrit `local_api_credentials.yaml` et `online_api_credentials.yaml` a chaque boot** (`config_set` sur machine id/URL), même quand la machine est déjà registered. Si le bind-mount est en `:ro`, le `mv /tmp/xxx → /etc/crowdsec/...` échoué.
 
-Typique quand on active le declassement sops→tmpfs et qu'on mount les credentials read-only par reflex securite.
+Typique quand on activé le declassement sops→tmpfs et qu'on mount les credentials read-only par reflex sécurité.
 
 ### Fix
 
@@ -492,9 +492,9 @@ cd /mnt/ssd/config/docker && docker compose up -d crowdsec
 
 - **Chiffrement at-rest** : les fichiers sont stockes chiffres (sops) dans le repo config. Le `.yaml` en clair ne vit qu'en RAM sur `/run/homelab/` (tmpfs).
 - **Tmpfs runtime** : pas de persistance sur disque, efface au shutdown.
-- **Scope limite** : seul le container crowdsec peut ecrire sur son propre bind-mount, pas d'escalade.
+- **Scope limité** : seul le container crowdsec peut ecrire sur son propre bind-mount, pas d'escalade.
 
-Les fichiers sops contiennent l'ID machine + une URL — sensibles mais pas aussi critiques qu'une cle privee. L'interet du sops-declassement reste : **pas de secret en clair dans git**.
+Les fichiers sops contiennent l'ID machine + une URL — sensibles mais pas aussi critiques qu'une clé privee. L'interet du sops-declassement reste : **pas de secret en clair dans git**.
 
 ### Diagnostic
 
@@ -513,7 +513,7 @@ ls -la /run/homelab/crowdsec/               # confirmer que les fichiers sont de
 
 `systemctl show docker --property=NRestarts` > 3 dans la journee, containers exit 0 massivement en cascade, auto-repair plafonne :
 
-```
+```text
 dockerd[PID]: SIGBUS: bus error
 dockerd[PID]: github.com/moby/moby/v2/daemon/logger/journald/internal/sdjournal._Cfunc_sd_journal_next
 ```
@@ -545,15 +545,15 @@ Puis `systemctl restart docker && docker compose up -d`.
 - Les logs containers ne sont plus dans `journalctl` (ni `journalctl CONTAINER_NAME=X`).
 - `docker logs X --tail N` continue de fonctionner (lit json-file direct).
 - Alloy/Promtail pour shipping : doit lire `/var/lib/docker/containers/*/*-json.log` au lieu de journald.
-- Historique pre-switch perdu (Loki l'a deja ingere si actif).
+- Historique pre-switch perdu (Loki l'a déjà ingere si actif).
 
 ---
 
-## pmxcfs stuck read-only apres recovery node cluster
+## pmxcfs stuck read-only après recovery node cluster
 
 ### Symptome
 
-Sur un cluster 2-node, apres qu'un node tombe puis revient, `corosync-quorumtool -s` montre `Quorate: Yes` mais :
+Sur un cluster 2-node, après qu'un node tombe puis revient, `corosync-quorumtool -s` montre `Quorate: Yes` mais :
 
 ```bash
 sudo pvecm status           # ipcc_send_rec[1] failed: Unknown error -1
@@ -563,7 +563,7 @@ sudo touch /etc/pve/.x      # Read-only file system
 
 ### Cause racine
 
-pmxcfs (fuse mount de `/etc/pve`) est demarre AVANT que corosync reforme le quorum, et ne retransitionne pas automatiquement vers RW une fois le quorum retrouve. Etat transitoire coince.
+pmxcfs (fuse mount de `/etc/pve`) est démarre AVANT que corosync reforme le quorum, et ne retransitionne pas automatiquement vers RW une fois le quorum retrouve. État transitoire coince.
 
 ### Fix
 
@@ -573,7 +573,7 @@ sleep 3
 sudo touch /etc/pve/.x && sudo rm /etc/pve/.x && echo OK
 ```
 
-Zero impact sur les LXC running — `/etc/pve` n'est utilise qu'a la reconfig, pas au runtime container.
+Zero impact sur les LXC running — `/etc/pve` n'est utilisé qu'a la reconfig, pas au runtime container.
 
 ### Prevention
 
@@ -587,7 +587,7 @@ Qdevice (3e vote) : le survivant ne perd jamais quorum → pmxcfs reste RW tout 
 
 Sur galahad ou lancelot, via SSH :
 
-```
+```text
 sudo apt install X          # "Read-only file system" sur /etc/*.dpkg-new
 sudo pct set N --onboot 1   # idem sur /etc/pve/nodes/X/lxc/N.conf.tmp.PID
 findmnt /etc                # /etc /dev/mapper/pve-root[/etc] ext4 ro,relatime
@@ -625,7 +625,7 @@ systemctl daemon-reload
 systemctl restart <svc>
 ```
 
-2. Remount RW immediate pour enlever les leaks deja presents :
+2. Remount RW immédiate pour enlever les leaks déjà presents :
 
 ```bash
 mount -o remount,rw /etc
@@ -633,7 +633,7 @@ mount -o remount,rw /usr
 mount -o remount,rw /boot
 ```
 
-Le restart `ssh.service` appliquant le drop-in risque de kill la session — scheduler via `systemd-run --on-active=30s systemctl restart ssh` pour preserver la connexion active.
+Le restart `ssh.service` appliquant le drop-in risque de kill la session — scheduler via `systemd-run --on-active=30s systemctl restart ssh` pour préserver la connexion activé.
 
 ### Services concernes (2026-04-19)
 

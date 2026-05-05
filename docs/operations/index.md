@@ -1,10 +1,10 @@
-# Operations
+# Opérations
 
-Surveillance, sauvegardes, procedures d'urgence et depannage.
+Surveillance, sauvegardes, procedures d'urgence et dépannage.
 
 | Page | Quand l'utiliser |
 |---|---|
 | [Monitoring](monitoring.md) | Comprendre les couches de surveillance (script, Beszel, autoheal, watchdog) |
-| [Backups](backups.md) | Verifier la strategie, les retentions, restaurer des donnees |
-| [Break-glass](break-glass.md) | **Urgence** — reconstruire le homelab apres un incident majeur |
-| [Depannage](depannage.md) | Diagnostiquer un probleme connu (DNS, OIDC, SSD, containers) |
+| [Backups](backups.md) | Vérifier la strategie, les retentions, restaurer des données |
+| [Break-glass](break-glass.md) | **Urgence** — reconstruire le homelab après un incident majeur |
+| [Dépannage](depannage.md) | Diagnostiquer un problème connu (DNS, OIDC, SSD, containers) |

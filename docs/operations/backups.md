@@ -28,9 +28,9 @@ graph LR
     Git[Configs + Scripts] -->|git push| GitHub[GitHub<br/>homelab-config prive]
 ```
 
-**Chiffrement** : AES-256 cote client (restic pour penny + Vaultwarden). PBS chiffre au niveau datastore (AES-256-GCM).
+**Chiffrement** : AES-256 côté client (restic pour penny + Vaultwarden). PBS chiffre au niveau datastore (AES-256-GCM).
 
-**Regle 3-2-1 :**
+**Règle 3-2-1 :**
 
 - **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Backblaze B2 (restic chiffre)
 - **2** supports : SSD/eMMC + cloud
@@ -42,7 +42,7 @@ graph LR
 
 ### Infrastructure
 
-| Element | Detail |
+| Element | Détail |
 |---|---|
 | LXC | 103 "pbs" sur lancelot, unprivileged, Debian 13, IP 192.168.1.33 |
 | Datastore "main" | `/mnt/datastore` (bind-mount depuis lancelot `/mnt/pbs-nfs`) |
@@ -55,7 +55,7 @@ graph LR
 
 Voir [comptes.md](../securite/comptes.md) pour la convention complete.
 
-| Compte | Role | Usage |
+| Compte | Rôle | Usage |
 |---|---|---|
 | `root@pam` | Superuser | Break-glass uniquement |
 | `gabins@authelia` | Admin sur `/` | Login quotidien UI via OIDC 2FA |
@@ -71,14 +71,14 @@ Les deux nodes PVE (galahad + lancelot) envoient leurs LXC directement au PBS vi
 | 100 (dns-failover) | AdGuard secondaire | galahad | Moyenne |
 | 101 (logs) | Loki + Grafana | lancelot | Faible |
 | 102 (vault) | Vaultwarden | galahad | **Critique** |
-| 103 (pbs) | PBS lui-meme | lancelot | Moyenne (reconstructible) |
+| 103 (pbs) | PBS lui-même | lancelot | Moyenne (reconstructible) |
 
 !!! warning "vzdump hook temporaire"
     Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
 
 ### vzdump-permfix-hook.sh
 
-Hook vzdump enregistre dans `/etc/vzdump.conf` sur galahad et lancelot :
+Hook vzdump enregistré dans `/etc/vzdump.conf` sur galahad et lancelot :
 
 ```ini
 # /etc/vzdump.conf
@@ -86,17 +86,17 @@ tmpdir: /tmp
 script: /usr/local/bin/vzdump-permfix-hook.sh
 ```
 
-Le hook lance un watcher en arriere-plan a `backup-start` qui surveille l'apparition de `pct.conf` dans le tmpdir et corrige ses permissions (`chmod a+rX` dirs, `chmod a+r` fichiers) pour que `lxc-usernsexec` (UID 100000) puisse les lire.
+Le hook lance un watcher en arriere-plan a `backup-start` qui surveillé l'apparition de `pct.conf` dans le tmpdir et corrige ses permissions (`chmod a+rX` dirs, `chmod a+r` fichiers) pour que `lxc-usernsexec` (UID 100000) puisse les lire.
 
 ---
 
 ## Restic-direct vers B2 (4 chaines parallel)
 
-Chaque LXC critique a un backup `restic` independant direct vers B2, complementaire de PBS. Meme si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
+Chaque LXC critique a un backup `restic` independant direct vers B2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
 
 ### Vue d'ensemble
 
-| Repo B2 | Source | Script | Frequence | Retention | Seuil freshness monitor |
+| Repo B2 | Source | Script | Fréquence | Retention | Seuil freshness monitor |
 |---------|--------|--------|-----------|-----------|-------------------------|
 | `restic` | penny configs+volumes+pbs-datastore | `/root/homelab_backup.sh` | daily 03:00 | 7d/4w/6m | 30h |
 | `restic-vault` | LXC 102 vaultwarden | `/usr/local/bin/vault-backup.sh` | **hourly** | 7d/4w/6m | **3h** |
@@ -107,22 +107,22 @@ Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur ch
 
 ### Vault — hourly pattern
 
-| Element | Detail |
+| Element | Détail |
 |---|---|
 | Script | `/usr/local/bin/vault-backup.sh` dans LXC 102 |
 | Cron | **Horaire** (snapshot SQLite atomic via `.backup` API) |
-| Methode | `.backup` vers `/var/backups/vault/db.sqlite3` (zero downtime) + `/opt/vaultwarden/` complet |
+| Méthode | `.backup` vers `/var/backups/vault/db.sqlite3` (zero downtime) + `/opt/vaultwarden/` complet |
 | Notification | ntfy (low OK, high FAIL) |
 
 ### DNS-failover / Logs — daily pattern
 
-Meme script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/system/lxc-scripts/`.
+Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/system/lxc-scripts/`.
 
 ### Integrite : restic-check-monthly.sh multi-repo
 
-Cron penny `1er de chaque mois 04:00` : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot detection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
+Cron penny `1er de chaque mois 04:00` : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
 
-Alerte ntfy haute si UN repo echoue (les autres continuent). Script : `scripts/restic-check-monthly.sh`.
+Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts/restic-check-monthly.sh`.
 
 ### Freshness monitor
 
@@ -136,51 +136,51 @@ Alerte ntfy haute si UN repo echoue (les autres continuent). Script : `scripts/r
 
 **Volumes Docker (stages puis backup) :**
 
-| Donnee | Volume | Criticite |
+| Donnée | Volume | Criticite |
 |---|---|---|
 | Beszel (historique monitoring) | `config_beszel-data` | Faible |
 | Portainer (config Docker) | `config_portainer-data` | Moyenne |
 
 **Configs avec secrets :**
 
-| Donnee | Chemin | Criticite |
+| Donnée | Chemin | Criticite |
 |---|---|---|
-| Authelia (DB SQLite + cle OIDC + config + secrets) | `/mnt/ssd/config/authelia/` | **Critique** |
+| Authelia (DB SQLite + clé OIDC + config + secrets) | `/mnt/ssd/config/authelia/` | **Critique** |
 | AdGuard (config avec rewrites) | `/mnt/ssd/config/adguard/` | Haute |
 | Traefik (config + dynamic routes) | `/mnt/ssd/config/traefik/` | Haute |
 | Homepage (dashboard config) | `/mnt/ssd/config/homepage/` | Faible |
-| Scripts systeme | `/mnt/ssd/config/scripts/` | Moyenne |
+| Scripts système | `/mnt/ssd/config/scripts/` | Moyenne |
 | Boot config (cmdline, config.txt) | `/mnt/ssd/config/boot/` | Haute |
 | System config (fstab, sysctl) | `/mnt/ssd/config/system/` | Haute |
 
 ### Via Git (a chaque modification)
 
-| Donnee | Repo | Visibilite |
+| Donnée | Repo | Visibilite |
 |---|---|---|
 | Configs applicatives (Traefik, AdGuard, Homepage, etc.) | `homelab-config` | Prive |
-| Config systeme (boot, fstab, udev, sysctl, crontab) | `homelab-config` | Prive |
+| Config système (boot, fstab, udev, sysctl, crontab) | `homelab-config` | Prive |
 | Scripts (monitor, backup, vzdump, proxmox) | `homelab-config` | Prive |
 | Templates Authelia (`.example`, sans secrets) | `homelab-config` | Prive |
 | Documentation | `homelab-doc` | Public |
 
 ### Script homelab_backup.sh
 
-**Execution** : cron quotidien a 3h (`0 3 * * *`)
+**Exécution** : cron quotidien a 3h (`0 3 * * *`)
 
 **Fonctionnement** :
 
-1. Verification preflight (`.restic-env` present, `restic` installe)
+1. Vérification preflight (`.restic-env` present, `restic` installe)
 2. Stage chaque volume Docker vers `/mnt/ssd/.restic-staging/<label>/`
 3. `restic backup` : staging + configs → B2 (chiffre AES-256)
 4. Nettoyage du staging
 5. `restic forget` : retention 7 daily / 4 weekly / 6 monthly + prune
-6. Notification ntfy (succes ou echec avec duree)
+6. Notification ntfy (succes ou échec avec durée)
 
-**Verification d'integrite** : `restic-check-monthly.sh` (1er du mois, 4h)
+**Vérification d'integrite** : `restic-check-monthly.sh` (1er du mois, 4h)
 
-- Verification structure (indexes, packs)
-- Verification 10% donnees aleatoires (detection bit rot)
-- Alerte ntfy en cas d'echec
+- Vérification structure (indexes, packs)
+- Vérification 10% données aleatoires (détection bit rot)
+- Alerte ntfy en cas d'échec
 
 ### Destinations
 
@@ -188,13 +188,13 @@ Alerte ntfy haute si UN repo echoue (les autres continuent). Script : `scripts/r
 |---|---|---|---|---|
 | Backblaze B2 (restic penny) | `gabin-homelab-backups/restic` | 7d / 4w / 6m | AES-256 client-side | Gratuit (<10 Go) |
 | Backblaze B2 (restic vault) | `gabin-homelab-backups/restic-vault` | 7d / 4w / 6m | AES-256 client-side | Gratuit |
-| PBS datastore "main" (NFS penny) | `/mnt/ssd/pbs-datastore` | Configuree dans PBS | AES-256-GCM | Gratuit |
+| PBS datastore "main" (NFS penny) | `/mnt/ssd/pbs-datastore` | Configurée dans PBS | AES-256-GCM | Gratuit |
 
 ---
 
 ## Ce qui n'est PAS sauvegarde (reconstructible)
 
-| Donnee | Raison |
+| Donnée | Raison |
 |---|---|
 | Images Docker | `docker compose pull` |
 | Cache Docker (overlay2) | Reconstruit automatiquement |
@@ -266,10 +266,10 @@ Voir [break-glass.md](break-glass.md) pour la procedure pas-a-pas.
 1. Installer DietPi
 2. Cloner `homelab-config` depuis GitHub
 3. Suivre le README (copier boot, udev, fstab, network, docker)
-4. Restaurer `.restic-env` depuis la cle USB chiffree
+4. Restaurer `.restic-env` depuis la clé USB chiffree
 5. `restic restore latest` depuis B2
 6. Restaurer les volumes et configs
-7. Regenerer les secrets Authelia si necessaire (voir README)
+7. Regenerer les secrets Authelia si nécessaire (voir README)
 8. `docker compose up -d`
 
 ---
@@ -284,11 +284,11 @@ B2_ACCOUNT_ID=<keyID>
 B2_ACCOUNT_KEY=<applicationKey>
 ```
 
-!!! danger "Ce fichier doit etre sur la cle USB chiffree"
+!!! danger "Ce fichier doit être sur la clé USB chiffree"
     Sans `.restic-env`, les backups B2 sont illisibles. Perte de ce fichier = perte des backups.
 
 Bucket `gabin-homelab-backups` sur Backblaze B2, region US West.
-Application key limitee a ce bucket uniquement (read + write).
+Application key limitée a ce bucket uniquement (read + write).
 
 ---
 

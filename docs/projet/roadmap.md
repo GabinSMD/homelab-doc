@@ -1,15 +1,15 @@
 # Roadmap
 
-> **Mise a jour 2026-05-05** — Phase 1 quasi-complete (1 vrai gap : UPS). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap securite](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
+> **Mise a jour 2026-05-05** — Phase 1 quasi-complete (1 vrai gap : UPS). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
 
 ## Phase 1 — Foundation (preparation domicile actuel)
 
 ### Infrastructure de base
 
-- [x] RPi 4 configure et operationnel (DietPi, hostname penny)
+- [x] RPi 4 configuré et opérationnel (DietPi, hostname penny)
 - [x] Cablage Cat 8 tire dans les pieces principales
 - [x] Installer Proxmox VE 9 sur les 2 ZimaBoard
-- [x] Creer le cluster Proxmox **homelab** (galahad + lancelot)
+- [x] Créer le cluster Proxmox **homelab** (galahad + lancelot)
 - [x] **Cluster Qdevice penny** = 3 votes (survit perte 1 node) — 2026-04-19
 - [x] Switch manageable 2.5GbE 8p achete + plug — config minimal a faire (30 min UI)
 - [x] Tailscale SSH sur les 3 hosts + LXCs
@@ -21,7 +21,7 @@
 - [x] Beszel monitoring 3 machines
 - [x] AdGuard Home primaire (penny) + secondaire (LXC 100 dns-failover sur galahad)
 - [x] Logs HA : Loki primary (LXC 101 lancelot) + replica (penny), Alloy dual-write 3 hosts
-- [x] Grafana dashboards (Homelab Overview, Auth & Securite, Traefik Access, Logs)
+- [x] Grafana dashboards (Homelab Overview, Auth & Sécurité, Traefik Access, Logs)
 - [x] PBS (LXC 103 lancelot, NFS datastore penny, retention 7d/4w/3m)
 
 ### Backups + DR
@@ -37,7 +37,7 @@
 
 - [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
 - [x] Healthchecks Docker + autoheal (restart auto des containers unhealthy)
-- [x] Auto-recovery SSD (remount + fsck + restart Docker apres deconnexion USB)
+- [x] Auto-recovery SSD (remount + fsck + restart Docker après deconnexion USB)
 - [x] Auto-repair docker stack (compose up -d auto si stack vide + circuit breaker 3/24h)
 - [x] Cascade alert suppression (`house-down`/`lancelot-down` suppriment alertes enfants)
 - [x] Healthchecks.io deadman external (penny ping every 1min depuis monitor, alerte si silent)
@@ -47,11 +47,11 @@
 
 - [x] Notif hygiene mode "uniquement quand ne va pas" (silence success, only failures bipe)
 - [x] Logs persistents SSD (`/mnt/ssd/log-homelab/`, post-DietPi RAMlog fix)
-- [x] [Fish SRE engine](fish.md) v1+v1.5+W5 deploye en prod (catalog-gated incident response + auto-pattern drafter)
+- [x] [Fish SRE engine](fish.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter)
 - [x] Fish-down canary Tailscale (homelab_monitor.check_fish_service)
-- [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, fish observe)
+- [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, fish observé)
 
-### Securite (voir [securite/roadmap.md](../securite/roadmap.md))
+### Sécurité (voir [sécurité/roadmap.md](../securite/roadmap.md))
 
 - [x] Audit CSO complet 2026-04-19 (0 HIGH/CRIT, 2 MEDIUM dont 1 corrige)
 - [x] Egress firewall Phase 2 (DROP outbound + port-based whitelist) sur 3 hosts — 2026-05-05
@@ -70,15 +70,15 @@
 
 - [ ] Installer coffret technique (patch panel + switch + firewall + UPS)
 - [ ] Raccorder les cables Cat 8 (keystones blindes + mise a la terre)
-- [ ] Deployer OPNsense + VLANs en production
+- [ ] Déployer OPNsense + VLANs en production
 - [ ] Freebox en bridge mode
 - [ ] Installer les APs WiFi (1 SSID par VLAN)
 - [ ] Migrer les services du RPi vers le cluster si pertinent
 
 ## Phase 4 — Consolidation
 
-- [ ] Acheter Minisforum N5 Max "luther" (ou equivalent)
-- [ ] Ajouter comme 3eme noeud Proxmox (compute + storage) → quorum natif sans qdevice
+- [ ] Acheter Minisforum N5 Max "luther" (ou équivalent)
+- [ ] Ajouter comme 3eme nœud Proxmox (compute + storage) → quorum natif sans qdevice
 - [ ] Configurer ZFS mirror pour le stockage (debloque vzdump --mode snapshot, fin des PBS backup window whitelists)
 - [ ] PBS sur ZimaBoard → NAS Minisforum
 - [ ] [Ollama local](fish.md#roadmap) sur luther = backup LLM pour fish quand budget Claude API serre
@@ -86,7 +86,7 @@
 
 ## Items hors-phases (process / value-add)
 
-### Quality of life developpement
+### Quality of life développement
 
 - [ ] **Renovate ou Dependabot** sur homelab-config repo (auto-PR pour deps Python fish + scripts)
 - [ ] **CI/CD GitHub Actions** sur homelab-config (pytest fish + ruff + bash -n + secret scan avant merge)

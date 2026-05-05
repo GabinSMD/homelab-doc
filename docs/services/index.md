@@ -8,9 +8,9 @@ Tous les conteneurs sur penny tournent depuis un seul `/mnt/ssd/config/docker/do
 
 Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [grafana.md](grafana.md).
 Vaultwarden est **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
-Tailscale tourne **sur l'host** (pas en container) — SSH natif active.
+Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
-| Service | Image | URL | Auth | Host | Reseau Docker |
+| Service | Image | URL | Auth | Host | Réseau Docker |
 |---|---|---|---|---|---|
 | **Traefik** | `traefik:latest` | `traefik.home.*` | ForwardAuth Authelia | penny | proxy, socket |
 | **AdGuard Home** | `adguard/adguardhome:latest` | `adguard.home.*` | ForwardAuth Authelia + bcrypt | penny (host net) | host |
@@ -65,42 +65,42 @@ graph TB
 
 ### DNS interne
 
-Les containers sur `proxy` qui doivent resoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [depannage](../operations/depannage.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
+Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [dépannage](../operations/depannage.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
 
-## Reseaux Docker
+## Réseaux Docker
 
-| Reseau | Type | Usage |
+| Réseau | Type | Usage |
 |---|---|---|
 | `proxy` | bridge | Services reverse-proxies par Traefik |
 | `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, Watchtower, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
 
-Pour les implications securite (ICC, surface d'attaque inter-containers), voir [hardening — reseaux Docker](../securite/hardening.md#reseaux-docker--isolation-et-icc).
+Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#reseaux-docker--isolation-et-icc).
 
 ## Socket proxy — isolation Docker API
 
-Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par necessite admin). Tout passe par `socket-proxy` sur le reseau `socket` (internal, pas d'internet).
+Plus aucun container ne mount `/var/run/docker.sock` directement (sauf Portainer par nécessité admin). Tout passe par `socket-proxy` sur le réseau `socket` (internal, pas d'internet).
 
-Pour la liste detaillee des endpoints autorises/bloques et l'analyse de surface d'attaque, voir [hardening — socket proxy](../securite/hardening.md#socket-proxy).
+Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surface d'attaque, voir [hardening — socket proxy](../securite/hardening.md#socket-proxy).
 
 ## LXC Proxmox
 
-| ID | Nom | Host | IP LAN | Role |
+| ID | Nom | Host | IP LAN | Rôle |
 |---|---|---|---|---|
 | 100 | dns-failover | galahad | `192.168.1.30` | AdGuard secondaire + health check penny |
 | 101 | logs | lancelot | `192.168.1.31` | Loki + Grafana |
 | 102 | vault | galahad | `192.168.1.32` | Vaultwarden |
 
-Note d'isolement : `vault` et `logs` sont sur des hosts differents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
+Note d'isolement : `vault` et `logs` sont sur des hosts différents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 
 ## Acces distant
 
-| Methode | Detail |
+| Méthode | Détail |
 |---|---|
 | Tailscale | VPN mesh, acces a tous les services via IP Tailscale (`100.64.0.0/10`) |
-| Tailscale SSH | Mode `check` (navigateur MFA), certs auto-rotated, pas de port 22 expose |
+| Tailscale SSH | Mode `check` (navigateur MFA), certs auto-rotated, pas de port 22 exposé |
 
-## Services reseau (ports ouverts)
+## Services réseau (ports ouverts)
 
 | Service | Port | Protocole | Scope firewall |
 |---|---|---|---|
@@ -108,9 +108,9 @@ Note d'isolement : `vault` et `logs` sont sur des hosts differents (galahad vs l
 | AdGuard DoT | 853 | TCP | Tous |
 | Traefik HTTP → HTTPS | 80 | TCP | Tous |
 | Traefik HTTPS | 443 | TCP | Tous |
-| SSH penny | 2806 | TCP | Tous (cle obligatoire) |
-| SSH galahad | 2807 | TCP | Tous (cle obligatoire) |
-| SSH lancelot | 2808 | TCP | Tous (cle obligatoire) |
+| SSH penny | 2806 | TCP | Tous (clé obligatoire) |
+| SSH galahad | 2807 | TCP | Tous (clé obligatoire) |
+| SSH lancelot | 2808 | TCP | Tous (clé obligatoire) |
 | AdGuard UI | 3000 | TCP | LAN + Tailscale |
 | Beszel Agent | 45876 | TCP | LAN + Tailscale |
 
@@ -119,15 +119,15 @@ Tout le reste est DROP.
 ## Volumes et configuration
 
 Bind mounts (configs versionnees) :
-```
+```text
 /mnt/ssd/config/traefik/   → /config       (Traefik)
 /mnt/ssd/config/adguard/   → /opt/adguardhome/conf (AdGuard)
 /mnt/ssd/config/homepage/  → /app/config   (Homepage)
 /mnt/ssd/config/authelia/  → /config       (Authelia)
 ```
 
-Docker volumes (donnees) :
-```
+Docker volumes (données) :
+```text
 traefik-certs / traefik-data  — Certificats + logs
 portainer-data                — Donnees Portainer
 adguard-data                  — Donnees AdGuard
@@ -151,4 +151,4 @@ HOMEPAGE_VAR_PVE_TOKEN_ID=...      # Widget Proxmox (token readonly)
 HOMEPAGE_VAR_PVE_TOKEN_SECRET=...
 ```
 
-Tous ces secrets sont aussi stockes dans Vaultwarden. Voir [politique de securite](../securite/politique.md#inventaire-des-secrets-a-stocker-dans-vaultwarden) pour l'inventaire complet.
+Tous ces secrets sont aussi stockes dans Vaultwarden. Voir [politique de sécurité](../securite/politique.md#inventaire-des-secrets-a-stocker-dans-vaultwarden) pour l'inventaire complet.
