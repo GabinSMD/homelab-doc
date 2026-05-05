@@ -81,17 +81,17 @@ La seule rewrite statique conservee est pour le switch manageable, qui n'est pas
 |---|---|---|
 | `switch.lan` | `192.168.1.2` | HTTP only, hors scope HSTS `home.gabin-simond.fr` |
 
-Le domaine `switch.lan` (sans `.home.gabin-simond.fr`) évite le HSTS `includeSubdomains` qui forcerait HTTPS sur un equipement qui ne le supporte pas. Acceder via `http://switch.lan` ou directement `http://192.168.1.2`.
+Le domaine `switch.lan` (sans `.home.gabin-simond.fr`) évite le HSTS `includeSubdomains` qui forcerait HTTPS sur un équipement qui ne le supporte pas. Acceder via `http://switch.lan` ou directement `http://192.168.1.2`.
 
 ## LXC "dns-failover" — health check externe
 
-Le même LXC qui heberge AdGuard secondaire surveillé le RPi depuis l'exterieur :
+Le même LXC qui heberge AdGuard secondaire surveillé le RPi depuis l'extérieur :
 
 | Check | Méthode | Seuil |
 |---|---|---|
 | Ping ICMP | `ping 192.168.1.28` | 3 min sans réponse |
 | Traefik HTTP | `curl http://192.168.1.28:8080/ping` | idem |
-| DNS | `dig @192.168.1.28 google.com` | info supplementaire |
+| DNS | `dig @192.168.1.28 google.com` | info supplémentaire |
 
 Si le RPi ne répond plus après 3 min → alerte ntfy urgente.
 Si le RPi répond au ping mais Traefik est down → alerte ntfy haute.

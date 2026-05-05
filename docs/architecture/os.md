@@ -1,11 +1,11 @@
 # Optimisations OS
 
-DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabilite SSD, la longevite du stockage et l'economie de ressources.
+DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabilité SSD, la longevite du stockage et l'economie de ressources.
 
-## Stabilite SSD (bridge USB-SATA ASMedia ASM1156)
+## Stabilité SSD (bridge USB-SATA ASMedia ASM1156)
 
 !!! danger "Problème"
-    Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **deconnexions aleatoires** sur RPi 4 a cause de la gestion d'energie PCIe.
+    Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **déconnexions aléatoires** sur RPi 4 a cause de la gestion d'énergie PCIe.
 
 ### Paramètres kernel (`cmdline.txt`)
 
@@ -138,7 +138,7 @@ priority          = 1
 | Kernel freeze / panic | Oui | Le daemon ne peut plus alimenter le timer |
 | Load moyenne > 24 | Oui | Le daemon détecté et reboot |
 | Interface eth0 down | Oui | Le daemon détecté et reboot |
-| Deconnexion SSD | **Non** | Le kernel tourne toujours, seul Docker est impacte |
+| Déconnexion SSD | **Non** | Le kernel tourne toujours, seul Docker est impacte |
 | Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
 | Temperature critique | **Non** | Couvert par homelab_monitor.sh |
 
@@ -192,7 +192,7 @@ autoheal:
 
 | Optimisation | Effet |
 |---|---|
-| PCIe ASPM off | Empeche les deconnexions SSD |
+| PCIe ASPM off | Empeche les déconnexions SSD |
 | USB autosuspend off | Double protection SSD |
 | UAS désactivé | Force `usb-storage` (plus stable) |
 | SSD non-rotational | I/O scheduler optimise |
@@ -200,7 +200,7 @@ autoheal:
 | Swap désactivé | Pas d'usure SSD/SD |
 | GPU 16 Mo | Plus de RAM pour les services |
 | Headless | Framebuffers a 0 |
-| WiFi off | Economie energie, sécurité |
+| WiFi off | Economie énergie, sécurité |
 | fstrim hebdo | Maintenance SSD |
 | Watchdog BCM2835 | Reboot auto si kernel freeze (15s) |
 | Healthchecks Docker | Détection containers zombie |

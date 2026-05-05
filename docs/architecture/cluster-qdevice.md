@@ -91,11 +91,11 @@ sudo corosync-qdevice-tool -s
 
 Doit afficher `Model: Net` + membership list des 2 nodes PVE.
 
-## Gain resilience
+## Gain résilience
 
 - **Perte d'un node** : l'autre + qdevice = 2/3, reste quorate. `/etc/pve` RW maintenu. Les LXC du node survivant continuent, on peut même migrer les LXC du node mort si storage partagé.
 - **Perte de penny** (qdevice) : les 2 nodes PVE ont 2/3 votes = quorate. Pas d'impact immédiat cluster.
-- **Double perte (penny + 1 node PVE)** : 1/3, KO. Mais c'est un double-fault extreme.
+- **Double perte (penny + 1 node PVE)** : 1/3, KO. Mais c'est un double-fault extrême.
 
 ## Piège : pmxcfs stuck RO
 

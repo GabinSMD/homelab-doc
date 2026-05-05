@@ -4,38 +4,37 @@ Cette page documenté comment fish voit le homelab et où il bipe — pas le des
 
 ## Surface d'observation de fish
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Fish (LXC 105)                             │
-│                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐ │
-│  │ Loki tail WS │    │ Prometheus   │    │ Catalog (5 patterns) │ │
-│  │ (events)     │    │ poller       │    │ + draft_attempts SQL │ │
-│  └──────┬───────┘    └──────┬───────┘    └──────────────────────┘ │
-│         │                   │                                       │
-│         ▼                   ▼                                       │
-│  ┌──────────────────────────────────────┐                          │
-│  │ Classifier (Claude Sonnet 4.6)        │                          │
-│  │  → match catalog ? → propose          │                          │
-│  │  → UNKNOWN_INCIDENT ? → drafter (W5)  │                          │
-│  └──────────────────────────────────────┘                          │
-└─────────────────────────────────────────────────────────────────────┘
-                              ▲
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-   ┌────┴────┐          ┌─────┴────┐         ┌──────┴────────────┐
-   │  Loki   │          │ Loki     │         │ Loki              │
-   │ stream  │          │ stream   │         │ stream            │
-   │ docker  │          │ journald │         │ monitor-alerts    │
-   │         │          │          │         │ (NEW 2026-05-04)  │
-   └────┬────┘          └────┬─────┘         └─────────┬─────────┘
-        │                    │                         │
-   Alloy ship           Alloy ship                push_loki()
-        │                    │                         │
-   Containers           Hosts journald          homelab_monitor.sh
-   stdout               (galahad, lancelot,     `alert()` calls
-                        penny via Alloy)
+```mermaid
+flowchart BT
+    subgraph fish["Fish (LXC 105)"]
+        LokiTail[Loki tail WS<br/>events]
+        Prom[Prometheus<br/>poller]
+        Catalog[Catalog 5 patterns<br/>+ draft_attempts SQL]
+        Classifier[Classifier Claude Sonnet 4.6<br/>match catalog → propose<br/>UNKNOWN_INCIDENT → drafter W5]
+
+        LokiTail --> Classifier
+        Prom --> Classifier
+        Catalog --> Classifier
+    end
+
+    Docker[Loki stream<br/>job=docker]
+    Journald[Loki stream<br/>job=journald]
+    Monitor[Loki stream<br/>job=monitor-alerts<br/>NEW 2026-05-04]
+
+    Containers[Containers stdout]
+    Hosts[Hosts journald<br/>galahad, lancelot, penny via Alloy]
+    Alerts[homelab_monitor.sh<br/>alert calls]
+
+    Containers -->|Alloy ship| Docker
+    Hosts -->|Alloy ship| Journald
+    Alerts -->|push_loki| Monitor
+
+    Docker --> LokiTail
+    Journald --> LokiTail
+    Monitor --> LokiTail
+
+    style Classifier fill:#fff3cd,stroke:#ffc107
+    style Monitor fill:#d4edda,stroke:#28a745
 ```
 
 **3 streams Loki que fish observé** :
@@ -72,34 +71,28 @@ Décomposé :
 
 ## Ntfy delivery — pourquoi 2 topics
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│  Topic 1 : ae8fcbd80e6c5fa1b6c39f013da61d4e (homelab generic)      │
-│                                                                    │
-│  Used by :                                                         │
-│    - homelab_monitor.sh        (ALERT [tag] ntfy)                  │
-│    - homelab_backup.sh         (FAILED only post-2026-05-04)       │
-│    - lynis-weekly.sh           (échec ou score < 70)               │
-│    - vault/logs/dnsfailover    backup FAILED                       │
-│    - watchtower                ECHEC + Skipped (level=warn)        │
-│    - ct-log-monitor.sh         nouveau sous-domaine                │
-│    - fish-down canary          (BYPASS fish — survival critical)   │
-│                                                                    │
-│  Property : RESILIENT — bypass fish entirely.                      │
-│  Si fish meurt, ces alertes arrivent quand même.                   │
-└────────────────────────────────────────────────────────────────────┘
+### Topic 1 — `ae8fcbd80e6c5fa1b6c39f013da61d4e` (homelab generic)
 
-┌────────────────────────────────────────────────────────────────────┐
-│  Topic 2 : fish-homelab-c1e65af331c04569b97a (fish proposals)      │
-│                                                                    │
-│  Used by :                                                         │
-│    - fish.proposer.NtfyNotifier (Approve/Deny callback flow)       │
-│    - fish.drafter.PatternDrafter (drafter PR ready notif)          │
-│                                                                    │
-│  Property : SMART — callback flow `/approve/{proposal_id}` POST    │
-│  back to fish:8080. Demande fish runtime alive.                    │
-└────────────────────────────────────────────────────────────────────┘
-```
+**Property : RESILIENT** — bypass fish entirely. Si fish meurt, ces alertes arrivent quand même.
+
+| Source | Comportement |
+|--------|--------------|
+| `homelab_monitor.sh` | `ALERT [tag]` ntfy |
+| `homelab_backup.sh` | FAILED only (post-2026-05-04) |
+| `lynis-weekly.sh` | échec ou score < 70 |
+| vault/logs/dnsfailover | backup FAILED |
+| watchtower | ECHEC + Skipped (level=warn) |
+| `ct-log-monitor.sh` | nouveau sous-domaine |
+| fish-down canary | BYPASS fish — survival critical |
+
+### Topic 2 — `fish-homelab-c1e65af331c04569b97a` (fish proposals)
+
+**Property : SMART** — callback flow `/approve/{proposal_id}` POST back to `fish:8080`. Demande fish runtime alive.
+
+| Source | Comportement |
+|--------|--------------|
+| `fish.proposer.NtfyNotifier` | Approve/Deny callback flow |
+| `fish.drafter.PatternDrafter` | drafter PR ready notif |
 
 ### Pourquoi pas un seul topic
 

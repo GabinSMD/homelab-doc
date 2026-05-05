@@ -236,7 +236,7 @@ Homelab/
 
 ## Rotation
 
-| Type | Période | Procedure |
+| Type | Période | Procédure |
 |------|---------|-----------|
 | Passwords humains | A la compromission | Changer + update Vault |
 | Tokens API | 12 mois max | Delete token + regenerate + update consumer + update Vault |
@@ -250,4 +250,4 @@ Homelab/
 
 - [Politique credentials](politique.md) — modèle de menace, mots de passe, inventaire secrets
 - [Hardening](hardening.md) — mesures techniques par couche
-- [Break-glass](../operations/break-glass.md) — procedure de reconstruction d'urgence
+- [Break-glass](../operations/break-glass.md) — procédure de reconstruction d'urgence

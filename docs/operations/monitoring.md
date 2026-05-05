@@ -47,9 +47,9 @@ Script bash executé **chaque minute** via cron. Surveillé :
 
 ### Cascade suppression (depuis 2026-04-19)
 
-Quand une alerte parente explique plusieurs enfants, le monitor **supprime** les alertes redondantes pour éviter le spam :
+Quand une alerte parente explique plusieurs enfants, le monitor **supprimé** les alertes redondantes pour éviter le spam :
 
-| Si | Alerte(s) supprimee(s) | Justification |
+| Si | Alerte(s) supprimée(s) | Justification |
 |---|---|---|
 | `house-down` (Freebox ou internet KO) | `cluster-hosts` (galahad/lancelot), `logs-stack`, `pbs-down` | Pas joignable car la maison est down |
 | `lancelot-down` | `logs-stack`, `pbs-down` | Les 2 LXC (101, 103) vivent sur lancelot |
@@ -68,7 +68,7 @@ Circuit breaker : max 3 tentatives par 24h (compteur `/var/lib/homelab_monitor/a
 
 Prouvé en live 2026-04-19 : stack down après recreation loki, auto-repair fire 172s après détection, 13 containers up. Voir log `/var/log/homelab_monitor.log` entry `AUTOREPAIR: docker compose up -d OK`.
 
-### House signal (deadman complement HomePod)
+### House signal (deadman complément HomePod)
 
 `check_house` teste :
 1. **Freebox** (192.168.1.254 TCP 80/443) — si KO = LAN segmente / Freebox crashee
@@ -81,7 +81,7 @@ Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi 
 | Silence radio | Notif recue | **Coupure electrique** (Pi mort) |
 | `internet-down` alert | Notif recue | **Coupure ISP** (Pi + Freebox UP, WAN KO) |
 | `freebox-down` alert | Notif recue | **Freebox crashee** |
-| Alerts normales | Pas de notif | **Problem homelab isole** |
+| Alerts normales | Pas de notif | **Problem homelab isolé** |
 
 ### Restic repos freshness (multi-repo)
 
@@ -122,10 +122,10 @@ TEMP_CRIT=80                      # Seuil critique °C
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |
-| **SSD auto-recovery** | Remount + fsck + restart Docker après deconnexion USB | Script (monitor) |
+| **SSD auto-recovery** | Remount + fsck + restart Docker après déconnexion USB | Script (monitor) |
 | **dns-failover health check** | Surveillé penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
 
-## Architecture de resilience
+## Architecture de résilience
 
 Trois couches complementaires, chacune couvre des scénarios différents :
 

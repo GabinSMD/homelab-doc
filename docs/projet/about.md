@@ -4,14 +4,14 @@
 
 Ce homelab est ne d'une envie simple : **maitriser mon infrastructure de bout en bout**.
 
-Plutot que de dependre de services cloud pour tout, j'ai voulu heberger mes propres services, comprendre comment fonctionne un réseau, et construire quelque chose de solide pour ma maison.
+Plutôt que de dependre de services cloud pour tout, j'ai voulu heberger mes propres services, comprendre comment fonctionne un réseau, et construire quelque chose de solide pour ma maison.
 
-Le projet a démarre avec un Raspberry Pi 4 dans un boitier Argon ONE, un SSD, et une distribution légère (DietPi). Depuis, il a evolue vers une vision plus ambitieuse : une infrastructure multi-machines avec segmentation réseau, virtualisation, et bonnes pratiques empruntees au monde entreprise.
+Le projet a démarre avec un Raspberry Pi 4 dans un boitier Argon ONE, un SSD, et une distribution légère (DietPi). Depuis, il a évolué vers une vision plus ambitieuse : une infrastructure multi-machines avec segmentation réseau, virtualisation, et bonnes pratiques empruntees au monde entreprise.
 
 ## Objectifs
 
-- **Apprendre** — comprendre le réseau, la virtualisation, la sécurité, le stockage, en faisant plutot qu'en lisant
-- **Heberger** — garder le contrôle sur mes données et mes services (DNS, reverse proxy, monitoring, media)
+- **Apprendre** — comprendre le réseau, la virtualisation, la sécurité, le stockage, en faisant plutôt qu'en lisant
+- **Heberger** — garder le contrôle sur mes données et mes services (DNS, reverse proxy, monitoring, média)
 - **Construire** — preparer l'infrastructure réseau de ma future maison (renovation avec cablage Cat 8, VLANs, firewall)
 - **Documenter** — partager le parcours, les choix, les erreurs, et les solutions pour que ca serve a d'autres
 
@@ -29,11 +29,11 @@ Je suis Gabin, passione d'infrastructure et de self-hosting. Ce projet est mon t
 
 Quelques principes qui guident les decisions techniques :
 
-- **Pas de SPOF** — les services critiques (DNS, firewall) sont sur des machines dediees, independantes du cluster
+- **Pas de SPOF** — les services critiques (DNS, firewall) sont sur des machines dediees, indépendantes du cluster
 - **Simple d'abord** — un seul docker-compose vaut mieux que 10 quand on est seul a maintenir
 - **Documenter au fil de l'eau** — si c'est pas documenté, ca n'existe pas (d'ou ce site)
 - **Budget raisonnable** — optimiser le rapport performance/prix, pas acheter le plus cher
-- **Apprendre en faisant** — preferer une solution qu'on comprend a une boite noire qui "juste marche"
+- **Apprendre en faisant** — préférer une solution qu'on comprend a une boite noire qui "juste marche"
 
 ## Naming — le pantheon
 

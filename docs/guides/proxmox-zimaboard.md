@@ -17,7 +17,7 @@ Il faut patcher l'installeur **avant** de lancer l'installation.
 
 ### 1. Booter sur la clé USB Proxmox
 
-Brancher la clé USB et booter dessus. A l'ecran de l'installeur, **ne pas lancer l'installation**.
+Brancher la clé USB et booter dessus. A l'écran de l'installeur, **ne pas lancer l'installation**.
 
 ### 2. Ouvrir un shell
 
@@ -43,7 +43,7 @@ dhclient -r enp1s0
 ```
 
 !!! note "Pourquoi `dhclient -r` ?"
-    Liberer le bail DHCP après le patch pour que l'installeur Proxmox puisse configurer le réseau lui-même proprement.
+    Libérer le bail DHCP après le patch pour que l'installeur Proxmox puisse configurer le réseau lui-même proprement.
 
 Le script patche `Proxmox::Sys::Block.pm` pour ajouter le support des devices `mmcblk`.
 
@@ -53,7 +53,7 @@ Le script patche `Proxmox::Sys::Block.pm` pour ajouter le support des devices `m
 ### 4. Lancer l'installation
 
 Revenir a l'installeur (++ctrl+alt+f1++ ou via le terminal graphique) et proceder normalement.
-Selectionner le device eMMC comme cible.
+Sélectionner le device eMMC comme cible.
 
 ### 5. Post-installation
 
@@ -65,13 +65,13 @@ wget -O- <IP_DU_RPI>:8888/proxmox-post-install.sh | bash
 
 Ce script :
 
-- **Supprime les repos enterprise** (qui nécessitent un abonnement payant)
+- **Supprimé les repos enterprise** (qui nécessitent un abonnement payant)
 - **Nettoie les anciens fichiers `.list`** (évite le warning "old suite bookworm")
 - **Ajoute le repo `pve-no-subscription`** (format `.sources` avec `Signed-By`)
 - **Met a jour le système** (`apt update && apt dist-upgrade`)
-- **Supprime le popup "No valid subscription"** (patch du JS de l'interface web)
+- **Supprimé le popup "No valid subscription"** (patch du JS de l'interface web)
 
-!!! warning "Deconnexion de l'interface web"
+!!! warning "Déconnexion de l'interface web"
     En dernière étape, le script redémarre `pveproxy` pour appliquer le patch.
     La session web sera coupee — il suffit de recharger la page et se reconnecter.
 

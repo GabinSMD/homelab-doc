@@ -21,7 +21,7 @@ La magie repose sur le **DNS challenge Cloudflare** :
 | Port 80 exposé sur Internet | **Oui** (obligatoire) | Non |
 | Fonctionne pour des domaines internes | Non | **Oui** |
 | Wildcard possible | Non | **Oui** |
-| Config supplementaire | Aucune | Token API Cloudflare |
+| Config supplémentaire | Aucune | Token API Cloudflare |
 
 Pour un homelab avec des services internes, le DNS challenge est **la seule option viable**.
 

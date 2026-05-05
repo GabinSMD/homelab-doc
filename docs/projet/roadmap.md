@@ -1,13 +1,13 @@
 # Roadmap
 
-> **Mise a jour 2026-05-05** — Phase 1 quasi-complete (1 vrai gap : UPS). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
+> **Mise a jour 2026-05-05** — Phase 1 quasi-complète (1 vrai gap : UPS). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
 
 ## Phase 1 — Foundation (preparation domicile actuel)
 
 ### Infrastructure de base
 
 - [x] RPi 4 configuré et opérationnel (DietPi, hostname penny)
-- [x] Cablage Cat 8 tire dans les pieces principales
+- [x] Cablage Cat 8 tire dans les pièces principales
 - [x] Installer Proxmox VE 9 sur les 2 ZimaBoard
 - [x] Créer le cluster Proxmox **homelab** (galahad + lancelot)
 - [x] **Cluster Qdevice penny** = 3 votes (survit perte 1 node) — 2026-04-19
@@ -26,18 +26,18 @@
 
 ### Backups + DR
 
-- [x] Backups quotidiens restic → B2 chiffre AES-256 (4 chaines : penny, vault hourly, logs, dns-failover)
+- [x] Backups quotidiens restic → B2 chiffré AES-256 (4 chaines : penny, vault hourly, logs, dns-failover)
 - [x] PBS daily backup LXCs (galahad 02:00, lancelot 02:30)
 - [x] restic check mensuel (structure + 10% data subset)
 - [x] DR drill mensuel automatique (restore + verify echantillon)
 - [x] Sops + age + 2 YubiKeys DR (break-glass)
 - [ ] **DR drill from cold** — restore B2 + sops sur Pi neuf, chronometrage. Seule preuve reelle que la chain DR fonctionne end-to-end (1/2 journee user)
 
-### Resilience
+### Résilience
 
 - [x] Watchdog hardware BCM2835 (reboot auto si kernel freeze, timeout 15s)
 - [x] Healthchecks Docker + autoheal (restart auto des containers unhealthy)
-- [x] Auto-recovery SSD (remount + fsck + restart Docker après deconnexion USB)
+- [x] Auto-recovery SSD (remount + fsck + restart Docker après déconnexion USB)
 - [x] Auto-repair docker stack (compose up -d auto si stack vide + circuit breaker 3/24h)
 - [x] Cascade alert suppression (`house-down`/`lancelot-down` suppriment alertes enfants)
 - [x] Healthchecks.io deadman external (penny ping every 1min depuis monitor, alerte si silent)
@@ -82,7 +82,7 @@
 - [ ] Configurer ZFS mirror pour le stockage (debloque vzdump --mode snapshot, fin des PBS backup window whitelists)
 - [ ] PBS sur ZimaBoard → NAS Minisforum
 - [ ] [Ollama local](fish.md#roadmap) sur luther = backup LLM pour fish quand budget Claude API serre
-- [ ] Replicate fish Option B sur galahad+lancelot = couverture cluster complete
+- [ ] Replicate fish Option B sur galahad+lancelot = couverture cluster complète
 
 ## Items hors-phases (process / value-add)
 
@@ -96,7 +96,7 @@
 
 - [ ] [Immich](https://immich.app/) — self-hosted Google Photos (1 weekend setup + storage)
 - [ ] [Paperless-ngx](https://docs.paperless-ngx.com/) — OCR + indexation factures/documents
-- [ ] [Home Assistant](https://www.home-assistant.io/) — domotique quand IoT a integrer
+- [ ] [Home Assistant](https://www.home-assistant.io/) — domotique quand IoT a intégrer
 
 ### Sécurité hardening (paranoia level)
 
