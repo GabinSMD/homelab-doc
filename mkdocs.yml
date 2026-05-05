@@ -106,6 +106,7 @@ nav:
   - Projet:
     - projet/index.md
     - Decisions techniques: projet/decisions.md
-    - Roadmap: projet/roadmap.md
+    - Roadmap (4 phases hardware): projet/roadmap.md
+    - Roadmap consolidee 2026-05: projet/roadmap-2026-05.md
     - fish (SRE perso): projet/fish.md
     - A propos: projet/about.md

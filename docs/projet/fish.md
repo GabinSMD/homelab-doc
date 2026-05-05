@@ -175,19 +175,26 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 - [x] Premier exec live sur penny (homepage restart en 3s)
 - [x] Phone→click→auto-exec full loop
 
-### v1.5 (proche)
-- [ ] fish main wire vers vrais incidents observer (pas juste tests synthétiques)
-- [ ] Sops-seal la cle SSH fish-to-penny
-- [ ] systemd fish.service survive reboot LXC
-- [ ] Replicate Option B sur galahad + lancelot
-- [ ] Grafana dashboard "fish activity"
-- [ ] Alertmanager route "fish down" → ntfy direct
+### v1.5 (livre 2026-05-04)
+- [x] fish main wire vers vrais incidents observer — Step B `homelab_monitor` push to Loki (commit `2dad768`)
+- [x] Sops-seal la cle SSH fish-to-penny — sealed dans `/etc/fish/ssh_keys/fish-to-penny.enc`, plaintext shred 2026-05-04
+- [x] systemd fish.service survive reboot LXC — `fish-unseal.service` + `fish.service` enabled
+- [ ] Replicate Option B sur galahad + lancelot — bloque par soak fish week 8 reeval
+- [ ] Grafana dashboard "fish activity" — proposals/jour, approval rate, success rate, cost/mois
+- [x] Alertmanager route "fish down" → ntfy direct — canary Tailscale dans `homelab_monitor.check_fish_service`, commit `fb56f53`
 
-### v2 (aspirations)
-- [ ] Ollama local quand Minisforum "luther" arrive
-- [ ] UNKNOWN_INCIDENT auto-draft pattern YAML
+### v2 — W5 UNKNOWN_INCIDENT auto-drafter (livre 2026-04-30)
+- [x] UNKNOWN_INCIDENT auto-draft pattern YAML — drafter shipped, dedup 7j, race-protected, failed-block actif
+- [x] Step A : promote_to_autoexec_after 1 sur `docker-compose-stopped-post-reboot` (commit `2dad768`) — premier vrai pattern auto-exec en prod
+- [ ] Ollama local quand Minisforum "luther" arrive — backup LLM si budget Claude API explose
 - [ ] Home Assistant integration (voice : "fish, repare le homelab")
 - [ ] Scribe mode : observe shell history → propose auto-runbooks
+
+### v3 — apres soak semaine 8 (mi-juin 2026), decision data-driven
+- [ ] Multi-step reasoning (chain de patterns A→B fallback)
+- [ ] Learning loop sur outcomes (auto-promote pattern apres N successes)
+- [ ] Dynamic args choice (LLM decide args fix script vs hardcode YAML)
+- [ ] Pivot Hybrid si signal/noise <50% (Alertmanager + scripts + LLM reserve UNKNOWN)
 
 ## Repo
 

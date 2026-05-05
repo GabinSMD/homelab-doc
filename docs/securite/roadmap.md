@@ -1,17 +1,35 @@
 # Roadmap securite
 
-Etat au **2026-05-04** (refresh post-audit live). Priorite : `impact / effort`.
+Etat au **2026-05-05** (refresh complet post-Phase 2 egress firewall). Priorite : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implementations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
+> Pour le contexte projet global : [projet/roadmap.md](../projet/roadmap.md).
 
 ---
 
 ## En cours / a faire
 
-### P1 — Important
+### P1 — Important (action user-side requise)
 
-**Plus aucun item bloquant en P1**. La migration galahad -> Trixie etait deja faite (constat 2026-04-13). Les Lynis quick wins (login.defs + apt installs PAM) ont ete appliques 2026-04-13.
+#### TFA root@pam Proxmox — finding MEDIUM ouvert depuis audit 2026-04-19
+
+`/etc/pve/priv/tfa.cfg` = `{}` sur galahad+lancelot.
+
+**Fix** (5 min UI manuel) : Datacenter → Permissions → Two Factor → Add → TOTP → root@pam → scan QR avec authenticator app (Authy/Bitwarden/1Password).
+
+Pas scriptable proprement cote Proxmox.
+
+#### DR drill from cold — jamais teste
+
+Tu as :
+- 22 daily snapshots B2 ✓
+- restic check + drill mensuels ✓
+- Sops + age + 2 YubiKeys DR ✓
+
+**Mais jamais reconstruit penny depuis zero**. Le drill mensuel verifie integrite donnees, pas full restore. Scenario reel : SSD meurt → Pi neuf → restore B2 + sops → est-ce que ca reboot dans un etat exploitable en X heures ?
+
+**Effort** : 1/2 journee. Pi 4 spare ou VM x86. Suivre [break-glass](../operations/break-glass.md) + [dr-drill-scenario-1](../operations/dr-drill-scenario-1.md), chronometrer, noter les surprises.
 
 ---
 
@@ -64,15 +82,31 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ---
 
-### P3 — Nice to have
+### P3 — Nice to have / hardening avance
 
-- HIDS (Wazuh / CrowdSec une fois dispo Trixie).
-- Bastion SSH LXC — Tailscale SSH couvre deja 80%.
+#### Process / supply chain
+
+- **Renovate ou Dependabot** sur homelab-config repo (auto-PR pour deps Python fish + scripts). Aujourd'hui `uv.lock` jamais bumpe = risk CVE silencieux dans `anthropic`/`PyGithub`/`aiohttp`. Effort : 30 min config GitHub Actions.
+- **CI/CD GitHub Actions** sur homelab-config (pytest fish + ruff + bash -n + secret scan avant merge). Today direct push main = no quality gate. Effort : 1h.
+- **Trivy schedule** — vuln scanning images Docker hebdo, push results dans Loki ou ntfy si CRITIQUE. Effort : 30 min.
+
+#### Network / detection
+
+- HIDS (Wazuh / CrowdSec extension fonctionne deja sur Trixie).
 - IDS reseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
-- ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE (`tailscale status` confirme).
-- Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique).
-- TFA root@pam Proxmox (UI Datacenter → Permissions → Two Factor, 5 min user side).
-- DR drill from cold — restore B2 + sops sur Pi neuf, chronometrage. Seule preuve reelle que la chain DR fonctionne end-to-end (memory `project_security_audit_20260419` : "Restore backup test reel — Non audite").
+- AIDE/Tripwire — file integrity monitoring `/etc /usr`. Vrai paranoia level. Effort : 1h baseline + cron diff.
+- Bastion SSH LXC — Tailscale SSH couvre deja 80%, faible valeur ajoutee.
+
+#### Hardening cosmetiques
+
+- Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique). Done partiellement : penny — a propager galahad+lancelot.
+- SMTP migration port 25 → 587 auth submission (PVE postfix) — supprime risk spam relay si compromission. Effort : 1h + setup credentials relay (Mailgun gratuit ou similaire).
+- ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE.
+
+### P4 — Defere / decision documentee
+
+- **Mot de passe GRUB** (galahad + lancelot) — Lynis BOOT-5122. Defere : risque lock boot remote >> gain (attaquant avec acces physique peut deja booter USB).
+- **Chiffrement disque ZFS** — SKIP documente, voir P2 ci-dessus.
 
 ---
 
