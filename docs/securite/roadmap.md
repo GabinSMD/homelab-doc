@@ -25,26 +25,24 @@ Bloque par achat hardware. Voir [architecture/reseau-cible.md](../architecture/r
 
 Voir [decisions.md](../projet/decisions.md). Skip pour homelab domicile (modele de menace ne le justifie pas ; casse boot unattended). A reconsiderer si demenagement avec serveurs en transit ou stockage donnees client/medical.
 
-#### Egress firewall (penny + galahad + lancelot) — PHASE 1 DEPLOYEE LES 3 HOSTS
+#### Egress firewall (penny + galahad + lancelot) — DONE 2026-05-05
 
-Aujourd'hui `OUTPUT ACCEPT` partout : un container ou process compromis peut exfiltrer vers nimporte quelle destination internet.
+**Phase 1** (`egress-audit.sh`, audit LOG only) : deployee 2026-04-14 sur penny, etendue 2026-04-19 sur galahad+lancelot. Collecte ~3 semaines.
 
-**Phase 1 (active depuis 2026-04-14)** : audit via `egress-audit.sh` (`LOG` sans `DROP`).
-Regles iptables LOG sur OUTPUT (host) et DOCKER-USER (containers) avec rate-limit 10/min.
-Skip LAN, Tailscale, Docker bridges. Script dans `homelab-config/scripts/egress-audit.sh`.
+**Phase 2** (`egress-phase2.sh`, OUTPUT DROP + whitelist port-based) : deployee 2026-05-05 sur les 3 hosts.
 
-**Etat 2026-05-04** : `egress-audit.service` deploye + active sur **les 3 hosts** (penny + galahad + lancelot) via systemd. Logs collectes depuis ~2 semaines.
+Whitelist :
+- Skip lo + 192.168.1.0/24 + 100.64.0.0/10 (Tailscale) + 172.16.0.0/12 (Docker bridges) + ESTABLISHED/RELATED
+- ICMP, DNS (53/853), NTP (123), HTTP (80), HTTPS (443), Tailscale STUN (3478) + P2P (41641)
+- PVE nodes (galahad+lancelot) : SMTP (25 + 587) pour postfix outbound mail
 
-```bash
-/root/egress-audit.sh report   # Analyser les logs collectes
-/root/egress-audit.sh stop     # Desactiver l'audit
-```
+Validation 30 min sur chaque host : DROP counter = 6 packets sur 30 min, **100% SSDP UPnP multicast** (`239.255.255.250:1900`, TTL=1, bénin LAN-only).
 
-**Phase 2 (prochaine)** : analyser le rapport, construire la whitelist outbound (DNS upstream, Backblaze B2, ntfy.sh, Tailscale DERP, GitHub, Docker Hub/GHCR, Let's Encrypt, Cloudflare API, APT repos, healthchecks.io), appliquer `OUTPUT DROP` + whitelist avec rollback auto 5min.
+Rollback safety : `apply` arme un timer systemd `egress-phase2-rollback` 5 min ; si `confirm` n'est pas lance avant, restore auto des iptables pre-Phase 2. Backup dans `/tmp/iptables-pre-egress-phase2.rules`.
 
-**Risque** : casser silencieusement Let's Encrypt renew, B2 backup, ntfy alerts si whitelist incomplete. C'est pourquoi la phase 1 (observation) est indispensable.
+Persistance reboot : `iptables-persistent` package + `iptables-save > /etc/iptables/rules.v4` + `netfilter-persistent.service enabled`.
 
-**Effort** : 2-3h dont 1h validation post-deploy.
+Script tracke dans `homelab-config/scripts/egress-phase2.sh`.
 
 #### Healthchecks Beszel + Portainer + beszel-agent — NON APPLICABLE
 
