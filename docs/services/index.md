@@ -65,7 +65,7 @@ graph TB
 
 ### DNS interne
 
-Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [dépannage](../operations/depannage.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
+Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [dépannage](../operations/depannage.md#docker-containers-dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
 
 ## Réseaux Docker
 
@@ -75,7 +75,7 @@ Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour 
 | `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, Watchtower, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
 
-Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#reseaux-docker--isolation-et-icc).
+Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#reseaux-docker-isolation-et-icc).
 
 ## Socket proxy — isolation Docker API
 
