@@ -79,7 +79,7 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 - **`security-headers`** : HSTS, X-Frame-Options `DENY`, X-Content-Type-Options `nosniff`, Referrer-Policy `strict-origin-when-cross-origin`, Permissions-Policy restrictive
 
 !!! warning "Pas de CSP global"
-    CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers--pas-de-csp-global-per-route-headers).
+    CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers-pas-de-csp-global-per-route-headers).
 
 ### Spécifiques (par route)
 
