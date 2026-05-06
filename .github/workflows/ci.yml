@@ -30,14 +30,14 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: true
 
   markdown-lint:
-    name: markdown lint (advisory — not blocking)
+    name: markdown lint (advisory)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
       - name: Markdownlint
         uses: DavidAnson/markdownlint-cli2-action@v17
+        continue-on-error: true
         with:
           globs: "docs/**/*.md"
           config: .markdownlint.json
