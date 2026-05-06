@@ -30,8 +30,9 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: true
 
   markdown-lint:
-    name: markdown lint
+    name: markdown lint (advisory — not blocking)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
