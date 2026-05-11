@@ -21,9 +21,9 @@ graph LR
 
     volumes --> restic
     configs --> restic
-    restic[restic backup 3h<br/>chiffre AES-256] --> B2[Backblaze B2<br/>gabin-homelab-backups/restic]
+    restic[restic backup 3h<br/>chiffre AES-256] --> B2[Cloudflare R2 EU<br/>homelab-backups/restic]
 
-    vault102[LXC 102 vault] -->|restic-direct 2h| B2vault[Backblaze B2<br/>restic-vault]
+    vault102[LXC 102 vault] -->|restic-direct 2h| B2vault[Cloudflare R2 EU<br/>restic-vault]
 
     Git[Configs + Scripts] -->|git push| GitHub[GitHub<br/>homelab-config prive]
 ```
@@ -32,9 +32,9 @@ graph LR
 
 **Règle 3-2-1 :**
 
-- **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Backblaze B2 (restic chiffré)
+- **3** copies : live (SSD/eMMC) + PBS local (penny SSD via NFS) + Cloudflare R2 EU (restic chiffré)
 - **2** supports : SSD/eMMC + cloud
-- **1** copie hors-site : Backblaze B2
+- **1** copie hors-site : Cloudflare R2 EU
 
 ---
 
@@ -90,20 +90,20 @@ Le hook lance un watcher en arriere-plan a `backup-start` qui surveillé l'appar
 
 ---
 
-## Restic-direct vers B2 (4 chaines parallel)
+## Restic-direct vers Cloudflare R2 (4 chaines parallel)
 
-Chaque LXC critique a un backup `restic` indépendant direct vers B2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne).
+Chaque LXC critique a un backup `restic` indépendant direct vers R2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne). Migration depuis Backblaze B2 effectuee 2026-05-11 ([r2-migration.md](r2-migration.md), [b2-cap-exceeded.md](b2-cap-exceeded.md)).
 
 ### Vue d'ensemble
 
-| Repo B2 | Source | Script | Fréquence | Retention | Seuil freshness monitor |
+| Repo R2 | Source | Script | Fréquence | Retention | Seuil freshness monitor |
 |---------|--------|--------|-----------|-----------|-------------------------|
 | `restic` | penny configs+volumes+pbs-datastore | `/root/homelab_backup.sh` | daily 03:00 | 7d/4w/6m | 30h |
 | `restic-vault` | LXC 102 vaultwarden | `/usr/local/bin/vault-backup.sh` | **hourly** | 7d/4w/6m | **3h** |
 | `restic-dnsfailover` | LXC 100 AdGuard secondaire | `/usr/local/bin/dnsfailover-backup.sh` | daily 02:30 | 7d/4w/6m | 30h |
 | `restic-logs` | LXC 101 Grafana+Loki+Prometheus | `/usr/local/bin/logs-backup.sh` | daily 02:45 | 7d/4w/6m | 30h |
 
-Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur chaque host/LXC). B2 bucket unique `gabin-homelab-backups`, sous-path distinct par repo.
+Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur chaque host/LXC). R2 bucket unique `homelab-backups`, sous-path distinct par repo.
 
 ### Vault — hourly pattern
 
@@ -126,11 +126,11 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 ### Freshness monitor
 
-`homelab_monitor.sh / check_restic_repos_freshness` query B2 directement toutes les heures (cache 1h par repo) pour détecter si un cron silencieusement casse. Seuil par repo (vault 3h car hourly, autres 30h car daily).
+`homelab_monitor.sh / check_restic_repos_freshness` query R2 directement toutes les heures (cache 1h par repo) pour détecter si un cron silencieusement casse. Seuil par repo (vault 3h car hourly, autres 30h car daily).
 
 ---
 
-## penny — restic vers B2
+## penny — restic vers R2
 
 ### Ce qui est sauvegarde
 
@@ -171,7 +171,7 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 1. Vérification preflight (`.restic-env` présent, `restic` installe)
 2. Stage chaque volume Docker vers `/mnt/ssd/.restic-staging/<label>/`
-3. `restic backup` : staging + configs → B2 (chiffré AES-256)
+3. `restic backup` : staging + configs → R2 (chiffré AES-256)
 4. Nettoyage du staging
 5. `restic forget` : retention 7 daily / 4 weekly / 6 monthly + prune
 6. Notification ntfy (succès ou échec avec durée)
@@ -186,8 +186,8 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 | Destination | Chemin | Retention | Chiffrement | Cout |
 |---|---|---|---|---|
-| Backblaze B2 (restic penny) | `gabin-homelab-backups/restic` | 7d / 4w / 6m | AES-256 client-side | Gratuit (<10 Go) |
-| Backblaze B2 (restic vault) | `gabin-homelab-backups/restic-vault` | 7d / 4w / 6m | AES-256 client-side | Gratuit |
+| Cloudflare R2 EU (restic penny) | `homelab-backups/restic` | 7d / 4w / 6m | AES-256 client-side | Gratuit (<10 Go) |
+| Cloudflare R2 EU (restic vault) | `homelab-backups/restic-vault` | 7d / 4w / 6m | AES-256 client-side | Gratuit |
 | PBS datastore "main" (NFS penny) | `/mnt/ssd/pbs-datastore` | Configurée dans PBS | AES-256-GCM | Gratuit |
 
 ---
@@ -277,18 +277,21 @@ Voir [break-glass.md](break-glass.md) pour la procédure pas-a-pas.
 ## Credentials restic
 
 ```bash
-# /root/.restic-env (chmod 600, gitignored)
+# /root/.restic-env (chmod 600, sealed dans system/secrets/restic-env.enc)
 RESTIC_PASSWORD=<mot-de-passe-chiffrement>
-RESTIC_REPOSITORY=b2:gabin-homelab-backups:restic
-B2_ACCOUNT_ID=<keyID>
-B2_ACCOUNT_KEY=<applicationKey>
+RESTIC_REPOSITORY=s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups/restic
+AWS_ACCESS_KEY_ID=<r2-access-key-id>
+AWS_SECRET_ACCESS_KEY=<r2-secret-access-key>
+R2_ACCOUNT_ID=<account-id>
+R2_BUCKET=homelab-backups
+R2_ENDPOINT=https://<account-id>.eu.r2.cloudflarestorage.com
 ```
 
-!!! danger "Ce fichier doit être sur la clé USB chiffrée"
-    Sans `.restic-env`, les backups B2 sont illisibles. Perte de ce fichier = perte des backups.
+!!! danger "Ce fichier est scellé via sops + age + 2 YubiKeys (DR)"
+    Source de vérité : `system/secrets/restic-env.enc`. Live runtime : `/root/.restic-env` (chmod 600, déchiffré via age key locale OU YubiKey). Perte de tous les age keys + plaintext = perte des backups (`RESTIC_PASSWORD` est nécessaire pour décrypter les snapshots restic même si tu re-créais les keys API R2).
 
-Bucket `gabin-homelab-backups` sur Backblaze B2, region US West.
-Application key limitée a ce bucket uniquement (read + write).
+Bucket `homelab-backups` sur Cloudflare R2 EU jurisdiction.
+API token Cloudflare Object Read & Write scoped uniquement à ce bucket.
 
 ---
 

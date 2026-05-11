@@ -1,31 +1,29 @@
 # Roadmap consolidee 2026-05
 
-> **Vue unifiée post-Phase 2 egress firewall** (2026-05-05). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [fish.md roadmap](fish.md#roadmap), prioritisee par impact/effort/blockers.
+> **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [fish.md roadmap](fish.md#roadmap), prioritisee par impact/effort/blockers.
 
 ## TL;DR
 
-Le homelab est **dans le meilleur état qu'il ait jamais été** après 3 semaines de chantiers. Plus rien d'urgent. 4 items realistes a planifier sur les 1-3 mois, le reste est bloque (hardware/demenagement) ou hors-scope.
+Le homelab est **production-grade**. 0 finding audit ouvert. Tous les items "vrais gaps" software ont été fermés le 2026-05-11. Restent : **UPS** (hardware achat), **DR drill** (validation), **switch L3 features futur**, **Phase 2-4 hardware bloqué déménagement**, et items **Tier 3 nice-to-have**.
 
 ## Tier 1 — A faire dans le mois (vrais gaps)
 
-| # | Item | Effort | Pourquoi |
-|---|------|--------|----------|
-| 1 | **UPS achat + setup NUT** (~80€ APC Back-UPS 700VA) | 1 weekend | Vrai trou reliability — coupure courant 5s = corruption eMMC ZimaBoard potentielle. Le seul gap structurel encore présent. |
-| 2 | **DR drill from cold** | 1/2 journee user | Seule preuve reelle que la chain restore B2+sops marche end-to-end. Memory `project_security_audit_20260419` : "Restore backup test reel — Non audite". |
-| 3 | **TFA root@pam Proxmox** | 5 min UI user | MEDIUM finding ouvert depuis audit 2026-04-19. Defense-in-depth pour root cluster. |
-| 4 | **Switch 8p manageable config** | 30 min UI user | Switch achete + plug, mais aucune config (admin password, IP statique, firmware update). Setup initial L2 dumb suffit pour aujourd'hui. |
-
-**Total Tier 1** : ~1 weekend cumulé pour les 4 items.
+| # | Item | Effort | Statut |
+|---|------|--------|--------|
+| 1 | **UPS achat + setup NUT** (~80€ APC Back-UPS 700VA) | 1 weekend | 🔴 **ouvert** — coupure courant = risque corruption eMMC ZimaBoard. Seul gap structurel encore présent. |
+| 2 | **DR drill from cold** | 1/2 journee user | 🔴 **ouvert** — encore + critique depuis migration R2 fraîche. Seule preuve réelle que la chain restore marche end-to-end. |
+| 3 | ~~**TFA root@pam Proxmox**~~ | ~~5 min UI~~ | ✅ **DONE 2026-05-11** — WebAuthn YK1 + YK2 + TOTP + Recovery Keys, cluster-wide via pmxcfs |
+| 4 | **Switch 8p manageable config** | 30 min UI user | ✅ **Baseline DONE 2026-05-11** — admin password + static IP 192.168.1.2 + DNS aligné. Reste firmware + port labels (cosmétique). |
 
 ## Tier 2 — Quality of life (1-3 mois)
 
-| # | Item | Effort | Pourquoi |
-|---|------|--------|----------|
-| 5 | **Renovate sur homelab-config** | 30 min | Auto-PR pour deps Python fish (`anthropic`, `PyGithub`, `aiohttp`). Aujourd'hui `uv.lock` jamais bumpe = risk CVE silencieux. |
-| 6 | **CI/CD GitHub Actions** sur homelab-config | 1h | pytest fish + ruff + bash -n + secret scan avant merge. Aujourd'hui push direct main = no quality gate. |
-| 7 | **Synthetic monitoring externe** (healthchecks par service public) | 30 min | Si Cloudflare/DNS cassent, fish observé que ton réseau interne. Healthchecks ping `homelab.gabin-simond.fr` et alerte si DNS/CF down. |
-| 8 | **SMTP migration port 25 → 587 auth** (PVE postfix) | 1h | Supprimé risk spam relay si compromission. Whitelist port 25 outbound est l'exception un peu fragile de Phase 2. |
-| 9 | **Fish Grafana dashboard** | 1-2h | Observabilite du compound engine : proposals/jour, approval rate, success rate, cost trend, latency classifier→exec. |
+| # | Item | Effort | Statut |
+|---|------|--------|--------|
+| 5 | ~~Renovate sur homelab-config~~ | ~~30 min~~ | ✅ DONE (commit `59ca114`) |
+| 6 | ~~CI/CD GitHub Actions~~ | ~~1h~~ | ✅ DONE (ci.yml : fish ruff+mypy+pytest, scripts shellcheck, secret scan, yaml lint) |
+| 7 | ~~Synthetic monitoring externe~~ | ~~30 min~~ | ✅ DONE (healthchecks.io heartbeat) |
+| 8 | ~~**SMTP migration port 25 → 587 auth**~~ | ~~1h~~ | ✅ **DONE 2026-05-11** — Postfix → smtp.protonmail.ch:587, port 25 outbound fermé sur PVE nodes |
+| 9 | ~~Fish Grafana dashboard~~ | ~~1-2h~~ | ✅ DONE (commit `ac85806` "fish — SRE activity") |
 
 ## Tier 3 — Selon usage perso ou après soak fish
 
@@ -73,7 +71,19 @@ Le homelab est **dans le meilleur état qu'il ait jamais été** après 3 semain
 ## Items hors-roadmap mais voir aussi
 
 - [Fish v3 plans](fish.md#roadmap) (multi-step reasoning, learning loop, dynamic args, pivot Hybrid) — decision post-soak semaine 8
-- [Egress firewall future itérations](../securite/egress-phase2-plan.md) — IP-set Cloudflare/B2/etc si threat model évolué (maintenance pesante)
+- [Egress firewall future itérations](../securite/egress-phase2-plan.md) — IP-set Cloudflare/R2 si threat model évolué (maintenance pesante)
+- [b2-cap-exceeded.md](../operations/b2-cap-exceeded.md) — incident 2026-05-11 (résolu via migration R2)
+- [r2-migration.md](../operations/r2-migration.md) — runbook migration R2 cloud backups
+
+## Cleanup post-migration R2 (à faire dans 1-2 semaines)
+
+Items "dette" laissée pour validation de R2 sur la durée :
+
+- Retirer `[b2]` block de `/root/.config/rclone/rclone.conf` (penny)
+- Supprimer le bucket B2 dans dashboard Backblaze (post-J+7 stable R2)
+- Retirer `check_b2_cap()` de `homelab_monitor.sh` (skip silencieux maintenant, mais code mort)
+- Update `b2-cap-exceeded.md` header : marquer "RÉSOLU 2026-05-11 via migration R2"
+- Update `decisions.md` : documenter le choix R2 over B2 (transaction caps mensuels vs journaliers, egress free)
 
 ## Vision long terme (12+ mois)
 
@@ -84,7 +94,7 @@ Le homelab actuel **suffit largement** pour usage perso/familial. Les vrais next
 
 ## Process
 
-Cette roadmap doit être **revue tous les 3 mois** (next : 2026-08-05). Chaque revue :
+Cette roadmap doit être **revue tous les 3 mois** (next : 2026-08-11). Chaque revue :
 1. Mark items complètes après verif live
 2. Repromote items Tier 3+ qui sont devenus pertinents
 3. Sunset items qui ne valent plus la peine

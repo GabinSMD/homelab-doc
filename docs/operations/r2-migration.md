@@ -1,5 +1,8 @@
 # Migration backups : Backblaze B2 → Cloudflare R2
 
+!!! success "LIVE depuis 2026-05-11"
+    Migration validée end-to-end. **4 repos restic + PBS datastore** maintenant sur R2 EU. **4.083 GiB** utilisés sur les 10 GB free tier (40%). Voir [b2-cap-exceeded.md](b2-cap-exceeded.md) pour le contexte de l'incident déclencheur.
+
 ## Pourquoi cette migration
 
 B2 free tier impose des **caps quotidiens** sur les transactions (Class B = metadata, Class C = writes). L'incident du 2026-05-11 a montré que ces caps cascadent vite quand 5+ pipelines backup retry en boucle après un échec storage cap. Voir [b2-cap-exceeded.md](./b2-cap-exceeded.md).

@@ -286,3 +286,54 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - Bitwarden CLI — plaintext au moment du fetch, dépendance runtime au vault Vaultwarden (circulaire : vault backup contient ses propres secrets)
 
 **Piege documenté** : CrowdSec credentials doivent être bind-mount `:rw` (entrypoint reecrit au boot). Le fichier `console.yaml` n'est pas scelle (booleans sans secret, pas de bind-mount tmpfs dans compose).
+
+---
+
+## Cloud offsite backups : Cloudflare R2 plutot que Backblaze B2
+
+**Contexte** : Restic + rclone PBS sync vers B2 a atteint **deux caps simultanement** le 2026-05-11 (Storage Cap + Class B/C Transaction Cap). Le second a cascade depuis le premier : les scripts en retry boucle chaque minute ont bombarde l'API B2 jusqu'au transaction cap exceeded → meme l'auth a renvoye 403. **5+ pipelines** backup fail en chaine, dont l'auth itself plus possible.
+
+**Decision** : Migrer vers Cloudflare R2 EU (2026-05-11). `s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups/<repo>`.
+
+**Pourquoi** :
+
+- **Pas de cap journalier** sur R2 free tier. Le mode panique B2 (transaction cap cascade) ne peut plus arriver.
+- **1M Class A writes + 10M Class B reads par MOIS** gratuit (vs B2 journaliers durs, ~3-5k transactions/jour = scripts retry hammering les depasse trivialement).
+- **0 egress fee** illimite. B2 facturait l'egress au-dela du free tier (10 GB/mois). R2 = telechargement gratuit, important pour les drills DR.
+- **API S3-compatible standard** — restic `s3:` backend natif, rclone `type=s3 provider=Cloudflare`. Pas de specificite B2 a apprendre.
+- **EU jurisdiction** — bucket physiquement en EU, coherent avec stack Proton/privacy.
+
+**Alternative rejetee** :
+
+- **Augmenter les caps B2** — coute en transactions illimite ($0.01 par 10k Class C, par exemple). R2 etait gratuit pour ce niveau d'usage. Et le risque de cap cascade demeurait.
+- **Self-host offsite** (autre Pi chez un pote) — depend de la confiance + maintenance reciproque. Pas pret pour cette charge sociale.
+- **Proton Drive via rclone** — backend rclone `protondrive` experimental. 500 GB inclus dans Proton Unlimited mais latence et fragilite vs R2.
+- **Reduire le footprint pour rester sous B2 free tier** — aurait fonctionne mais marge tres faible, risque cap retour rapide a chaque nouveau repo.
+
+**Piege documente** : R2 Object Read/Write tokens **denient l'operation `HeadBucket`**. rclone fait HeadBucket preflight par defaut → 403 AccessDenied. **Fix** : ajouter `no_check_bucket = true` dans la config `[r2]` du `rclone.conf`. Restic n'est pas affecte (utilise pas HeadBucket).
+
+**Piege documente 2** : Les R2 buckets EU jurisdiction utilisent l'endpoint `<account-id>.eu.r2.cloudflarestorage.com` (pas le default `<account-id>.r2.cloudflarestorage.com`). Le script `migrate-restic-r2.sh` prompte la juridiction (default/eu/fedramp) pour construire le bon endpoint.
+
+---
+
+## SMTP outbound : Postfix relay via Proton submission plutot que direct port 25
+
+**Contexte** : `vzdump` sur PVE nodes + cron alerts emettaient via postfix direct port 25 outbound vers smtp.gmail.com. ISP Free **bloque souvent le port 25 outbound** (anti-spam). Resultat : mails coinces en queue depuis longtemps, jamais delivres. Plus, le port 25 outbound est **l'exception fragile** de la Phase 2 egress firewall (whitelist requise sur PVE nodes).
+
+**Decision** : Postfix relay via `smtp.protonmail.ch:587` avec auth SMTP submission token Proton (2026-05-11). Port 25 outbound retire de l'egress whitelist PVE.
+
+**Pourquoi** :
+
+- **Proton SMTP submission** disponible sur Proton Mail Plus / Unlimited / Business (l'user a Unlimited 500 GB). Token regenerable, scoped, revocable.
+- **Port 587 STARTTLS** — submission standard, auth obligatoire, traversee NAT sans deblocage ISP requise.
+- **`sender_canonical` rewrite** — Proton refuse si MAIL FROM / From: header ne match pas le user authentifie. Rewrite regexp `/.* / homelab@gabin-simond.fr` couvre tous les expediteurs locaux.
+- **Cluster-wide config** identique sur galahad + lancelot, deploye via script `setup-postfix-relay.sh` (idempotent : install libsasl2-modules, disable chroot smtp unix service, deploy sasl_passwd + sender_canonical, postfix reload).
+- **Plus de spam-relay risk** si un container PVE compromis : il devra passer par l'auth submission Proton, refusee sans le token.
+
+**Alternative rejetee** :
+
+- **Garder port 25 + Gmail SMTP relay free tier** — Gmail relay 2000 mails/jour gratuit, mais l'user prefere Proton (coherent privacy stance, Unlimited deja paye).
+- **Self-host MX + reverse DNS** — IP residentielle, ISP bloque port 25, pas de PTR record dispo, mail finirait en spam des grands MTA.
+- **Brevo / Mailgun / Resend transactionnel** — gratuit mais ajoute un service externe a maintenir alors que Proton est deja en place et fonctionne.
+
+**Pieges documentes** : (1) **`libsasl2-modules` manquant** sur Debian default → "No worthy mechs found" sur PLAIN/LOGIN auth requis par Proton ; (2) **chroot par defaut sur smtp unix service** dans master.cf → postfix chroot ne voit pas `/usr/lib/.../sasl2/` du host → SASL fail meme avec le package installe. Le deploy script handle les deux.

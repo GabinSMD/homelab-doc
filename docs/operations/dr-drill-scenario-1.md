@@ -1,13 +1,13 @@
-# DR Drill Scénario 1 — Restore complet depuis B2
+# DR Drill Scénario 1 — Restore complet depuis Cloudflare R2
 
-**Objectif** : valider qu'un restore depuis Backblaze B2 sur une machine vierge redonne un homelab fonctionnel.
+**Objectif** : valider qu'un restore depuis Cloudflare R2 sur une machine vierge redonne un homelab fonctionnel.
 
 **Fréquence recommandée** : trimestrielle, ou après changement majeur (kernel, Docker, sops config).
 
 **Materiel** :
 - Raspberry Pi 4 (ou VM arm64) vierge, carte SD DietPi neuve
 - YubiKey OU acces au vault contenant la sauvegarde de la clé age
-- Connexion internet (~130 Mo de paquets apt + plusieurs Go B2)
+- Connexion internet (~130 Mo de paquets apt + plusieurs Go R2)
 
 ---
 
@@ -27,14 +27,14 @@ La clé age est la racine de confiance. Sans elle, rien ne déchiffré.
 - [ ] `sops --version` pour vérifier que sops trouve la clé :
       `SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt sops -d /tmp/test.enc`
 
-### Phase 3 — Restore depuis B2 (30 min)
-- [ ] Récupérer le restic repo URL + password depuis le vault
+### Phase 3 — Restore depuis Cloudflare R2 (30 min)
+- [ ] Récupérer le restic repo URL + password depuis le vault (sealed `system/secrets/restic-env.enc`)
 - [ ] Export env :
       ```
-      export RESTIC_REPOSITORY=b2:homelab-penny:/
+      export RESTIC_REPOSITORY=s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups/restic
       export RESTIC_PASSWORD=...
-      export B2_ACCOUNT_ID=...
-      export B2_ACCOUNT_KEY=...
+      export AWS_ACCESS_KEY_ID=...        # R2 API token "Access Key ID"
+      export AWS_SECRET_ACCESS_KEY=...    # R2 API token "Secret Access Key"
       ```
 - [ ] `restic snapshots` — vérifier qu'on voit les snapshots
 - [ ] Choisir le snapshot le plus recent

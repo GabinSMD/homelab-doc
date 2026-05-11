@@ -132,7 +132,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 
 - Cloudflare API token (`CF_DNS_API_TOKEN`)
 - Tailscale auth key (`TS_AUTHKEY`)
-- Backblaze B2 credentials (`B2_ACCOUNT_ID`, `B2_ACCOUNT_KEY`)
+- Cloudflare R2 credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - ntfy topic URL
 
 ### Homepage widgets (readonly service accounts)

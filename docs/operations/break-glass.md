@@ -81,10 +81,11 @@ Deux YubiKeys sont des recipiants sops indépendants. Chacune peut déchiffrer T
 
 **Secrets couverts par les YubiKeys** (dans `homelab-config/`) :
 
-- `.env.enc` — tous les tokens (Cloudflare, Tailscale, Backblaze, ntfy...)
+- `.env.enc` — tous les tokens (Cloudflare, Tailscale, R2, ntfy...)
 - `authelia/secrets/*` — JWT, OIDC, session, storage keys
 - `crowdsec/online_api_credentials.yaml`, `local_api_credentials.yaml`
-- `system/secrets/restic-env.enc` — password restic + credentials Backblaze B2
+- `system/secrets/restic-env.enc` — password restic + credentials Cloudflare R2 (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
+- `system/secrets/postfix-relay.env.enc` — credentials Proton SMTP submission (token)
 
 **Workflow de déchiffrement avec YubiKey** (sur n'importe quel host avec `age-plugin-yubikey` installe) :
 
@@ -115,7 +116,8 @@ rm /tmp/yk-id.txt
 
 | Compte | Usage | Vérification |
 |---|---|---|
-| Backblaze B2 | Bucket `gabin-homelab-backups` | `source ~/.restic-env && restic snapshots` |
+| Cloudflare R2 EU | Bucket `homelab-backups` (s3 endpoint `<account-id>.eu.r2.cloudflarestorage.com`) | `source ~/.restic-env && restic snapshots` |
+| Proton Mail | `homelab@gabin-simond.fr` (custom domain) + SMTP submission token | login proton.me, voir `/account/u/0/mail/imap-smtp` |
 | Cloudflare | Zone `gabin-simond.fr`, token DNS:Edit | Dashboard Cloudflare |
 | Tailscale | Tailnet, 3 machines | login.tailscale.com |
 | GitHub | Repos `homelab-config` + `homelab-doc` | github.com/GabinSMD |
@@ -681,7 +683,8 @@ done
 | Provider | Raison | Contact |
 |---|---|---|
 | FAI (Free) | Panne Internet | 3244 |
-| Backblaze B2 | Acces backups | help@backblaze.com |
+| Cloudflare R2 | Acces backups | dashboard support |
+| Proton Mail | Acces SMTP relay (token) | proton.me/support |
 | Cloudflare | Zone DNS bloquee | dashboard support |
 | Tailscale | Tailnet issue | support@tailscale.com |
 | YubiKey (Yubico) | Clé defaillante | support.yubico.com |

@@ -1,6 +1,6 @@
 # Roadmap sécurité
 
-État au **2026-05-05** (refresh complet post-Phase 2 egress firewall). Priorité : `impact / effort`.
+État au **2026-05-11** (post-session migration R2 + SMTP submission + TFA root@pam). Priorité : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implémentations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
@@ -11,14 +11,6 @@
 ## En cours / a faire
 
 ### P1 — Important (action user-side requise)
-
-#### TFA root@pam Proxmox — finding MEDIUM ouvert depuis audit 2026-04-19
-
-`/etc/pve/priv/tfa.cfg` = `{}` sur galahad+lancelot.
-
-**Fix** (5 min UI manuel) : Datacenter → Permissions → Two Factor → Add → TOTP → root@pam → scan QR avec authenticator app (Authy/Bitwarden/1Password).
-
-Pas scriptable proprement côté Proxmox.
 
 #### DR drill from cold — jamais teste
 
@@ -100,7 +92,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 #### Hardening cosmetiques
 
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique). Done partiellement : penny — a propager galahad+lancelot.
-- SMTP migration port 25 → 587 auth submission (PVE postfix) — supprimé risk spam relay si compromission. Effort : 1h + setup credentials relay (Mailgun gratuit ou similaire).
+- ~~SMTP migration port 25 → 587 auth submission~~ DONE 2026-05-11 (relay Proton submission, voir [operations/r2-migration.md](../operations/r2-migration.md) section connexes).
 - ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE.
 
 ### P4 — Defere / decision documentée
@@ -127,15 +119,17 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - Traefik route `backup.home.gabin-simond.fr` → PBS UI
     - Authelia OIDC realm "authelia" pour login PBS + comptes break-glass locaux
     - vzdump-permfix-hook.sh sur galahad + lancelot (workaround pct.conf permissions, TEMPORAIRE — a supprimer après migration ZFS)
-    - **Vaultwarden restic-direct** (LXC 102 → B2:restic-vault, SQLite atomic snapshot, cron 02h, indépendant de PBS)
-    - Off-site B2 chiffré (restic AES-256) pour penny configs + volumes Docker
-    - Restic unique backend B2 natif (`b2:gabin-homelab-backups:restic`)
+    - **Cloud offsite migré B2 → Cloudflare R2 EU** — 2026-05-11. 4 repos restic (`restic`, `restic-vault`, `restic-dnsfailover`, `restic-logs`) + PBS datastore via rclone direct. Endpoint `s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups`. 0 transaction cap (vs B2 daily caps), 0 egress fee.
+    - **Vaultwarden restic-direct** (LXC 102 → R2:restic-vault, SQLite atomic snapshot, cron 02h, indépendant de PBS)
+    - Off-site R2 chiffré (restic AES-256) pour penny configs + volumes Docker
     - Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
     - Retention 7d/4w/6m + prune automatique
     - **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
     - RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
+    - **Monitor B2 cap probe** (`check_b2_cap` dans homelab_monitor.sh, 2026-05-11) — détecte 80%/95% usage avant fail ; skip silencieux si B2_ACCOUNT_ID absent (post-migration R2)
 
 ??? success "Authentification"
+    - **PVE root@pam TFA cluster-wide** (WebAuthn YK1 + WebAuthn YK2 + TOTP + Recovery Keys, propagé via pmxcfs) — 2026-05-11. Relying Party `home.gabin-simond.fr`, accès via Traefik `https://galahad.home.gabin-simond.fr`.
     - Authelia 2FA (TOTP + WebAuthn FIDO2 YubiKey)
     - **Authelia regulation anti brute-force** (5 retries / 2min / ban 10min) — 2026-04-14
     - Consent mode `pre-configured` (1 an) sur tous les clients OIDC
@@ -262,9 +256,19 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
     - WAL Alloy rejoue si un sink down = zero perte
 
 ??? success "Backup tiers indépendants PBS"
-    - 4 chaines restic-direct vers B2 : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19)
+    - 4 chaines restic-direct vers Cloudflare R2 (EU) : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19) — migré depuis B2 2026-05-11
     - `restic-check-monthly.sh` multi-repo : structure + 10% data subset sur les 4 repos — 2026-04-19
-    - Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily)
+    - Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily) — `check_restic_repos_freshness` patché pour supporter S3 URLs 2026-05-11
+
+??? success "SMTP submission outbound — port 25 fermé"
+    - **Postfix relay sur galahad + lancelot** → `smtp.protonmail.ch:587` (auth via Proton SMTP submission token, sealed sops) — 2026-05-11
+    - `/etc/postfix/sasl_passwd` mode 600, postmap'd, chmod 600 sur `.db`
+    - `sender_canonical` regexp rewrite → `homelab@gabin-simond.fr` (Proton refuse sinon MAIL FROM mismatch)
+    - `/etc/aliases` : `root: homelab@gabin-simond.fr` + `newaliases`
+    - Chroot disabled sur smtp unix service (Debian default chrootait, masquait `/usr/lib/.../sasl2/`)
+    - libsasl2-modules installé sur les 2 nodes (sans : "No worthy mechs found")
+    - **Egress firewall : port 25 outbound DROPPED, port 587 only** sur galahad+lancelot — 2026-05-11. Plus de spam-relay risk si compromission container.
+    - Script `setup-postfix-relay.sh` : seal/deploy/test/status/rollback, idempotent
 
 ??? success "Convention comptes et service accounts"
     - [comptes.md](comptes.md) : 3 tiers (root break-glass, gabins admin 2FA, svc-* automation)
