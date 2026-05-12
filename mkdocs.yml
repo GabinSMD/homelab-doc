@@ -10,19 +10,21 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   language: fr
+  custom_dir: overrides
+  font: false
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Mode sombre
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-night
         name: Mode clair
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Mode sombre
   features:
     - navigation.instant
     - navigation.tracking
@@ -30,12 +32,19 @@ theme:
     - navigation.expand
     - navigation.indexes
     - navigation.top
+    - navigation.footer
     - search.suggest
     - search.highlight
     - content.code.copy
     - content.action.edit
+    - toc.follow
   icon:
     repo: fontawesome/brands/github
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search:

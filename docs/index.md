@@ -1,6 +1,24 @@
-# Homelab
+---
+hide:
+  - navigation
+  - toc
+---
 
-Documentation du homelab : architecture, services, sécurité et opérations.
+<div class="hero" markdown>
+  <p class="hero__eyebrow">homelab · journal d'ingénierie</p>
+  <h1 class="hero__title">Un Raspberry Pi,<br>deux ZimaBoards,<br>une obsession du détail.</h1>
+  <p class="hero__lede">
+    Carnet de bord d'un homelab résidentiel : architecture, services auto-hébergés,
+    hardening, observabilité, runbooks. Tout ce que je remettrais en place si
+    la maison brûlait demain.
+  </p>
+  <div class="hero__meta">
+    <span><strong>3 hosts</strong> · penny + galahad + lancelot</span>
+    <span><strong>SSO Authelia</strong> · 12+ services derrière Traefik</span>
+    <span><strong>Backups</strong> · Restic → R2 EU + PBS</span>
+    <span><strong>Stack</strong> · DietPi · Proxmox · Docker · sops/age</span>
+  </div>
+</div>
 
 ## Architecture actuelle
 
