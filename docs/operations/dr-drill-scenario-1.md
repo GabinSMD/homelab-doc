@@ -4,6 +4,19 @@
 
 **Fréquence recommandée** : trimestrielle, ou après changement majeur (kernel, Docker, sops config).
 
+!!! info "Validation automatique entre deux drills complets"
+    Le restore complet ci-dessous est un exercice manuel lourd (~90 min, matériel vierge).
+    Entre deux exécutions, la chaîne de restore R2 est validée **automatiquement chaque
+    mois** par deux crons sur penny (le 1er du mois) :
+
+    - `restic-check-monthly.sh` (04:00) — `restic check` structure + `--read-data-subset=10%`
+      sur les 4 repos. Sur 10 mois, couvre ~100% des données (bit rot detection).
+    - `restic-drill-monthly.sh` (05:00) — restore d'un fichier réel du dernier snapshot de
+      chaque repo, vérifie qu'il est lisible. Détecte une corruption qui passerait `check`.
+
+    Échec → alerte ntfy haute priorité. Dernière validation manuelle : **2026-05-29**,
+    4/4 repos OK (check 39s, drill 19s) après fix du parsing backend R2 (commit `d1051f7`).
+
 **Materiel** :
 - Raspberry Pi 4 (ou VM arm64) vierge, carte SD DietPi neuve
 - YubiKey OU acces au vault contenant la sauvegarde de la clé age
@@ -66,7 +79,13 @@ La clé age est la racine de confiance. Sans elle, rien ne déchiffré.
 ## Variantes
 
 **Scénario 2** (futur) : perte de la clé age primaire, restore via yubikey-only.
-**Scénario 3** (futur) : B2 inaccessible, restore depuis dump local NFS/PBS.
+**Scénario 3** (futur) : R2 inaccessible (panne Cloudflare, creds révoqués), restore depuis
+la copie PBS la plus récente (LXC 103) ou un dump local.
+
+!!! note "B2 décommissionné le 2026-05-29"
+    L'ancien backend Backblaze B2 a été supprimé après migration vers R2 (mai 2026).
+    R2 est désormais l'unique backend cloud. Le PBS reste le second chemin de restore
+    (full-LXC, indépendant de R2).
 
 ## Critères de succès
 
