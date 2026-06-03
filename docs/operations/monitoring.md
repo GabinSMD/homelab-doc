@@ -137,3 +137,54 @@ Trois couches complementaires, chacune couvre des scénarios différents :
 
 !!! info "Pas de chevauchement"
     Le watchdog ne remplacé PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se déclenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.
+
+## Dead-man-switch (negative space alerting)
+
+Depuis 2026-06-03 (commit `5db3643`), quatre rules Grafana détectent l'**absence** de logs plutôt que leur présence.
+
+### Pourquoi ce pattern
+
+`homelab_monitor.sh` tourne **sur penny**. Si penny meurt, le moniteur meurt avec lui — et donc personne n'alerte. Observé concrètement entre le 2026-05-31 09:09 et le 2026-06-03 10:13 : 3 jours sans aucune alerte parce que penny était down.
+
+Les rules Grafana classiques (`authelia-failures`, `traefik-5xx`, etc.) regardent toutes la *présence* d'événements anormaux :
+
+```
+sum(count_over_time({container="authelia"} |~ "auth fail" [15m])) > 10
+```
+
+Si authelia est down → 0 log → seuil pas franchi → silence. Catch-22 : on n'alerte que sur ce qui se passe, pas sur ce qui ne se passe plus.
+
+### Le pattern
+
+```yaml
+expr: sum(count_over_time({host="X"}[10m])) or vector(0)
+type: threshold
+conditions:
+  - evaluator: { params: [5], type: lt }
+noDataState: Alerting
+execErrState: OK
+```
+
+- `or vector(0)` : force le retour 0 si Loki ne trouve aucune stream pour le label (sinon NoData casse la reduce stage)
+- `type: lt` : on alerte si **moins** de 5 events
+- `noDataState: Alerting` : filet de secu si Loki renvoie NoData malgré tout (légitime)
+- `execErrState: OK` : silence si Loki lui-même est en erreur
+
+### Rules déployées
+
+| UID | Window | Seuil | Severity |
+|---|---|---|---|
+| `alert-host-penny-silent` | 10min | < 5 logs | critical |
+| `alert-host-galahad-silent` | 10min | < 5 logs | critical |
+| `alert-host-lancelot-silent` | 10min | < 5 logs | critical |
+| `alert-host-fish-silent` | 15min | < 5 logs | high |
+
+YAML-provisioned dans `logs/grafana-provisioning/alerting/rules.yml`.
+
+### Limite : Loki sur lancelot
+
+Si **lancelot** tombe, Loki primary (LXC 101) tombe aussi → Grafana ne peut plus évaluer ses rules. Filets de secours :
+
+1. **Loki replica sur penny** (port 3101) — reçoit toujours les writes Alloy via dual-write Alloy.
+2. **healthchecks.io** sur penny `homelab_monitor.sh` — ping cloud chaque minute, fire ntfy externe à T+5min de silence. Indépendant du cluster.
+3. **fish canary via Tailscale** (commit `fb56f53`) — `monitor.sh` check `fish.service` par IP Tailscale, bypass Loki.
