@@ -30,6 +30,7 @@ Script bash executé **chaque minute** via cron. Surveillé :
 | SSD lisible | Erreur I/O | :octicons-alert-16: critique |
 | SSD read-only | Remonte en ro | :octicons-alert-16: critique |
 | USB errors dans dmesg | Disconnect/offline | :octicons-alert-16: haute |
+| **SMART SSD** (horaire) | CRC errors ↑ (câble/bridge suspect) haute ; realloc/pending/uncorr ↑ (NAND) urgente ; temp > 65°C | :octicons-alert-16: variable |
 | Temperature | > 70°C warning, > 80°C critique | :octicons-alert-16: variable |
 | Alimentation | Throttling / under-voltage | :octicons-alert-16: haute |
 | Espace disque SD/SSD | > 80% warning, > 95% critique | :octicons-alert-16: variable |
