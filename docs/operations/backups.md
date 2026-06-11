@@ -120,9 +120,24 @@ Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas d
 
 ### Intégrité : restic-check-monthly.sh multi-repo
 
-Cron penny `1er de chaque mois 04:00` : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
+Systemd timer penny `1er de chaque mois 04:00` (`restic-check-monthly.timer`) : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
 
 Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts/restic-check-monthly.sh`.
+
+### Restauration : restic-drill-monthly.sh (restic + pbs-datastore)
+
+Systemd timer penny `1er de chaque mois 05:00` (`restic-drill-monthly.timer`) : restore réel d'un fichier du dernier snapshot de **chaque repo restic** (lisibilité vérifiée), puis **pbs-datastore** : `rclone check --one-way` R2→local (hash, ~11 min dominées par le hash local des ~10 GiB) + restore témoin d'un fichier avec comparaison md5. Détecte une corruption qui passerait `check`, et couvre le datastore PBS qui est hors restic (sync rclone direct).
+
+!!! warning "Pourquoi des timers systemd et plus des crons (2026-06-11)"
+    Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé
+    pendant le downtime penny du 31/05-03/06 et a sauté **silencieusement** — première
+    fenêtre depuis le fix du parsing R2, donc la chaîne de restore est restée non
+    validée tout le mois. Les 4 jobs hebdo/mensuels (`restic-check-monthly`,
+    `restic-drill-monthly`, `digest-drift-check`, `lynis-weekly`) sont migrés vers des
+    timers `Persistent=true` : un run manqué s'exécute au boot suivant. Les jobs
+    quotidiens restent en cron (un run manqué se rattrape le lendemain).
+    Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
+    `Environment=HOME=/root` (sans lui restic tourne sans cache).
 
 ### Freshness monitor
 

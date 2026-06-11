@@ -7,15 +7,19 @@
 !!! info "Validation automatique entre deux drills complets"
     Le restore complet ci-dessous est un exercice manuel lourd (~90 min, matériel vierge).
     Entre deux exécutions, la chaîne de restore R2 est validée **automatiquement chaque
-    mois** par deux crons sur penny (le 1er du mois) :
+    mois** par deux systemd timers `Persistent=true` sur penny (le 1er du mois ; un run
+    manqué pendant un downtime s'exécute au boot suivant — migration cron → timers
+    2026-06-11 après le drill du 01/06 sauté silencieusement pendant le downtime penny) :
 
-    - `restic-check-monthly.sh` (04:00) — `restic check` structure + `--read-data-subset=10%`
+    - `restic-check-monthly` (04:00) — `restic check` structure + `--read-data-subset=10%`
       sur les 4 repos. Sur 10 mois, couvre ~100% des données (bit rot detection).
-    - `restic-drill-monthly.sh` (05:00) — restore d'un fichier réel du dernier snapshot de
-      chaque repo, vérifie qu'il est lisible. Détecte une corruption qui passerait `check`.
+    - `restic-drill-monthly` (05:00) — restore d'un fichier réel du dernier snapshot de
+      chaque repo restic + **pbs-datastore** (`rclone check` one-way R2→local + restore
+      témoin md5). Détecte une corruption qui passerait `check`.
 
-    Échec → alerte ntfy haute priorité. Dernière validation manuelle : **2026-05-29**,
-    4/4 repos OK (check 39s, drill 19s) après fix du parsing backend R2 (commit `d1051f7`).
+    Échec → alerte ntfy haute priorité. Dernière validation : **2026-06-11**, drill complet
+    via systemd, 4/4 repos restic + pbs-datastore OK (4784 fichiers matchés, 665s ;
+    spec : [fiabilisation drill](../projet/2026-06-11-fiabilisation-drill-restauration.md)).
 
 **Materiel** :
 - Raspberry Pi 4 (ou VM arm64) vierge, carte SD DietPi neuve
