@@ -35,7 +35,7 @@ flowchart TB
         Executor[SSHExecutor<br/>HostMutex per-target<br/>Retry 1x on exit 255<br/>SIGTERM+5s+SIGKILL]
     end
 
-    Phone[Phone ntfy.sh topic]
+    Phone[Phone ntfy privé topic homelab]
     User([User tap Approve])
     Wrapper["sudo -n fish-wrapper<br/>validates verb run|verify|rollback<br/>validates pattern_id /etc/fish/allow-list<br/>validates script /etc/fish/allow-scripts<br/>exec /opt/fish/catalog/scripts/&lt;script&gt;.sh"]
 
@@ -64,7 +64,7 @@ flowchart TB
 - **Langage** : Python 3.14, `uv`-managed, async/await throughout
 - **LLM** : Claude Sonnet 4.6 via API (wrappable vers Ollama local futur)
 - **DB** : SQLite WAL mode + FK enforced, via `aiosqlite`
-- **Notifier** : ntfy.sh public (topic obscur) + Tailscale Funnel pour callbacks
+- **Notifier** : ntfy self-hosté privé (topic `homelab`, token write-only dédié, URL tailnet `penny.tail8850a4.ts.net` — migré de ntfy.sh public le 2026-06-11) + Tailscale pour callbacks
 - **Exec** : SSH forced-command + `sudo` + wrapper validator + sudoers restreint
 - **Runtime** : LXC 105 unprivileged sur lancelot, Debian 13, systemd, sops-sealed secrets
 
@@ -97,7 +97,7 @@ Decouple `proposal.status` (decision humaine) de `execution.status`
 (résultat technique). Dry-run mode pour valider avant premier exec reel.
 
 ### NtfyNotifier
-POST ntfy.sh avec `X-Actions` Approve/Deny. Callbacks recus via
+POST ntfy privé (Bearer token) avec `X-Actions` Approve/Deny. Callbacks recus via
 Tailscale Funnel → fish aiohttp :8080. Confirmation buzz après 1er click
 pour feedback visuel. Re-clicks gated (handler 200 "already decided").
 
