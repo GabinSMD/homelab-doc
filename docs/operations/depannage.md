@@ -657,6 +657,54 @@ Puis `systemctl restart docker && docker compose up -d`.
 
 ---
 
+## Alloy crashe a chaque :17 (SIGBUS journald, RAMlog DietPi)
+
+### Symptome
+
+`alloy.service` sur penny crashe a chaque XX:17 (NRestarts grimpe en continu). systemd le relance (`Restart=always`) donc le service parait "actif", mais : trous horaires dans les metriques/logs, et le journal persistant ne retient qu'~1h.
+
+```text
+alloy[PID]: SIGBUS: bus error
+alloy[PID]: go-systemd/v22/sdjournal._Cfunc_my_sd_journal_next
+alloy[PID]: loki/source/journal.newTailerWithReader
+alloy.service: Failed with result 'exit-code'.
+```
+
+Indice cle : `journalctl --header` montre une **first-entry = derniere :17** (le journal est reinitialise chaque heure). Le `journalctl -u alloy --since` peut afficher "1 crash" trompeur car la preuve elle-meme se fait vacuumer.
+
+### Cause racine
+
+DietPi RAMlog (mode -1) lance `dietpi-logclear` via `cron.hourly` (`/etc/crontab`, tick a :17) qui fait `find /var/log -type f | truncate -cs0`. Ce `find` **descend dans le mount persistant `/var/log/journal`** (SSD) et tronque le `system.journal` ACTIF a 0 octet. Le fichier etant mmap'd par `loki.source.journal` d'Alloy (`sd_journal_next` via cgo/libsystemd), la troncature invalide les pages mappees → SIGBUS.
+
+A ne pas confondre avec le SIGBUS *dockerd* ci-dessus (log-driver journald) : ici c'est le *reader* Alloy + une troncature *externe* par DietPi, pas une rotation interne.
+
+### Fix
+
+1. Journal en RAM, hors perimetre de `dietpi-logclear` — `/etc/systemd/journald.conf.d/10-fish-alloy-sigbus-volatile.conf` :
+
+   ```ini
+   [Journal]
+   Storage=volatile
+   ```
+
+2. Pin Alloy sur la RAM (sinon il mappe encore les fichiers residuels `/var/log/journal`) — dans `loki.source.journal "system"` de `config.alloy` :
+
+   ```alloy
+   path = "/run/log/journal"
+   ```
+
+3. `systemctl restart systemd-journald && systemctl restart alloy.service`
+
+**Verification (sans attendre :17)** : relancer `/boot/dietpi/func/dietpi-logclear 1` a la main → `systemctl show alloy -p MainPID` doit etre **inchange** et `NRestarts` rester stable (avant le fix : crash systematique au meme test).
+
+### Impact
+
+- Plus de journal local persistant apres reboot (l'historique central reste dans Loki). Aligne avec la philosophie RAMlog de DietPi.
+- Fichiers `/var/log/journal/*` desormais vestigiaux (tronques sans effet, nettoyables).
+- **Lecon** : sur DietPi RAMlog, ne jamais poser le journald persistant sous `/var/log/journal`. Voir `projet/decisions.md` → "Journald penny : volatile".
+
+---
+
 ## pmxcfs stuck read-only après recovery node cluster
 
 ### Symptome

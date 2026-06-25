@@ -81,15 +81,25 @@ mensuel EUR (pricing Sonnet $3/$15 Mtok). **Confidence deterministe** =
 `len(match_signals) / len(pattern.required_signals)`, pas de LLM self-report.
 
 ### Catalog
-YAML schema pydantic, 5 patterns seed depuis les mémoires d'incidents :
+YAML schema pydantic, 6 patterns (5 seed depuis les mémoires d'incidents + 1 drafté par fish) :
 - `beszel-oidc-reset` — PocketBase resetting `meta.appURL` post-restart
 - `docker-compose-stopped-post-reboot` — `unless-stopped` ne restart pas après `docker compose down`+reboot
 - `pmxcfs-ro-post-recovery` — `/etc/pve` RO après recovery corosync (fix : restart pve-cluster)
 - `dockerd-sigbus-loop` — log-driver journald SIGBUS sur ARM (fix : swap vers json-file)
 - `apt-security-updates-pending` — apt upgrades non appliques
+- `adguard-desync` — secondaire DNS desync du primaire (fix : `/root/adguard-sync.sh`) — drafté par fish, mergé 2026-06-25
 
 Chaque pattern déclaré : required_signals, target_host, fix_script,
-timeout_s, verify_script, on_failure (rollback ou escalate).
+timeout_s, verify_script, on_failure (rollback ou escalate),
+`promote_to_autoexec_after` (null = approbation manuelle perpetuelle).
+
+### Drafter (auto-proposition de patterns, W5)
+Quand un incident ne matche AUCUN pattern, fish peut **drafter** un nouveau pattern via LLM et l'ouvrir en **PR** sur `homelab-config` (jamais auto-merge — review humaine obligatoire des scripts fix/verify). Garde-fous (durcis 2026-06-25, issue #26) :
+
+- **Dédup open-PR** — pas de re-draft tant qu'une PR fish est ouverte pour la même `incident_key` (sans fenêtre temporelle).
+- **Skip services auto-restart** — pas de pattern "restart X" pour un service à `Restart=always` (ex `alloy.service`, déjà couvert par systemd).
+- **Pré-filtre anti-bruit** — lignes bénignes connues (stats HAProxy, warnings dnsproxy…) écartées avant tout appel LLM.
+- **`promote_to_autoexec_after` forcé à `null`** — un draft ne s'auto-promeut jamais en auto-exec.
 
 ### Proposer
 Orchestre le cycle observé → classify → propose → wait approval → exec.

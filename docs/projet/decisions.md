@@ -337,3 +337,22 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 - **Brevo / Mailgun / Resend transactionnel** — gratuit mais ajoute un service externe a maintenir alors que Proton est deja en place et fonctionne.
 
 **Pieges documentes** : (1) **`libsasl2-modules` manquant** sur Debian default → "No worthy mechs found" sur PLAIN/LOGIN auth requis par Proton ; (2) **chroot par defaut sur smtp unix service** dans master.cf → postfix chroot ne voit pas `/usr/lib/.../sasl2/` du host → SASL fail meme avec le package installe. Le deploy script handle les deux.
+
+---
+
+## Journald penny : volatile (RAM) plutôt que persistant sous /var/log/journal
+
+**Contexte** : penny tourne DietPi en mode RAMlog (`AUTO_SETUP_LOGGING_INDEX=-1`). Le journald persistant avait ete active (`Storage=persistent`, `/var/log/journal` sur le SSD) pour garder des logs locaux post-reboot. Mais `dietpi-logclear` (cron.hourly a :17) fait `find /var/log -type f | truncate -cs0` et descend dans le mount `/var/log/journal` → tronque le `system.journal` ACTIF a 0 octet chaque heure. Le fichier etant mmap'd par Alloy (`loki.source.journal` → `sd_journal_next`), la troncature → **SIGBUS → alloy.service crashe a chaque :17**. Effet de bord : retention reelle ~1h seulement.
+
+**Decision** : `Storage=volatile` (journal en RAM `/run/log/journal`) + Alloy pin `path = "/run/log/journal"` (2026-06-25)
+
+**Pourquoi** :
+
+- **Supprime le conflit a la racine** — `/run/log/journal` est hors du perimetre de `dietpi-logclear` (qui ne touche que `/var/log`). Plus de troncature, plus de SIGBUS. Prouve en relancant `dietpi-logclear` a la main : Alloy meme PID, NRestarts=0.
+- **`path` pinned indispensable** — sans lui, `sd-journal` lit AUSSI les fichiers residuels `/var/log/journal` que `dietpi-logclear` tronque encore → SIGBUS persiste.
+- **Aligne avec la philosophie RAMlog** — DietPi mode -1 veut des logs ephemeres en RAM ; Loki est la couche de retention.
+- **Moins d'ecritures SSD** — fini la rotation/troncature horaire du journal sur le SSD.
+
+**Alternative rejetee** : (1) **DietPi mode -3 (rsyslog+logrotate)** — persistance disque reelle mais installe rsyslog + /var/log passe tmpfs→disque, plus gros blast radius. (2) **Exclure /var/log/journal de dietpi-logclear** — necessite d'editer un fichier gere par DietPi, fragile (reecrit aux updates).
+
+**Impact** : plus de journal local persistant apres reboot (l'historique central reste dans Loki). Fichiers `/var/log/journal/*` desormais vestigiaux. Lecon : sur DietPi RAMlog, ne jamais poser le journald persistant sous `/var/log/journal`.

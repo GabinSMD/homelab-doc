@@ -61,10 +61,16 @@ loki.write "replica" {
 }
 
 loki.source.journal "system" {
+  // penny uniquement : journald est en Storage=volatile (RAM), Alloy doit lire
+  // /run/log/journal et PAS /var/log/journal (tronque par dietpi-logclear -> SIGBUS).
+  path       = "/run/log/journal"
   forward_to = [loki.write.default.receiver, loki.write.replica.receiver]
   ...
 }
 ```
+
+!!! warning "penny : journal en RAM (volatile)"
+    Sur penny (DietPi RAMlog), journald est en `Storage=volatile` et Alloy lit `/run/log/journal` via `path`. Sans ca, `dietpi-logclear` tronque le `system.journal` mmap'd a chaque :17 → SIGBUS d'Alloy. Detail : `operations/depannage.md` → "Alloy crashe a chaque :17" et `projet/decisions.md` → "Journald penny : volatile". galahad/lancelot gardent le journald par defaut.
 
 Alloy a un WAL interne : si un Loki est down, les chunks sont bufferises localement et rejoues au retour.
 
