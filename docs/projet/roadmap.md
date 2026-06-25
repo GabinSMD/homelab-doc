@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Mise a jour 2026-05-05** — Phase 1 quasi-complète (1 vrai gap : UPS). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
+> **Mise a jour 2026-06-25** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
 
 ## Phase 1 — Foundation (preparation domicile actuel)
 
@@ -56,7 +56,7 @@
 - [x] Audit CSO complet 2026-04-19 (0 HIGH/CRIT, 2 MEDIUM dont 1 corrige)
 - [x] Egress firewall Phase 2 (DROP outbound + port-based whitelist) sur 3 hosts — 2026-05-05
 - [x] YubiKey SSH client (sk-ssh-ed25519 sur 3 hosts)
-- [ ] **TFA root@pam Proxmox** (5 min UI Datacenter→Permissions→Two Factor)
+- [x] **TFA root@pam Proxmox** (WebAuthn YK1+YK2 + TOTP + recovery keys, cluster-wide via pmxcfs) — 2026-05-11
 
 ## Phase 2 — Avant emmenagement (bloquee hardware)
 
@@ -88,8 +88,8 @@
 
 ### Quality of life développement
 
-- [ ] **Renovate ou Dependabot** sur homelab-config repo (auto-PR pour deps Python fish + scripts)
-- [ ] **CI/CD GitHub Actions** sur homelab-config (pytest fish + ruff + bash -n + secret scan avant merge)
+- [x] **Renovate** sur homelab-config repo (auto-PR deps ; Dependency Dashboard issue #19)
+- [x] **CI/CD GitHub Actions** sur homelab-config (fish lint+tests, scripts bash+shellcheck, yaml+compose, secret scan — gate avant merge)
 - [ ] Synthetic monitoring externe (healthchecks par service public — homelab.gabin-simond.fr etc)
 
 ### Nouveaux services (selon usage perso)
@@ -100,9 +100,9 @@
 
 ### Sécurité hardening (paranoia level)
 
-- [ ] [Trivy](https://github.com/aquasecurity/trivy) schedule — vuln scan images Docker hebdo
+- [x] [Trivy](https://github.com/aquasecurity/trivy) schedule — vuln scan images Docker hebdo (ntfy si CRITICAL) — 2026-06-25
 - [ ] AIDE/Tripwire — file integrity monitoring `/etc /usr`
-- [ ] SMTP migration port 25 → 587 auth submission (PVE postfix)
+- [x] SMTP migration port 25 → 587 auth submission (PVE postfix relay Proton) — 2026-05-11
 - [ ] HIDS (Wazuh / CrowdSec extension)
 
 ### Reproductibilite

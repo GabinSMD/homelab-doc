@@ -78,9 +78,9 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 #### Process / supply chain
 
-- **Renovate ou Dependabot** sur homelab-config repo (auto-PR pour deps Python fish + scripts). Aujourd'hui `uv.lock` jamais bumpe = risk CVE silencieux dans `anthropic`/`PyGithub`/`aiohttp`. Effort : 30 min config GitHub Actions.
-- **CI/CD GitHub Actions** sur homelab-config (pytest fish + ruff + bash -n + secret scan avant merge). Today direct push main = no quality gate. Effort : 1h.
-- **Trivy schedule** — vuln scanning images Docker hebdo, push results dans Loki ou ntfy si CRITIQUE. Effort : 30 min.
+- ~~**Renovate**~~ DONE — actif sur homelab-config (auto-PR deps, Dependency Dashboard issue #19).
+- ~~**CI/CD GitHub Actions**~~ DONE — homelab-config : fish lint+tests, scripts bash+shellcheck, yaml+compose, secret scan ; gate avant merge (PR workflow).
+- ~~**Trivy schedule**~~ DONE 2026-06-25 — `trivy-scan.sh` + timer hebdo (dim 06:00), ntfy si CRITICAL. 1er run : 27 CRITICAL / 641 HIGH sur 15 images → images tierces à bumper (traefik-crowdsec-bouncer, docker-socket-proxy).
 
 #### Network / détection
 
