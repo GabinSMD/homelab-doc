@@ -142,6 +142,13 @@ L'authentification par mot de passe est désactivée via la variable d'environne
 | `oidc.pem` (JWKS) | `/mnt/ssd/config/authelia/` | Non (clé privee) |
 | `db.sqlite3` | `/mnt/ssd/config/authelia/` | Non (données) |
 
+## Secrets au runtime : montés sur `/secrets` (hors `/config`)
+
+Les secrets Authelia sont scellés via sops (`authelia/secrets/*` dans le repo), déscellés au boot par `homelab-unseal.service` vers le tmpfs `/run/homelab/authelia-secrets`, puis montés **read-only dans le container sur `/secrets`** (pas `/config/secrets`). Les variables `AUTHELIA_*_FILE` et `configuration.yml` pointent vers `/secrets/...`.
+
+!!! warning "Pourquoi `/secrets` et pas `/config/secrets`"
+    L'entrypoint de l'image Authelia fait `chown -R /config` au démarrage. Quand les secrets étaient montés en RO sous `/config/secrets`, ce chown échouait et crachait **~13 000 lignes `chown: ... Read-only file system`** par démarrage (et alimentait un replay-storm Loki). Monter hors de `/config` supprime le problème (fix 2026-06-25). Voir `projet/decisions.md`.
+
 ## Regenerer les secrets
 
 ```bash
