@@ -91,6 +91,9 @@ AdGuard Home utilisé une **règle de reecriture conditionnelle** dans `user_rul
 
 Un client Tailscale distant n'est pas sur le LAN. Il atteint `192.168.1.28:443` (Traefik) parce que **penny advertise la route subnet `192.168.1.28/32`** sur le tailnet (`tailscale set --advertise-routes=192.168.1.28/32`, approuvée dans la console). Le trafic VPN vers cette IP est routé jusqu'à penny.
 
+!!! warning "Nœuds tailnet RÉSIDENTS du LAN : `accept-routes` doit rester `false`"
+    Un nœud Tailscale qui est **lui-même sur le LAN 192.168.1.0/24** (ex : fish/LXC 105) et qui a `accept-routes: true` va router `192.168.1.28` via Tailscale au lieu du LAN direct. Conséquence : quand **penny initie** vers ce nœud (`ssh`, ping, health Homepage), le nœud **répond via Tailscale** → routage asymétrique → le `rp_filter` de penny droppe la réponse → 100% packet loss (sens penny→nœud uniquement). Vécu 2026-06-25 sur fish. **Fix : `tailscale set --accept-routes=false`** sur les nœuds LAN-résidents (ils joignent penny en direct, ils n'ont pas besoin d'accepter la route). Diagnostic : `ip route get 192.168.1.28` sur le nœud doit montrer `dev eth0`, pas `dev tailscale0`. galahad/lancelot/dns-failover ne sont pas concernés (pas d'accept-routes).
+
 !!! danger "Ne PAS renvoyer les clients Tailscale vers l'IP Tailscale de penny"
     Tentation naturelle : `client=100.64.0.0/10 → 100.97.239.90` (l'IP Tailscale). **Ça casse en TLS** : `SSL_ERROR_INTERNAL_ERROR_ALERT` (alert 80). Raison : l'IP Tailscale:443 de penny est tenue par le **Funnel Tailscale (→ ntfy `127.0.0.1:8090`)**, qui n'a de cert que pour `penny.tail*.ts.net` — pas pour `home.*`. Traefik ne bind QUE `192.168.1.28` + `127.0.0.1` (le Funnel squatte l'IP Tailscale:443, cf mémoire `traefik-tailscale-443-conflict`). Un SNI `home.*` arrivant sur l'IP Tailscale n'a donc aucun cert → abort handshake. Ce piège a été actif jusqu'au **2026-06-25** (corrigé via route subnet + rewrite → IP LAN).
 
