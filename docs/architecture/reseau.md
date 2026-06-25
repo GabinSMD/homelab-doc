@@ -58,7 +58,7 @@ graph TB
     
     subgraph "Tailscale"
         TSClient[Client VPN<br/>100.x.x.x] -->|requete DNS| AG
-        AG -->|rewrite Tailscale IP| TSClient
+        AG -->|rewrite IP LAN 192.168.1.28| TSClient
     end
     
     subgraph "Internet"
@@ -71,24 +71,28 @@ graph TB
     end
     
     Client -->|HTTPS| Traefik
-    TSClient -->|HTTPS via Tailscale| Traefik
+    TSClient -->|HTTPS via route subnet 192.168.1.28/32| Traefik
 ```
 
 ### Les DNS rewrites (la pièce clé)
 
-AdGuard Home utilisé des **règles de reecritures conditionnelles** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet** :
+AdGuard Home utilisé une **règle de reecriture conditionnelle** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet**. **Tous** les clients (LAN, bridges Docker, Tailscale) résolvent `*.home.gabin-simond.fr` vers l'IP LAN de penny `192.168.1.28`, où écoute Traefik :
 
 ```text
-||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24
-||home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
+||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24|172.16.0.0/12|100.64.0.0/10
 ```
 
-#### Que font ces règles ?
+| Client vu par AdGuard | Réponse DNS | Comment il atteint 192.168.1.28 |
+|---|---|---|
+| LAN (`192.168.1.0/24`), Docker (`172.16/12`) | `192.168.1.28` | directement sur le LAN |
+| Tailscale (`100.64.0.0/10`) | `192.168.1.28` | via **route subnet** `192.168.1.28/32` advertisée par penny (approuvée console) |
 
-| Règle | Client vu par AdGuard | Réponse DNS | Pourquoi |
-|---|---|---|---|
-| 1ere | LAN (`192.168.1.0/24`) | `192.168.1.28` (IP locale) | Clients du réseau local |
-| 2eme | Tailscale (`100.64.0.0/10`) | `100.97.239.90` (IP Tailscale) | Clients VPN distants |
+#### Comment les clients VPN atteignent Traefik
+
+Un client Tailscale distant n'est pas sur le LAN. Il atteint `192.168.1.28:443` (Traefik) parce que **penny advertise la route subnet `192.168.1.28/32`** sur le tailnet (`tailscale set --advertise-routes=192.168.1.28/32`, approuvée dans la console). Le trafic VPN vers cette IP est routé jusqu'à penny.
+
+!!! danger "Ne PAS renvoyer les clients Tailscale vers l'IP Tailscale de penny"
+    Tentation naturelle : `client=100.64.0.0/10 → 100.97.239.90` (l'IP Tailscale). **Ça casse en TLS** : `SSL_ERROR_INTERNAL_ERROR_ALERT` (alert 80). Raison : l'IP Tailscale:443 de penny est tenue par le **Funnel Tailscale (→ ntfy `127.0.0.1:8090`)**, qui n'a de cert que pour `penny.tail*.ts.net` — pas pour `home.*`. Traefik ne bind QUE `192.168.1.28` + `127.0.0.1` (le Funnel squatte l'IP Tailscale:443, cf mémoire `traefik-tailscale-443-conflict`). Un SNI `home.*` arrivant sur l'IP Tailscale n'a donc aucun cert → abort handshake. Ce piège a été actif jusqu'au **2026-06-25** (corrigé via route subnet + rewrite → IP LAN).
 
 !!! danger "Ne pas utiliser les DNS Rewrites statiques"
     La section **DNS Rewrites** d'AdGuard (Filters > DNS Rewrites) ne doit **pas** contenir d'entrees pour `*.home.gabin-simond.fr`.
