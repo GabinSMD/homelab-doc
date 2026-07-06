@@ -48,7 +48,7 @@
 - [x] Notif hygiene mode "uniquement quand ne va pas" (silence success, only failures bipe)
 - [x] Logs persistents SSD (`/mnt/ssd/log-homelab/`, post-DietPi RAMlog fix)
 - [x] [Sucre SRE engine](sucre.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter)
-- [x] Sucre-down canary Tailscale (homelab_monitor.check_fish_service)
+- [x] Sucre-down canary Tailscale (homelab_monitor.check_sucre_service)
 - [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, sucre observé)
 
 ### Sécurité (voir [sécurité/roadmap.md](../securite/roadmap.md))

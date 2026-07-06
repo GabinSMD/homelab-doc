@@ -43,7 +43,7 @@ flowchart LR
 - SSD disconnect / recovery
 - fail2ban bans IP
 - AdGuard desync hors window backup
-- Sucre DOWN (canary Tailscale via `homelab_monitor.check_fish_service`)
+- Sucre DOWN (canary Tailscale via `homelab_monitor.check_sucre_service`)
 - Sucre drafter PR créé sur signal réel inconnu
 - CT log nouveau sous-domaine (potentiel takeover)
 - Watchtower échec maj OU container marqué `monitor-only` avec nouvelle version
