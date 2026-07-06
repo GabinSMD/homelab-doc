@@ -46,7 +46,7 @@ Chaque machine porte un nom de code emprunte au monde de l'espionnage, des agent
 | ZimaBoard #2 | **lancelot** | Lancelot (Kingsman) | Deuxieme agent, duo inseparable avec galahad |
 | Minisforum (futur) | **luther** | Luther Stickell (Mission Impossible) | Cerveau technique : compute + NAS, le plus puissant |
 | Firewall (futur) | **fury** | Nick Fury (Marvel) | Contrôler qui a acces a quoi — c'est le firewall |
-| Assistant (futur) | **fish** | Scofield (Prison Break) | Intelligence calme, observé, exécuté, repare |
+| Assistant (futur) | **sucre** | Scofield (Prison Break) | Intelligence calme, observé, exécuté, repare |
 
 Le pantheon s'applique aux **machines physiques** uniquement. Les services Docker, LXC et subdomains restent **fonctionnels** (`vault`, `auth`, `monitor`, `logs`...).
 

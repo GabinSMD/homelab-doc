@@ -178,7 +178,7 @@ execErrState: OK
 | `alert-host-penny-silent` | 10min | < 5 logs | critical |
 | `alert-host-galahad-silent` | 10min | < 5 logs | critical |
 | `alert-host-lancelot-silent` | 10min | < 5 logs | critical |
-| `alert-host-fish-silent` | 15min | < 5 logs | high |
+| `alert-host-sucre-silent` | 15min | < 5 logs | high |
 
 YAML-provisioned dans `logs/grafana-provisioning/alerting/rules.yml`.
 
@@ -188,4 +188,4 @@ Si **lancelot** tombe, Loki primary (LXC 101) tombe aussi → Grafana ne peut pl
 
 1. **Loki replica sur penny** (port 3101) — reçoit toujours les writes Alloy via dual-write Alloy.
 2. **healthchecks.io** sur penny `homelab_monitor.sh` — ping cloud chaque minute, fire ntfy externe à T+5min de silence. Indépendant du cluster.
-3. **fish canary via Tailscale** (commit `fb56f53`) — `monitor.sh` check `fish.service` par IP Tailscale, bypass Loki.
+3. **sucre canary via Tailscale** (commit `fb56f53`) — `monitor.sh` check `sucre.service` par IP Tailscale, bypass Loki.

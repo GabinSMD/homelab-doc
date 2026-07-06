@@ -680,7 +680,7 @@ A ne pas confondre avec le SIGBUS *dockerd* ci-dessus (log-driver journald) : ic
 
 ### Fix
 
-1. Journal en RAM, hors perimetre de `dietpi-logclear` — `/etc/systemd/journald.conf.d/10-fish-alloy-sigbus-volatile.conf` :
+1. Journal en RAM, hors perimetre de `dietpi-logclear` — `/etc/systemd/journald.conf.d/10-sucre-alloy-sigbus-volatile.conf` :
 
    ```ini
    [Journal]
