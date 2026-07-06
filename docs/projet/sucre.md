@@ -1,8 +1,11 @@
-# fish — SRE perso
+# sucre — SRE perso
+
+!!! note "Renommage 2026-07-06"
+    Anciennement **fish**. Renommé **sucre** le 2026-07-06 — le nom « Fish » est réservé au futur assistant général du homelab. Toutes les références (user SSH, services systemd, chemins, labels Loki, node Tailscale) ont été migrées.
 
 > **Intelligence calme, observé, exécuté, repare.**
 
-`fish` est l'assistant SRE perso du homelab. Un bot qui surveillé les logs/metriques,
+`sucre` est l'assistant SRE perso du homelab. Un bot qui surveillé les logs/metriques,
 reconnait les incidents connus, propose un fix par notification, et exécuté
 après approbation humaine. Nomme d'après Scofield (Prison Break).
 
@@ -11,10 +14,10 @@ après approbation humaine. Nomme d'après Scofield (Prison Break).
 **MVP livre et prouvé en production.** Premier cycle end-to-end valide :
 
 - 🔔 iPhone buzz → **Approve** tap
-- ⏱ **3 secondes** plus tard fish a repare homepage via SSH
+- ⏱ **3 secondes** plus tard sucre a repare homepage via SSH
 - 📊 AuditDB SQLite log propre : classifier + proposal + exécution
 
-**15 commits** sur `homelab-config/fish/` ce jour, **163 tests verts**, 0 regression.
+**15 commits** sur `homelab-config/sucre/` ce jour, **163 tests verts**, 0 regression.
 
 ## Architecture
 
@@ -27,17 +30,17 @@ flowchart TB
         Journald[journald LXC]
     end
 
-    subgraph fish["fish LXC 105 (lancelot)"]
+    subgraph sucre["sucre LXC 105 (lancelot)"]
         Observer[Observer<br/>Loki tail WebSocket<br/>Prometheus poll 30s<br/>Event bus asyncio.Q<br/>Dedup + trigger rules]
         Classifier[Classifier<br/>Claude Sonnet API<br/>BudgetGuard 20EUR/mo<br/>Deterministic confidence]
         Proposer[Proposer<br/>Catalog YAML match<br/>AuditDB SQLite WAL]
-        Notifier[NtfyNotifier + callbacks<br/>Tailscale Funnel 8080<br/>fish.tail8850a4.ts.net]
+        Notifier[NtfyNotifier + callbacks<br/>Tailscale Funnel 8080<br/>sucre.tail8850a4.ts.net]
         Executor[SSHExecutor<br/>HostMutex per-target<br/>Retry 1x on exit 255<br/>SIGTERM+5s+SIGKILL]
     end
 
     Phone[Phone ntfy privé topic homelab]
     User([User tap Approve])
-    Wrapper["sudo -n fish-wrapper<br/>validates verb run|verify|rollback<br/>validates pattern_id /etc/fish/allow-list<br/>validates script /etc/fish/allow-scripts<br/>exec /opt/fish/catalog/scripts/&lt;script&gt;.sh"]
+    Wrapper["sudo -n sucre-wrapper<br/>validates verb run|verify|rollback<br/>validates pattern_id /etc/sucre/allow-list<br/>validates script /etc/sucre/allow-scripts<br/>exec /opt/sucre/catalog/scripts/&lt;script&gt;.sh"]
 
     AlloyDocker --> Loki
     Loki --> Observer
@@ -49,7 +52,7 @@ flowchart TB
     Phone --> User
     User -->|"POST /approve/N"| Notifier
     Notifier --> Executor
-    Executor -->|ssh fish@penny:2806| Wrapper
+    Executor -->|ssh sucre@penny:2806| Wrapper
 
     style Observer fill:#e3f2fd,stroke:#1976d2
     style Classifier fill:#fff3cd,stroke:#ffc107
@@ -81,22 +84,22 @@ mensuel EUR (pricing Sonnet $3/$15 Mtok). **Confidence deterministe** =
 `len(match_signals) / len(pattern.required_signals)`, pas de LLM self-report.
 
 ### Catalog
-YAML schema pydantic, 6 patterns (5 seed depuis les mémoires d'incidents + 1 drafté par fish) :
+YAML schema pydantic, 6 patterns (5 seed depuis les mémoires d'incidents + 1 drafté par sucre) :
 - `beszel-oidc-reset` — PocketBase resetting `meta.appURL` post-restart
 - `docker-compose-stopped-post-reboot` — `unless-stopped` ne restart pas après `docker compose down`+reboot
 - `pmxcfs-ro-post-recovery` — `/etc/pve` RO après recovery corosync (fix : restart pve-cluster)
 - `dockerd-sigbus-loop` — log-driver journald SIGBUS sur ARM (fix : swap vers json-file)
 - `apt-security-updates-pending` — apt upgrades non appliques
-- `adguard-desync` — secondaire DNS desync du primaire (fix : `/root/adguard-sync.sh`) — drafté par fish, mergé 2026-06-25
+- `adguard-desync` — secondaire DNS desync du primaire (fix : `/root/adguard-sync.sh`) — drafté par sucre, mergé 2026-06-25
 
 Chaque pattern déclaré : required_signals, target_host, fix_script,
 timeout_s, verify_script, on_failure (rollback ou escalate),
 `promote_to_autoexec_after` (null = approbation manuelle perpetuelle).
 
 ### Drafter (auto-proposition de patterns, W5)
-Quand un incident ne matche AUCUN pattern, fish peut **drafter** un nouveau pattern via LLM et l'ouvrir en **PR** sur `homelab-config` (jamais auto-merge — review humaine obligatoire des scripts fix/verify). Garde-fous (durcis 2026-06-25, issue #26) :
+Quand un incident ne matche AUCUN pattern, sucre peut **drafter** un nouveau pattern via LLM et l'ouvrir en **PR** sur `homelab-config` (jamais auto-merge — review humaine obligatoire des scripts fix/verify). Garde-fous (durcis 2026-06-25, issue #26) :
 
-- **Dédup open-PR** — pas de re-draft tant qu'une PR fish est ouverte pour la même `incident_key` (sans fenêtre temporelle).
+- **Dédup open-PR** — pas de re-draft tant qu'une PR sucre est ouverte pour la même `incident_key` (sans fenêtre temporelle).
 - **Skip services auto-restart** — pas de pattern "restart X" pour un service à `Restart=always` (ex `alloy.service`, déjà couvert par systemd).
 - **Pré-filtre anti-bruit** — lignes bénignes connues (stats HAProxy, warnings dnsproxy…) écartées avant tout appel LLM.
 - **`promote_to_autoexec_after` forcé à `null`** — un draft ne s'auto-promeut jamais en auto-exec.
@@ -108,7 +111,7 @@ Decouple `proposal.status` (decision humaine) de `execution.status`
 
 ### NtfyNotifier
 POST ntfy privé (Bearer token) avec `X-Actions` Approve/Deny. Callbacks recus via
-Tailscale Funnel → fish aiohttp :8080. Confirmation buzz après 1er click
+Tailscale Funnel → sucre aiohttp :8080. Confirmation buzz après 1er click
 pour feedback visuel. Re-clicks gated (handler 200 "already decided").
 
 ### SSHExecutor
@@ -126,12 +129,12 @@ enforced via `AuditDB.connect()` helper. stdout/stderr truncated 64 KiB.
 
 Architecture choisie via `/plan-eng-review` 2026-04-20 :
 
-- User dedie **`fish`** sur chaque host cible (séparation bot/humain → audit propre)
+- User dedie **`sucre`** sur chaque host cible (séparation bot/humain → audit propre)
 - SSH via port **2806** real sshd, pas Tailscale SSH (évite bypass transparent)
-- Key `fish-to-penny` en `authorized_keys` avec `command="sudo -n /usr/local/bin/fish-wrapper"` + `from="192.168.1.0/24,100.64.0.0/10"` + no-port-forwarding
-- Sudoers : `fish ALL=(root) NOPASSWD: /usr/local/bin/fish-wrapper` uniquement
+- Key `sucre-to-penny` en `authorized_keys` avec `command="sudo -n /usr/local/bin/sucre-wrapper"` + `from="192.168.1.0/24,100.64.0.0/10"` + no-port-forwarding
+- Sudoers : `sucre ALL=(root) NOPASSWD: /usr/local/bin/sucre-wrapper` uniquement
 - Wrapper = security boundary : verbe + pattern_id + script dans allow-lists sinon deny + log syslog
-- **Blast radius** : attacker sur fish LXC peut exec uniquement les scripts du catalog. Catalog git-tracke.
+- **Blast radius** : attacker sur sucre LXC peut exec uniquement les scripts du catalog. Catalog git-tracke.
 
 ## Cout
 
@@ -151,12 +154,12 @@ Avec le filtre `detected_level=~"error|warn|warning|critical|fatal"` + deny
 
 ## Incident bundle UNKNOWN_INCIDENT
 
-Quand aucun pattern match, fish ne dit pas juste "je sais pas". Workflow :
+Quand aucun pattern match, sucre ne dit pas juste "je sais pas". Workflow :
 
-1. Bundle complet sauvegarde dans `/var/lib/fish/incidents/{event_id}.json` (logs + metriques + docker state + classification reasoning)
+1. Bundle complet sauvegarde dans `/var/lib/sucre/incidents/{event_id}.json` (logs + metriques + docker state + classification reasoning)
 2. Notification ntfy discrete "UNKNOWN sur {host}, bundle at X"
-3. Gabin lit le bundle, ecrit manuellement un pattern YAML dans `homelab-config/fish/catalog/`, push
-4. Fish hot-reload (SIGHUP) → pattern disponible pour prochains incidents similaires
+3. Gabin lit le bundle, ecrit manuellement un pattern YAML dans `homelab-config/sucre/catalog/`, push
+4. Sucre hot-reload (SIGHUP) → pattern disponible pour prochains incidents similaires
 
 C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catalog grandit avec l'exploitation reelle.
 
@@ -174,18 +177,18 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 - [x] Phone→click→auto-exec full loop
 
 ### v1.5 (livre 2026-05-04)
-- [x] fish main wire vers vrais incidents observer — Step B `homelab_monitor` push to Loki (commit `2dad768`)
-- [x] Sops-seal la clé SSH fish-to-penny — sealed dans `/etc/fish/ssh_keys/fish-to-penny.enc`, plaintext shred 2026-05-04
-- [x] systemd fish.service survive reboot LXC — `fish-unseal.service` + `fish.service` enabled
-- [ ] Replicate Option B sur galahad + lancelot — bloque par soak fish week 8 reeval
-- [ ] Grafana dashboard "fish activity" — proposals/jour, approval rate, success rate, cost/mois
-- [x] Alertmanager route "fish down" → ntfy direct — canary Tailscale dans `homelab_monitor.check_fish_service`, commit `fb56f53`
+- [x] sucre main wire vers vrais incidents observer — Step B `homelab_monitor` push to Loki (commit `2dad768`)
+- [x] Sops-seal la clé SSH sucre-to-penny — sealed dans `/etc/sucre/ssh_keys/sucre-to-penny.enc`, plaintext shred 2026-05-04
+- [x] systemd sucre.service survive reboot LXC — `sucre-unseal.service` + `sucre.service` enabled
+- [ ] Replicate Option B sur galahad + lancelot — bloque par soak sucre week 8 reeval
+- [ ] Grafana dashboard "sucre activity" — proposals/jour, approval rate, success rate, cost/mois
+- [x] Alertmanager route "sucre down" → ntfy direct — canary Tailscale dans `homelab_monitor.check_fish_service`, commit `fb56f53`
 
 ### v2 — W5 UNKNOWN_INCIDENT auto-drafter (livre 2026-04-30)
 - [x] UNKNOWN_INCIDENT auto-draft pattern YAML — drafter shipped, dedup 7j, race-protected, failed-block actif
 - [x] Step A : promote_to_autoexec_after 1 sur `docker-compose-stopped-post-reboot` (commit `2dad768`) — premier vrai pattern auto-exec en prod
 - [ ] Ollama local quand Minisforum "luther" arrive — backup LLM si budget Claude API explose
-- [ ] Home Assistant intégration (voice : "fish, repare le homelab")
+- [ ] Home Assistant intégration (voice : "sucre, repare le homelab")
 - [ ] Scribe mode : observé shell history → propose auto-runbooks
 
 ### v3 — après soak semaine 8 (mi-juin 2026), decision data-driven
@@ -196,6 +199,6 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 
 ## Repo
 
-- Code : `homelab-config/fish/` (prive)
-- Design doc complet : `~/.gstack/projects/GabinSMD-homelab-doc/root-main-design-fish-*.md`
-- Deploy artifacts : `homelab-config/fish/deploy/` (systemd units, wrapper, sudoers template)
+- Code : `homelab-config/sucre/` (prive)
+- Design doc complet : `~/.gstack/projects/GabinSMD-homelab-doc/root-main-design-sucre-*.md`
+- Deploy artifacts : `homelab-config/sucre/deploy/` (systemd units, wrapper, sudoers template)

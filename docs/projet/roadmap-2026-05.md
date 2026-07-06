@@ -1,6 +1,6 @@
 # Roadmap consolidee 2026-05
 
-> **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [fish.md roadmap](fish.md#roadmap), prioritisee par impact/effort/blockers.
+> **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [sucre.md roadmap](sucre.md#roadmap), prioritisee par impact/effort/blockers.
 
 ## TL;DR
 
@@ -20,17 +20,17 @@ Le homelab est **production-grade**. 0 finding audit ouvert. Tous les items "vra
 | # | Item | Effort | Statut |
 |---|------|--------|--------|
 | 5 | ~~Renovate sur homelab-config~~ | ~~30 min~~ | ✅ DONE (commit `59ca114`) |
-| 6 | ~~CI/CD GitHub Actions~~ | ~~1h~~ | ✅ DONE (ci.yml : fish ruff+mypy+pytest, scripts shellcheck, secret scan, yaml lint) |
+| 6 | ~~CI/CD GitHub Actions~~ | ~~1h~~ | ✅ DONE (ci.yml : sucre ruff+mypy+pytest, scripts shellcheck, secret scan, yaml lint) |
 | 7 | ~~Synthetic monitoring externe~~ | ~~30 min~~ | ✅ DONE (healthchecks.io heartbeat) |
 | 8 | ~~**SMTP migration port 25 → 587 auth**~~ | ~~1h~~ | ✅ **DONE 2026-05-11** — Postfix → smtp.protonmail.ch:587, port 25 outbound fermé sur PVE nodes |
-| 9 | ~~Fish Grafana dashboard~~ | ~~1-2h~~ | ✅ DONE (commit `ac85806` "fish — SRE activity") |
+| 9 | ~~Sucre Grafana dashboard~~ | ~~1-2h~~ | ✅ DONE (commit `ac85806` "sucre — SRE activity") |
 
-## Tier 3 — Selon usage perso ou après soak fish
+## Tier 3 — Selon usage perso ou après soak sucre
 
 | # | Item | Effort | Trigger |
 |---|------|--------|---------|
-| 10 | **Fish soak reeval** semaine 8 (mi-juin 2026) | observation | Decision data-driven : si signal/noise > 50% APRÈS filtres → continue invest. Sinon → pivot Hybrid (Alertmanager + LLM réservé UNKNOWN). |
-| 11 | **Replicate Fish Option B** sur galahad+lancelot | 1 weekend | Couverture cluster complète. Bloque par soak (ne pas investir avant validation valeur fish). |
+| 10 | **Sucre soak reeval** semaine 8 (mi-juin 2026) | observation | Decision data-driven : si signal/noise > 50% APRÈS filtres → continue invest. Sinon → pivot Hybrid (Alertmanager + LLM réservé UNKNOWN). |
+| 11 | **Replicate Sucre Option B** sur galahad+lancelot | 1 weekend | Couverture cluster complète. Bloque par soak (ne pas investir avant validation valeur sucre). |
 | 12 | **Immich** self-hosted Google Photos | 1 weekend | Si tu veux exit Google Photos. Pas de la sec, juste use-case nouveau. |
 | 13 | **Paperless-ngx** OCR documents | 1 weekend | Si tu archives factures/papiers perso et veux exit Dropbox/Drive. |
 | 14 | **Trivy schedule** vuln scan images | 30 min | Hebdo, push results dans Loki ou ntfy si CRITIQUE. Hardening avance. |
@@ -57,7 +57,7 @@ Le homelab est **production-grade**. 0 finding audit ouvert. Tous les items "vra
 - Minisforum N5 Max "luther" (3eme node Proxmox)
 - ZFS mirror → debloque `vzdump --mode snapshot` → fin des PBS backup window whitelists
 - PBS sur ZimaBoard → NAS Minisforum
-- Ollama local sur luther = backup LLM fish quand budget Claude API serre
+- Ollama local sur luther = backup LLM sucre quand budget Claude API serre
 - IDS réseau (Suricata) post-OPNsense
 
 ## Tier 5 — Decisions documentées (skip ou defere)
@@ -70,7 +70,7 @@ Le homelab est **production-grade**. 0 finding audit ouvert. Tous les items "vra
 
 ## Items hors-roadmap mais voir aussi
 
-- [Fish v3 plans](fish.md#roadmap) (multi-step reasoning, learning loop, dynamic args, pivot Hybrid) — decision post-soak semaine 8
+- [Sucre v3 plans](sucre.md#roadmap) (multi-step reasoning, learning loop, dynamic args, pivot Hybrid) — decision post-soak semaine 8
 - [Egress firewall future itérations](../securite/egress-phase2-plan.md) — IP-set Cloudflare/R2 si threat model évolué (maintenance pesante)
 - [b2-cap-exceeded.md](../operations/b2-cap-exceeded.md) — incident 2026-05-11 (résolu via migration R2)
 - [r2-migration.md](../operations/r2-migration.md) — runbook migration R2 cloud backups

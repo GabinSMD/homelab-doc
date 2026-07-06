@@ -1,12 +1,12 @@
-# Fish observability
+# Sucre observability
 
-Cette page documenté comment fish voit le homelab et où il bipe — pas le design fish (voir [Projet Fish](../projet/fish.md)) mais l'architecture de l'observation et la delivery.
+Cette page documenté comment sucre voit le homelab et où il bipe — pas le design sucre (voir [Projet Sucre](../projet/sucre.md)) mais l'architecture de l'observation et la delivery.
 
-## Surface d'observation de fish
+## Surface d'observation de sucre
 
 ```mermaid
 flowchart BT
-    subgraph fish["Fish (LXC 105)"]
+    subgraph sucre["Sucre (LXC 105)"]
         LokiTail[Loki tail WS<br/>events]
         Prom[Prometheus<br/>poller]
         Catalog[Catalog 5 patterns<br/>+ draft_attempts SQL]
@@ -37,15 +37,15 @@ flowchart BT
     style Monitor fill:#d4edda,stroke:#28a745
 ```
 
-**3 streams Loki que fish observé** :
+**3 streams Loki que sucre observé** :
 
 1. **`job=docker`** : stdout des containers Docker (adguard, traefik, authelia, etc.) shipped par Alloy
 2. **`job=journald`** : journalctl des hosts galahad/lancelot/penny shipped par Alloy
 3. **`job=monitor-alerts`** *(nouveau 2026-05-04)* : alertes émises par `homelab_monitor.sh` (`alert()` push à Loki en plus du ntfy)
 
-Le 3ème stream est ce qui ferme un gap critique : avant le 04/05, fish ne voyait pas les alertes "backup stale", "fish-down", "AdGuard desync" parce qu'elles partaient en ntfy direct. Maintenant elles arrivent dans Loki, fish peut classifier+drafter dessus.
+Le 3ème stream est ce qui ferme un gap critique : avant le 04/05, sucre ne voyait pas les alertes "backup stale", "sucre-down", "AdGuard desync" parce qu'elles partaient en ntfy direct. Maintenant elles arrivent dans Loki, sucre peut classifier+drafter dessus.
 
-## Loki query filter (fish.config.loki_query)
+## Loki query filter (sucre.config.loki_query)
 
 ```text
 {job=~".+"}
@@ -73,7 +73,7 @@ Décomposé :
 
 ### Topic 1 — `ae8fcbd80e6c5fa1b6c39f013da61d4e` (homelab generic)
 
-**Property : RESILIENT** — bypass fish entirely. Si fish meurt, ces alertes arrivent quand même.
+**Property : RESILIENT** — bypass sucre entirely. Si sucre meurt, ces alertes arrivent quand même.
 
 | Source | Comportement |
 |--------|--------------|
@@ -83,24 +83,24 @@ Décomposé :
 | vault/logs/dnsfailover | backup FAILED |
 | watchtower | ECHEC + Skipped (level=warn) |
 | `ct-log-monitor.sh` | nouveau sous-domaine |
-| fish-down canary | BYPASS fish — survival critical |
+| sucre-down canary | BYPASS sucre — survival critical |
 
-### Topic 2 — `fish-homelab-c1e65af331c04569b97a` (fish proposals)
+### Topic 2 — `sucre-homelab-c1e65af331c04569b97a` (sucre proposals)
 
-**Property : SMART** — callback flow `/approve/{proposal_id}` POST back to `fish:8080`. Demande fish runtime alive.
+**Property : SMART** — callback flow `/approve/{proposal_id}` POST back to `sucre:8080`. Demande sucre runtime alive.
 
 | Source | Comportement |
 |--------|--------------|
-| `fish.proposer.NtfyNotifier` | Approve/Deny callback flow |
-| `fish.drafter.PatternDrafter` | drafter PR ready notif |
+| `sucre.proposer.NtfyNotifier` | Approve/Deny callback flow |
+| `sucre.drafter.PatternDrafter` | drafter PR ready notif |
 
 ### Pourquoi pas un seul topic
 
-Le callback handler de fish (`/approve/{id}`) attend que les requests viennent UNIQUEMENT des proposals fish. Si on mélange les topics :
+Le callback handler de sucre (`/approve/{id}`) attend que les requests viennent UNIQUEMENT des proposals sucre. Si on mélange les topics :
 - Watchtower ntfy "Maj auto OK" arrive dans topic unique
 - Tu cliques sur la notif Watchtower (curieux/par erreur)
-- ntfy fire le callback URL configurée (qui pointe vers fish)
-- Fish reçoit un proposal_id qui n'existe pas → 404
+- ntfy fire le callback URL configurée (qui pointe vers sucre)
+- Sucre reçoit un proposal_id qui n'existe pas → 404
 
 Isolation namespace via 2 topics = bonne séparation de concerns.
 
@@ -110,26 +110,26 @@ L'app ntfy iOS subscribe les 2 topics. Tu vois **un seul inbox unifié**. La sé
 
 ## Centralisation = OBSERVATION, pas DELIVERY
 
-Une question naturelle : "fish ne devrait-il pas être central, point unique de tout ?"
+Une question naturelle : "sucre ne devrait-il pas être central, point unique de tout ?"
 
 | Axe | Réponse |
 |-----|---------|
-| **Observation** (fish voit tout) | ✅ Oui, c'est le but. Step B (2026-05-04) ferme le dernier gap (monitor→Loki). Fish a maintenant ~5x plus de signal. |
-| **Delivery** (fish envoie tout) | ❌ Non, fragile. La fish-DOWN canary doit bypass fish (sinon fish mort = silence indistinguable). Loki down ne doit pas casser les alertes critiques (qui restent en ntfy direct topic 1). |
+| **Observation** (sucre voit tout) | ✅ Oui, c'est le but. Step B (2026-05-04) ferme le dernier gap (monitor→Loki). Sucre a maintenant ~5x plus de signal. |
+| **Delivery** (sucre envoie tout) | ❌ Non, fragile. La sucre-DOWN canary doit bypass sucre (sinon sucre mort = silence indistinguable). Loki down ne doit pas casser les alertes critiques (qui restent en ntfy direct topic 1). |
 
 Le centralisme intelligent est sur l'observation. La delivery reste distribuée pour la résilience. C'est un design conscient, pas un accident.
 
 ## Healthchecks.io — le canary deadman
 
-Voir [notif-hygiene](../operations/notif-hygiene.md) pour le setup. C'est complémentaire de fish-observability :
-- Fish observé via Loki → détecte les pannes des SERVICES qu'il watch
-- Healthchecks.io ping → détecte la panne du **HOST penny** qui run fish + monitor
+Voir [notif-hygiene](../operations/notif-hygiene.md) pour le setup. C'est complémentaire de sucre-observability :
+- Sucre observé via Loki → détecte les pannes des SERVICES qu'il watch
+- Healthchecks.io ping → détecte la panne du **HOST penny** qui run sucre + monitor
 
 Sans healthchecks, "silence côté ntfy" = "tout va bien" OU "penny est mort", indistinguable.
 
 ## Fichier de config
 
-Tout est dans `/mnt/ssd/config/fish/src/fish/config.py` :
+Tout est dans `/mnt/ssd/config/sucre/src/sucre/config.py` :
 
 | Variable | Default | Effet |
 |----------|---------|-------|

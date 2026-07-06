@@ -43,8 +43,8 @@ flowchart LR
 - SSD disconnect / recovery
 - fail2ban bans IP
 - AdGuard desync hors window backup
-- Fish DOWN (canary Tailscale via `homelab_monitor.check_fish_service`)
-- Fish drafter PR créé sur signal réel inconnu
+- Sucre DOWN (canary Tailscale via `homelab_monitor.check_fish_service`)
+- Sucre drafter PR créé sur signal réel inconnu
 - CT log nouveau sous-domaine (potentiel takeover)
 - Watchtower échec maj OU container marqué `monitor-only` avec nouvelle version
 
@@ -122,7 +122,7 @@ tail -50 /mnt/ssd/log-homelab/homelab_monitor.log | grep ALERT
 
 ## Pourquoi 2 topics ntfy
 
-Voir [Fish observability](../architecture/fish-observability.md) — c'est lié au callback flow Approve/Deny du drafter fish. Topic 1 = boring critical, Topic 2 = fish proposals avec callbacks. Phone subscribe les 2 = un seul inbox unifié pour le user.
+Voir [Sucre observability](../architecture/sucre-observability.md) — c'est lié au callback flow Approve/Deny du drafter sucre. Topic 1 = boring critical, Topic 2 = sucre proposals avec callbacks. Phone subscribe les 2 = un seul inbox unifié pour le user.
 
 ## Réactiver une notification
 

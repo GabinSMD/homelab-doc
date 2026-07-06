@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Mise a jour 2026-06-25** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Fish roadmap](fish.md#roadmap).
+> **Mise a jour 2026-06-25** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Sucre roadmap](sucre.md#roadmap).
 
 ## Phase 1 — Foundation (preparation domicile actuel)
 
@@ -47,9 +47,9 @@
 
 - [x] Notif hygiene mode "uniquement quand ne va pas" (silence success, only failures bipe)
 - [x] Logs persistents SSD (`/mnt/ssd/log-homelab/`, post-DietPi RAMlog fix)
-- [x] [Fish SRE engine](fish.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter)
-- [x] Fish-down canary Tailscale (homelab_monitor.check_fish_service)
-- [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, fish observé)
+- [x] [Sucre SRE engine](sucre.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter)
+- [x] Sucre-down canary Tailscale (homelab_monitor.check_fish_service)
+- [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, sucre observé)
 
 ### Sécurité (voir [sécurité/roadmap.md](../securite/roadmap.md))
 
@@ -81,15 +81,15 @@
 - [ ] Ajouter comme 3eme nœud Proxmox (compute + storage) → quorum natif sans qdevice
 - [ ] Configurer ZFS mirror pour le stockage (debloque vzdump --mode snapshot, fin des PBS backup window whitelists)
 - [ ] PBS sur ZimaBoard → NAS Minisforum
-- [ ] [Ollama local](fish.md#roadmap) sur luther = backup LLM pour fish quand budget Claude API serre
-- [ ] Replicate fish Option B sur galahad+lancelot = couverture cluster complète
+- [ ] [Ollama local](sucre.md#roadmap) sur luther = backup LLM pour sucre quand budget Claude API serre
+- [ ] Replicate sucre Option B sur galahad+lancelot = couverture cluster complète
 
 ## Items hors-phases (process / value-add)
 
 ### Quality of life développement
 
 - [x] **Renovate** sur homelab-config repo (auto-PR deps ; Dependency Dashboard issue #19)
-- [x] **CI/CD GitHub Actions** sur homelab-config (fish lint+tests, scripts bash+shellcheck, yaml+compose, secret scan — gate avant merge)
+- [x] **CI/CD GitHub Actions** sur homelab-config (sucre lint+tests, scripts bash+shellcheck, yaml+compose, secret scan — gate avant merge)
 - [ ] Synthetic monitoring externe (healthchecks par service public — homelab.gabin-simond.fr etc)
 
 ### Nouveaux services (selon usage perso)

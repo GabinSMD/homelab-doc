@@ -85,7 +85,7 @@ nav:
     - Reseau actuel: architecture/reseau.md
     - Reseau cible: architecture/reseau-cible.md
     - Cluster qdevice: architecture/cluster-qdevice.md
-    - Fish observability: architecture/fish-observability.md
+    - Sucre observability: architecture/sucre-observability.md
   - Services:
     - Vue d'ensemble: services/index.md
     - Traefik: services/traefik.md
@@ -120,6 +120,6 @@ nav:
     - Decisions techniques: projet/decisions.md
     - Roadmap (4 phases hardware): projet/roadmap.md
     - Roadmap consolidee 2026-05: projet/roadmap-2026-05.md
-    - fish (SRE perso): projet/fish.md
+    - sucre (SRE perso): projet/sucre.md
     - Spec fiabilisation drill restauration: projet/2026-06-11-fiabilisation-drill-restauration.md
     - A propos: projet/about.md
