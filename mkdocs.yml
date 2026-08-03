@@ -94,6 +94,8 @@ nav:
     - Vaultwarden: services/vaultwarden.md
     - Grafana (logs): services/grafana.md
     - Alloy + Loki HA: services/alloy-loki-ha.md
+    - Claude Remote Control: services/claude-remote.md
+    - Project Zomboid: services/zomboid.md
   - Securite:
     - securite/index.md
     - Politique: securite/politique.md
