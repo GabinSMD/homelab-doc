@@ -30,7 +30,6 @@ graph TB
         homepage[Homepage]
         portainer[Portainer]
         beszel[Beszel]
-        watchtower[Watchtower]
         autoheal[Autoheal]
         monitor[homelab_monitor.sh]
     end

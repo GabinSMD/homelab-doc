@@ -28,9 +28,8 @@ flowchart LR
 | `dnsfailover-backup.sh` (LXC 100) | "dns-failover backup OK" | Silent |
 | `restic-check-monthly.sh` | "Restic check OK" mensuel | Silent |
 | `restic-drill-monthly.sh` | "DR drill OK" mensuel | Silent |
-| `lynis-weekly.sh` | "Lynis: penny score X/100" pour score >= 70 | Silent (notifie uniquement si échec ou score < 70) |
+| `lynis-notify.sh` | "Lynis: penny score X/100" pour score >= 70 | Silent (notifie uniquement si échec ou score < 70) — remplace `lynis-weekly.sh`, retiré le 2026-08-03 |
 | `homelab_monitor` `clear_alert()` | "Homelab Resolved : X is back to normal" | Silent (state file disparaît, logge dans `$LOGFILE`) |
-| Watchtower | "Maj auto OK : autoheal" quotidien | Silent (level=warn, template sans `.Updated`) |
 | AdGuard 02:00 desync (faux positif PBS backup window) | "AdGuard desync → Resolved 1 min plus tard" | Silent (whitelist 02:00-02:05) |
 | Loki/Grafana 02:30 | "DOWN → Resolved" pareil | Silent (whitelist 02:30-02:35) |
 | CT log monitor | "134 new cert(s)" hebdo | Silent sauf nouveau sous-domaine jamais vu |
@@ -46,7 +45,7 @@ flowchart LR
 - Sucre DOWN (canary Tailscale via `homelab_monitor.check_sucre_service`)
 - Sucre drafter PR créé sur signal réel inconnu
 - CT log nouveau sous-domaine (potentiel takeover)
-- Watchtower échec maj OU container marqué `monitor-only` avec nouvelle version
+- `digest-drift-check` : l'amont a dépassé un digest épinglé (mensuel, informatif — aucune mise à jour n'est appliquée)
 
 ## Healthchecks.io — le canary externe
 

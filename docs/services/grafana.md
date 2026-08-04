@@ -60,10 +60,17 @@ Le dashboard du matin — 5 secondes pour savoir si tout va bien.
 | Ligne | Panneaux |
 |---|---|
 | KPIs sante | Erreurs, Container restarts, Autoheal, Events SSD |
-| KPIs conscience | Logins echoues, Bans fail2ban, Watchtower MAJ, Sessions SSH |
+| KPIs conscience | Logins echoues, Bans fail2ban, Sessions SSH |
 | Graphes | Erreurs par service, Monitoring alerts (homelab_monitor.sh) |
-| Logs événements | MAJ containers (Watchtower), SSD / Power / Certificats TLS |
+| Logs événements | SSD / Power / Certificats TLS |
 | Logs erreurs | Erreurs recentes tous services |
+
+!!! warning "Panneau `Watchtower` mort à retirer du dashboard"
+    `homelab-overview.json` contient encore un panneau `Watchtower` alors que le
+    conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
+    Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
+    il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
+    dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
 
 ### Sécurité (`auth-security`)
 

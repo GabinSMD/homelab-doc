@@ -6,7 +6,7 @@
 graph TD
     Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy.sh<br/>Notifications]
     Beszel[Beszel Server] -->|dashboard| Web[Interface web]
-    WT[Watchtower] -->|verifie| Docker[Images Docker]
+    DD[digest-drift-check<br/>timer mensuel] -->|compare digests| Docker[Images Docker]
     
     Script -->|surveille| SSD[SSD]
     Script -->|surveille| Temp[Temperature]
@@ -119,7 +119,7 @@ TEMP_CRIT=80                      # Seuil critique °C
 | Service | Rôle | Acces |
 |---|---|---|
 | **Beszel** + agents | Monitoring système (CPU, RAM, disque, réseau) — penny, galahad, lancelot | Dashboard web |
-| **Watchtower** | Auto-update non-critiques + notification mises a jour critiques via ntfy | Headless (pas de dashboard) |
+| **digest-drift-check** | Notifie quand l'amont `:latest` dépasse le digest `@sha256` épinglé — n'applique **rien**, la mise à jour reste une décision | Timer mensuel / ntfy |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
 | **Autoheal** | Restart auto des containers Docker unhealthy | Container |

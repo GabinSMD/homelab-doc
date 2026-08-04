@@ -22,8 +22,17 @@ docker compose up -d   # Redeploy avec les nouvelles images
 docker image prune -f  # Supprime les anciennes images
 ```
 
-!!! tip "Watchtower surveillé les mises a jour"
-    Watchtower auto-update les services non-critiques et notifie via ntfy quand une mise a jour est disponible pour les services critiques (monitor-only).
+!!! warning "Les images sont épinglées : `pull` seul ne met rien à jour"
+    Depuis le retrait de Watchtower (2026-07-06), plus aucune mise à jour n'est
+    automatique et chaque image est épinglée par `@sha256` dans le compose. Un
+    `docker compose pull` ne ramène donc **pas** une nouvelle version : il
+    retélécharge le digest déjà épinglé. Pour mettre à jour, il faut changer le
+    `@sha256` dans `docker-compose.yml`, puis `pull` et `up -d`. Le timer mensuel
+    `digest-drift-check` signale quand l'amont a bougé.
+
+!!! danger "`up -d` déploie l'état du fichier, pas l'état du dernier commit"
+    Vérifiez `git status` avant : des modifications de `docker-compose.yml` non
+    commitées partiraient en production avec cette commande.
 
 ### Firmware RPi
 

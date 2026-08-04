@@ -15,11 +15,10 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **Traefik** | `traefik:latest` | `traefik.home.*` | ForwardAuth Authelia | penny | proxy, socket |
 | **AdGuard Home** | `adguard/adguardhome:latest` | `adguard.home.*` | ForwardAuth Authelia + bcrypt | penny (host net) | host |
 | **AdGuard dns-failover** | — | `dns-failover.home.*` | ForwardAuth Authelia + bcrypt | LXC dns-failover / galahad | — |
-| **socket-proxy** | `tecnativa/docker-socket-proxy` | — | — | penny | socket |
+| **socket-proxy** | `lscr.io/linuxserver/socket-proxy` | — | — | penny | socket |
 | **Portainer EE** | `portainer/portainer-ee:latest` | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny | proxy |
 | **Homepage** | `ghcr.io/gethomepage/homepage:latest` | `home.*` | ForwardAuth Authelia | penny | proxy, socket |
 | **Beszel** + agent | `henrygd/beszel` | `monitor.home.*` | OIDC Authelia (one_factor) | penny | proxy / host |
-| **Watchtower** | `containrrr/watchtower` | — (headless) | — | penny | socket |
 | **Authelia** | `authelia/authelia:latest` | `auth.home.*` | MFA TOTP + YubiKey | penny | proxy |
 | **autoheal** | `willfarrell/autoheal` | — | — | penny | socket |
 | **Grafana (logs)** | — | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC logs / lancelot | — |
@@ -45,7 +44,6 @@ graph TB
         SP[socket-proxy]
         Traefik -.-> SP
         Homepage -.-> SP
-        Watchtower -.-> SP
         Autoheal -.-> SP
     end
 
@@ -72,7 +70,7 @@ Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour 
 | Réseau | Type | Usage |
 |---|---|---|
 | `proxy` | bridge | Services reverse-proxies par Traefik |
-| `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, Watchtower, autoheal) |
+| `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
 
 Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#reseaux-docker-isolation-et-icc).

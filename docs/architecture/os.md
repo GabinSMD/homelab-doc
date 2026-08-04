@@ -170,7 +170,6 @@ Les containers avec healthcheck sont surveilles par Docker. Si un check échoué
 | Vaultwarden | Healthcheck intégré a l'image | — |
 | Homepage | Healthcheck intégré a l'image | — |
 | Authelia | Healthcheck intégré a l'image | — |
-| Watchtower | Healthcheck intégré a l'image | — |
 | Portainer | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
 | Beszel | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
 

@@ -310,12 +310,12 @@ Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de
 
 ### Socket proxy
 
-`tecnativa/docker-socket-proxy` sur réseau `socket` (internal, pas d'internet). Whitelist :
+`lscr.io/linuxserver/socket-proxy` sur réseau `socket` (internal, pas d'internet). Whitelist :
 - `CONTAINERS`, `NETWORKS`, `SERVICES`, `TASKS`, `EVENTS`, `IMAGES`, `INFO`, `VERSION`, `PING`
 - `POST: 1` (pour autoheal)
 - Bloque : `EXEC`, `SECRETS`, `BUILD`, `VOLUMES`, `CONFIGS`, `SWARM`, `NODES`, `AUTH`, `SYSTEM`
 
-Clients socket-proxy : Traefik, Homepage, Watchtower, autoheal.
+Clients socket-proxy : Traefik, Homepage, autoheal.
 
 Clients socket direct : **Portainer uniquement** (admin tool nécessité acces complet).
 
@@ -328,7 +328,6 @@ Clients socket direct : **Portainer uniquement** (admin tool nécessité acces c
 | Traefik | ALL | `NET_BIND_SERVICE` |
 | Homepage | ALL | (aucune, read-only) |
 | Beszel | ALL | (aucune) |
-| Watchtower | ALL | (aucune) |
 | socket-proxy | ALL (par design) | (géré par le proxy) |
 | AdGuard | non applicable | DHCP + host network nécessité plus |
 | Portainer | non applicable | admin tool |
@@ -341,14 +340,13 @@ Clients socket direct : **Portainer uniquement** (admin tool nécessité acces c
 | Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
 | Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'état |
 | Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
-| Beszel, Watchtower | ⚠️ non teste | — | candidats potentiels |
+| Beszel | ⚠️ non teste | — | candidat potentiel |
 
 ### Ports directs supprimés
 
 Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports directs **supprimés** :
 - Portainer : 8000, 9443
 - Homepage : 3100
-- Watchtower : pas de port (headless)
 - Beszel : 8090
 - Traefik dashboard : 8080 (accessible uniquement via réseau `socket` pour healthcheck)
 

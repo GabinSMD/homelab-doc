@@ -31,7 +31,6 @@ graph TB
         homepage[Homepage]
         portainer[Portainer]
         beszel[Beszel]
-        watchtower[Watchtower]
         autoheal[Autoheal]
     end
 

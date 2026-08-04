@@ -37,7 +37,6 @@ graph TB
 - **Tailscale** — VPN mesh distant
 - **Beszel** — monitoring système
 - **Homepage** — dashboard
-- **Watchtower** — auto-update containers non-critiques + notif pour critiques
 
 ### Appliance OPNsense — Firewall dedie
 

@@ -85,7 +85,7 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 
 | Middleware | Usage | Cible |
 |---|---|---|
-| `authelia` | ForwardAuth SSO | Traefik dashboard, Homepage, AdGuard, Watchtower |
+| `authelia` | ForwardAuth SSO | Traefik dashboard, Homepage, AdGuard |
 | `auth-rate-limit` | 100 req/s burst SPA | `auth.home.gabin-simond.fr` |
 
 !!! info "Routes PVE sans security headers"
