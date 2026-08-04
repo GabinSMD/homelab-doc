@@ -89,10 +89,39 @@ Le monde est en outre écrit toutes les 10 minutes (`SaveWorldEveryMinutes=10`) 
 
 | Compte | Rôle |
 |---|---|
-| `Reckos` | `admin` (rôle 7) |
+| `Igatax` | `admin` (rôle 7) |
+| `Reckos` | `user` (rôle 2) — rétrogradé le 2026-08-04 |
 | `admin` | `user` (rôle 2) |
 
 Les rôles PZ vont de `banned` (1) à `admin` (7), avec `user`, `priority`, `observer`, `gm` et `moderator` entre les deux.
+
+#### Le compte `admin` ne peut pas être supprimé, mais il peut être neutralisé
+
+Vérifié le 2026-08-04 : serveur arrêté, ligne supprimée de `whitelist` alors qu'un
+autre compte était déjà rôle 7. Au démarrage suivant le serveur écrit
+`User 'admin' not found, creating it`, puis **attend un mot de passe sur stdin** et
+recrée le compte en rôle `admin`. Supprimer la ligne ne fait donc que la régénérer,
+avec plus de privilèges qu'avant.
+
+En revanche **le passer en rôle `user` (2) survit au redémarrage** : le serveur ne
+touche à ce compte que s'il est absent. C'est la seule neutralisation durable —
+compte présent, aucune capacité. La tentative in-game du 2026-08-03 avait pourtant
+journalisé `admin granted user access level on admin` sans que la base change : ne
+pas se fier au message de la console, vérifier la table.
+
+!!! tip "Répondre au prompt au lieu de le subir"
+    Le stdin du serveur est un FIFO (`/run/pz/stdin`). Si le prompt apparaît,
+    y écrire le mot de passe **deux fois** (saisie puis confirmation) libère le
+    démarrage en quelques secondes :
+
+    ```bash
+    printf '%s\n' "$PW" > /run/pz/stdin   # saisie
+    sleep 4
+    printf '%s\n' "$PW" > /run/pz/stdin   # confirmation
+    ```
+
+    Sans cela le démarrage reste bloqué — c'est ce qui avait coûté 4 minutes de
+    coupure le 2026-08-03.
 
 ### Sauvegarde
 
@@ -116,7 +145,7 @@ La surveillance est sur penny parce que **galahad n'a aucun chemin ntfy** — ni
 
 | Symptôme | Cause probable | Action |
 |---|---|---|
-| Le service ne démarre pas, log `Enter new administrator password` | base de comptes absente ou vide | relancer une fois avec `-adminusername admin -adminpassword <pass>` |
+| Le service ne démarre pas, log `Enter new administrator password` | compte `admin` absent de `whitelist` | écrire le mot de passe deux fois dans `/run/pz/stdin` (voir [Rôles et comptes](#le-compte-admin-ne-peut-pas-etre-supprime-mais-il-peut-etre-neutralise)) — méthode vérifiée le 2026-08-04. L'ancienne consigne `-adminusername admin -adminpassword <pass>` n'a **pas** pu être confirmée sur B42.20 et est à considérer comme non vérifiée |
 | Un joueur arrive sur un personnage neuf | pseudo différent de l'original | les personnages sont indexés par nom d'utilisateur dans le monde : réutiliser le pseudo exact |
 | `Reckos` sans droits admin | colonne `world` divergente | `UPDATE whitelist SET world='servertest Gab' WHERE username='Reckos';` |
 | OOM de la JVM | `-Xmx` revenu à `8g` après un `app_update` | remettre `4g` dans `ProjectZomboid64.json` |
