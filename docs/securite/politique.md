@@ -17,7 +17,7 @@ Pour la procédure en cas d'incident : [break-glass.md](../operations/break-glas
 | Voisin LAN compromis | Acces réseau local | Firewall iptables DROP, services admin limités LAN+TS, Authelia 2FA |
 | Vol physique RPi/SSD | Acces direct au disque | Backups off-site OK — chiffrement disque **a faire** (Phase OPNsense) |
 | Invite / famille | WiFi domestique | A couvrir avec OPNsense + VLANs (Phase 2) |
-| Supply chain Docker | Image malveillante | Images épinglées par digest `@sha256` (plus d'auto-update depuis le retrait de Watchtower le 2026-07-06) + `digest-drift-check` notifie quand l'amont bouge — signature vérification **a faire** (P2) |
+| Supply chain Docker | Image malveillante | Épinglage par digest `@sha256` sur penny et le LXC vault, **pas** sur le LXC logs (4 images flottent sur `:latest`, P2) ; plus d'auto-update depuis le retrait de Watchtower le 2026-07-06 ; `digest-drift-check` notifie l'écart amont **et** les images non épinglées — signature vérification **a faire** (P2) |
 | Compromission clé SSH | sudo NOPASSWD = root immédiat | Passphrase + YubiKey ssh-agent — **a déployer côté client** (P2) |
 | Phishing TOTP (AITM) | Replay credentials | WebAuthn FIDO2 (YubiKey) actif sur Authelia |
 
