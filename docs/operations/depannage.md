@@ -838,3 +838,29 @@ df -h                    # Vue d'ensemble
 docker system df         # Espace utilise par Docker
 docker system prune -f   # Nettoyer images/volumes inutilises
 ```
+
+## Dashboard Homepage sans onglets, en anglais, ou sans alarme
+
+Panne **discrete** : les services, les favoris et le theme s'affichent
+normalement, mais la barre d'onglets a disparu, le titre est redevenu
+« Homepage », et un service tombe ne colore plus sa carte. Cause : la page
+statique Next.js n'a pas ete regeneree depuis le dernier demarrage du
+conteneur, donc Homepage sert celle compilee dans l'image, sans configuration.
+
+```bash
+# Diagnostic : le titre doit etre celui de settings.yaml, pas "Homepage"
+IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' homepage | awk '{print $1}')
+curl -s -H "Host: home.gabin-simond.fr" "http://$IP:3000/" | grep -oE "<title[^>]*>[^<]*</title>"
+
+# Correctif immediat
+systemctl start homepage-revalidate.service
+```
+
+L'unite est declenchee par `docker.service`, donc au boot et au `restart docker`
+nocturne de `dietpi-backup`. Si elle a echoue :
+`journalctl -u homepage-revalidate -n 20`.
+
+Pieges de diagnostic : `custom.css` n'est pas servi a la racine mais sous
+`/api/config/custom.css` (un 404 sur `/custom.css` ne veut rien dire), et le
+theme ne discrimine pas — `dark` et `slate` sont aussi les valeurs par defaut de
+Homepage. Details : [services/homepage.md](../services/homepage.md).

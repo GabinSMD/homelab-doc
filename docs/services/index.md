@@ -17,7 +17,7 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **AdGuard dns-failover** | — | `dns-failover.home.*` | ForwardAuth Authelia + bcrypt | LXC dns-failover / galahad | — |
 | **socket-proxy** | `lscr.io/linuxserver/socket-proxy` | — | — | penny | socket |
 | **Portainer EE** | `portainer/portainer-ee:latest` | `portainer.home.*` | OIDC Authelia (SSO auto-login, internal hidden) | penny | proxy |
-| **Homepage** | `ghcr.io/gethomepage/homepage:latest` | `home.*` | ForwardAuth Authelia | penny | proxy, socket |
+| **[Homepage](homepage.md)** | `ghcr.io/gethomepage/homepage:latest` | `home.*` | ForwardAuth Authelia | penny | proxy, socket |
 | **Beszel** + agent | `henrygd/beszel` | `monitor.home.*` | OIDC Authelia (one_factor) | penny | proxy / host |
 | **Authelia** | `authelia/authelia:latest` | `auth.home.*` | MFA TOTP + YubiKey | penny | proxy |
 | **autoheal** | `willfarrell/autoheal` | — | — | penny | socket |
