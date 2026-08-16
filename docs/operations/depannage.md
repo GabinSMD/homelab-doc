@@ -838,3 +838,132 @@ df -h                    # Vue d'ensemble
 docker system df         # Espace utilise par Docker
 docker system prune -f   # Nettoyer images/volumes inutilises
 ```
+
+## Dashboard Homepage sans onglets, en anglais, ou sans alarme
+
+Panne **discrete** : les services, les favoris et le theme s'affichent
+normalement, mais la barre d'onglets a disparu, le titre est redevenu
+« Homepage », et un service tombe ne colore plus sa carte. Cause : la page
+statique Next.js n'a pas ete regeneree depuis le dernier demarrage du
+conteneur, donc Homepage sert celle compilee dans l'image, sans configuration.
+
+```bash
+# Diagnostic : le titre doit etre celui de settings.yaml, pas "Homepage"
+IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' homepage | awk '{print $1}')
+curl -s -H "Host: home.gabin-simond.fr" "http://$IP:3000/" | grep -oE "<title[^>]*>[^<]*</title>"
+
+# Correctif immediat
+systemctl start homepage-revalidate.service
+```
+
+L'unite est declenchee par `docker.service`, donc au boot et au `restart docker`
+nocturne de `dietpi-backup`. Si elle a echoue :
+`journalctl -u homepage-revalidate -n 20`.
+
+Pieges de diagnostic : `custom.css` n'est pas servi a la racine mais sous
+`/api/config/custom.css` (un 404 sur `/custom.css` ne veut rien dire), et le
+theme ne discrimine pas — `dark` et `slate` sont aussi les valeurs par defaut de
+Homepage. Details : [services/homepage.md](../services/homepage.md).
+
+---
+
+## Nœud PVE mort sans laisser de trace — Oops kernel
+
+Un nœud disparaît d'un coup, en pleine santé : dernière ligne de log à
+`13:11:59`, corosync signale `link is down` à `13:12:03`, et plus rien. Aucune
+séquence d'arrêt, aucun avertissement kernel, aucun précurseur matériel. Le nœud
+ne répond plus ni au ping ni à l'ARP, et **ne redémarre jamais tout seul**.
+
+Le réflexe naturel — « coupure d'alimentation » — est presque toujours faux ici.
+
+### Le seul témoin est pstore, pas le journal
+
+**Un Oops kernel n'atteint jamais le journal sur disque** : la machine meurt
+avant l'écriture. Chercher dans `journalctl` ne donne donc rien, et cette absence
+de trace se lit à tort comme « perte de courant ».
+
+```bash
+# INUTILE — retourne toujours 0, même après un vrai crash kernel
+journalctl -b -1 | grep -c Oops
+
+# LE BON ENDROIT — dumps EFI récupérés par systemd-pstore au démarrage suivant
+ls -1 /var/lib/systemd/pstore/
+for d in /var/lib/systemd/pstore/*/; do date -d @"$(basename "$d")"; done
+```
+
+Un répertoire dont l'horodatage correspond à la seconde de la mort **prouve**
+que le kernel est passé par le chemin panic : une coupure d'alimentation ne peut
+pas produire d'enregistrement pstore.
+
+Pour extraire la signature :
+
+```bash
+grep -aiE "BUG:|Oops:|RIP:|Call Trace|Hardware name" \
+  /var/lib/systemd/pstore/<timestamp>/*/dmesg.txt
+```
+
+!!! warning "Ne jamais purger `/var/lib/systemd/pstore/`"
+    C'est la seule preuve exploitable d'un crash, et la vider ne libère rien :
+    `systemd-pstore` fait déjà `Unlink=yes` sur `/sys/fs/pstore`, donc la NVRAM
+    EFI est purgée à chaque démarrage. Sur ZimaBoard, les dumps ressortent
+    parfois à 0 octet — garder les anciens est alors la seule façon d'avoir une
+    signature lisible.
+
+### Cause racine constatée (2026-07-10 et 2026-08-05)
+
+```
+BUG: unable to handle page fault for address: 0000000100000028
+Oops: 0000 [#2] SMP NOPTI
+Hardware name: IceWhale ZimaBoard2, BIOS 5.27 07/22/2025
+RIP: 0010:update_sd_lb_stats.constprop.0+0x93/0xbe0
+     puis cpuidle_enter_state+0xc7/0x460
+```
+
+Crash dans le load-balancer du scheduler CFS, sur un pointeur corrompu de forme
+`0xN00000028`, avec des Oops en cascade sur la même seconde. Kernel
+`6.17.13-2-pve`, récurrence d'environ 2 à 3 semaines.
+
+### Ce qui coûtait le plus cher : `panic_on_oops=0`
+
+Avec le défaut Debian, un Oops laisse la machine **morte indéfiniment** au lieu
+de redémarrer. Et sur ces cartes il n'existe aucune voie de récupération à
+distance : pas de WoL configuré, pas de BMC ni d'IPMI sur une ZimaBoard, pas de
+prise pilotable. Un crash de 5 secondes coûte donc plus d'une heure
+d'indisponibilité et un déplacement physique — la ZimaBoard n'a pas de bouton
+d'alimentation, le cycle se fait au jack DC.
+
+Correctif déployé le 2026-08-05 sur galahad et lancelot
+(`system/99-panic-on-oops.conf` dans homelab-config) :
+
+```bash
+kernel.panic_on_oops=1   # un Oops déclenche un panic...
+kernel.panic=10          # ...qui redémarre au bout de 10 s
+```
+
+Soit ~2 min d'indisponibilité auto-résolue au lieu d'un trajet. C'est un filet
+de sécurité, **pas** un correctif : la régression sched reste à traiter par un
+upgrade kernel.
+
+### Deux pièges de diagnostic rencontrés
+
+Le journal local peut être **moins complet que le replica réseau**. Ici le
+journal on-disk s'arrêtait à `13:11:26` (`system.journal corrupted or uncleanly
+shut down, renaming and replacing`) alors qu'Alloy avait déjà expédié jusqu'à
+`13:11:59`. Sur coupure franche, commencer par Loki, pas par la machine.
+
+Et un double démarrage rapproché dans `journalctl --list-boots` n'est pas
+forcément une boucle de reboot : vérifier s'il existe un enregistrement pstore
+à cet horodatage. S'il n'y en a pas, c'est une coupure externe — typiquement le
+jack DC débranché deux fois.
+
+### Vérifier après le retour du nœud
+
+```bash
+touch /etc/pve/.rwtest && rm /etc/pve/.rwtest   # piège pmxcfs read-only
+pvecm status | grep -E "Quorate|Total votes"
+pct list                                        # guests redémarrés ?
+pvesm status                                    # storage PBS repassé active ?
+systemctl --failed
+```
+
+Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-apres-recovery-node-cluster).

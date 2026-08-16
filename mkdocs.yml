@@ -88,6 +88,7 @@ nav:
     - Sucre observability: architecture/sucre-observability.md
   - Services:
     - Vue d'ensemble: services/index.md
+    - Homepage (dashboard): services/homepage.md
     - Traefik: services/traefik.md
     - Authelia (SSO): services/authelia.md
     - AdGuard Home: services/adguard.md
@@ -124,6 +125,8 @@ nav:
     - Roadmap consolidee 2026-05: projet/roadmap-2026-05.md
     - sucre (SRE perso): projet/sucre.md
     - Spec fiabilisation drill restauration: projet/2026-06-11-fiabilisation-drill-restauration.md
+    - Spec refonte dashboard Homepage: projet/2026-08-03-homepage-refonte-design.md
+    - Spec themes et fonds Homepage: projet/2026-08-04-homepage-themes-fonds-design.md
     - Spec boite a outils technique: projet/2026-08-15-boite-a-outils-technique.md
     - Spec Forgejo source de verite: projet/2026-08-15-forgejo-source-de-verite.md
     - A propos: projet/about.md
