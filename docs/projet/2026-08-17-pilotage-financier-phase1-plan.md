@@ -46,8 +46,8 @@ Valeurs exactes, à ne pas réinterpréter :
 2. **Pas de conteneur `cron`.** Deux timers systemd sur l'hôte du LXC, pour
    suivre la convention du dépôt.
 3. **L'API n'est pas exposée par Traefik du tout** — voir la tâche 4, qui
-   explique pourquoi c'est plus sûr que l'exclusion prévue au spec, et qui
-   met le spec à jour.
+   explique pourquoi c'est plus sûr que l'exclusion initialement prévue. Le
+   spec a déjà été corrigé sur ce point.
 
 ## Structure des fichiers
 
