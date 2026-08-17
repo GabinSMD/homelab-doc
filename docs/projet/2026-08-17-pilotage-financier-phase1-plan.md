@@ -147,11 +147,19 @@ ssh galahad 'sudo pct create 109 local:vztmpl/debian-13-standard_13.1-2_amd64.ta
   --cores 2 --memory 3072 --swap 1024 \
   --rootfs local-lvm:16 \
   --net0 name=eth0,bridge=vmbr0,ip=192.168.1.37/24,gw=192.168.1.254 \
+  --nameserver "192.168.1.28 192.168.1.30" \
   --features nesting=1,keyctl=1 \
   --unprivileged 1 \
   --onboot 1 \
   --start 1'
 ```
+
+**`--nameserver` n'est pas optionnel.** Sans lui, le LXC hérite du
+`resolv.conf` de galahad, qui pointe sur le résolveur MagicDNS de Tailscale
+(`100.100.100.100`). Le conteneur n'étant pas sur le réseau Tailscale, la
+résolution DNS est morte : `apt-get update` se bloque sans message d'erreur,
+indéfiniment. Les deux adresses sont l'AdGuard principal et son secours, comme
+sur le LXC 102.
 
 Si le template n'existe pas, le télécharger d'abord :
 `ssh galahad 'sudo pveam update && pveam available | grep debian-13'` puis
