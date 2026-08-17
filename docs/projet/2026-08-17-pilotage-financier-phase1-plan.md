@@ -28,7 +28,10 @@ Valeurs exactes, à ne pas réinterpréter :
 - Résolveur ACME Traefik : **`letencrypt`** — c'est l'orthographe réellement
   utilisée dans le dépôt, pas une faute à corriger. La changer casse le
   certificat.
-- Middlewares Traefik : `authelia@docker`, `security-headers@file`
+- Middlewares Traefik : `crowdsec@file`, `authelia@docker`, `security-headers@file`,
+  **dans cet ordre** — le filtrage CrowdSec doit rejeter une IP bannie avant
+  qu'Authelia ne travaille. Les sept autres routeurs exposés le portent tous ;
+  l'omettre ferait de `finance` le seul service non filtré.
 - Nœud d'hébergement : **galahad** (jamais penny, jamais lancelot)
 - Chemin dans le LXC : `/opt/finance/`
 - Fuseau : `Europe/Paris` · Langue : `fr_FR` · Devise : `EUR`
@@ -545,6 +548,7 @@ http:
       # Aucune exception : l'importer parle a Firefly III par le reseau
       # Docker interne, il n'a pas besoin de traverser Traefik.
       middlewares:
+        - crowdsec@file
         - authelia@docker
         - security-headers@file
       tls:
