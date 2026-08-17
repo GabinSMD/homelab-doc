@@ -38,6 +38,15 @@ Valeurs exactes, à ne pas réinterpréter :
   Un timer non `Persistent` saute silencieusement si la machine est éteinte à
   l'heure dite — c'est ce qui a fait rater le drill du 1er juin.
 - Images conteneur : **épinglées par digest**, comme le reste du dépôt.
+- Passerelle du LAN : **`192.168.1.254`** (Freebox). Ce n'est pas `.1`.
+- **Accès à galahad** : `ssh galahad` ouvre une session `gabins` (uid 1000),
+  pas root, avec un `PATH` sans `/usr/sbin`. Toute commande Proxmox se
+  préfixe donc de `sudo` : `ssh galahad 'sudo pct ...'`.
+- **Piège du namespace de montage** : la session SSH sur un nœud PVE voit une
+  vue périmée de `/etc` en lecture seule. Pour **écrire** un fichier de
+  l'hôte, passer par le namespace du vrai init :
+  `ssh galahad 'sudo nsenter -t 1 -m -- <commande>'`. La lecture directe
+  fonctionne, l'écriture non — et elle échoue silencieusement.
 
 ## Trois écarts assumés par rapport au spec
 
@@ -70,7 +79,7 @@ valeurs sont libres.
 | Paramètre | Valeur | Vérifié le |
 |---|---|---|
 | ID du LXC | `109` (à confirmer) | |
-| IP LAN | `192.168.1.34` (à confirmer) | |
+| IP LAN | `192.168.1.37` (à confirmer) | |
 | Nom d'hôte | `finance` | |
 
 ---
@@ -100,8 +109,8 @@ dont la vérification passait déjà avant l'implémentation n'a rien prouvé.
 Depuis penny :
 
 ```bash
-ssh galahad 'pct list'
-ping -c2 -W1 192.168.1.34
+ssh galahad 'sudo pct list'
+ping -c2 -W1 192.168.1.37
 ```
 
 Attendu : `109` **absent** de la liste, et le ping **sans réponse**
@@ -117,8 +126,12 @@ ssh galahad 'grep -E "^UMASK" /etc/login.defs'
 Si la valeur est `027`, `pct create --unprivileged` **échouera**. Corriger
 avant de continuer :
 
+L'écriture doit passer par le namespace du vrai init — un `sed` direct
+paraît réussir et ne modifie rien :
+
 ```bash
-ssh galahad 'sed -i "s/^UMASK.*/UMASK 022/" /etc/login.defs && grep ^UMASK /etc/login.defs'
+ssh galahad 'sudo nsenter -t 1 -m -- sed -i "s/^UMASK.*/UMASK 022/" /etc/login.defs'
+ssh galahad 'grep -E "^UMASK" /etc/login.defs'
 ```
 
 Attendu après correction : `UMASK 022`.
@@ -129,11 +142,11 @@ Attendu après correction : `UMASK 022`.
 démarre pas dans un LXC non privilégié.
 
 ```bash
-ssh galahad 'pct create 109 local:vztmpl/debian-13-standard_13.0-1_amd64.tar.zst \
+ssh galahad 'sudo pct create 109 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
   --hostname finance \
   --cores 2 --memory 3072 --swap 1024 \
   --rootfs local-lvm:16 \
-  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.34/24,gw=192.168.1.1 \
+  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.37/24,gw=192.168.1.254 \
   --features nesting=1,keyctl=1 \
   --unprivileged 1 \
   --onboot 1 \
@@ -141,14 +154,14 @@ ssh galahad 'pct create 109 local:vztmpl/debian-13-standard_13.0-1_amd64.tar.zst
 ```
 
 Si le template n'existe pas, le télécharger d'abord :
-`ssh galahad 'pveam update && pveam available | grep debian-13'` puis
+`ssh galahad 'sudo pveam update && pveam available | grep debian-13'` puis
 `pveam download local <nom exact>`.
 
 - [ ] **Étape 4 : relancer la vérification de l'étape 1**
 
 ```bash
-ssh galahad 'pct list | grep 109'
-ping -c2 -W1 192.168.1.34
+ssh galahad 'sudo pct list | grep 109'
+ping -c2 -W1 192.168.1.37
 ```
 
 Attendu : le LXC apparaît en `running`, et le ping **répond**.
@@ -156,8 +169,8 @@ Attendu : le LXC apparaît en `running`, et le ping **répond**.
 - [ ] **Étape 5 : préparer l'accès et les paquets de base**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "apt-get update -qq && apt-get install -y -qq curl ca-certificates gnupg postgresql-client restic"'
-ssh galahad 'pct exec 109 -- restic version'
+ssh galahad 'sudo pct exec 109 -- bash -c "apt-get update -qq && apt-get install -y -qq curl ca-certificates gnupg postgresql-client restic"'
+ssh galahad 'sudo pct exec 109 -- restic version'
 ```
 
 Attendu : une version de restic s'affiche.
@@ -187,7 +200,7 @@ git commit -m "docs(projet): consigner ID et IP du LXC finance"
 - [ ] **Étape 1 : écrire la vérification et la voir échouer**
 
 ```bash
-ssh galahad 'pct exec 109 -- docker run --rm hello-world'
+ssh galahad 'sudo pct exec 109 -- docker run --rm hello-world'
 ```
 
 Attendu : échec, `docker: command not found`.
@@ -195,7 +208,7 @@ Attendu : échec, `docker: command not found`.
 - [ ] **Étape 2 : installer Docker depuis le dépôt officiel**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 install -m 0755 -d /etc/apt/keyrings &&
 curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc &&
 chmod a+r /etc/apt/keyrings/docker.asc &&
@@ -207,15 +220,15 @@ apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugi
 - [ ] **Étape 3 : relancer la vérification**
 
 ```bash
-ssh galahad 'pct exec 109 -- docker run --rm hello-world'
-ssh galahad 'pct exec 109 -- docker compose version'
+ssh galahad 'sudo pct exec 109 -- docker run --rm hello-world'
+ssh galahad 'sudo pct exec 109 -- docker compose version'
 ```
 
 Attendu : `Hello from Docker!`, puis une version de Compose.
 
 Si Docker refuse de démarrer, la cause est presque toujours
 `nesting`/`keyctl` absents — revenir à la tâche 1, étape 3, et vérifier avec
-`ssh galahad 'pct config 109 | grep features'`.
+`ssh galahad 'sudo pct config 109 | grep features'`.
 
 - [ ] **Étape 4 : pas de commit**
 
@@ -231,14 +244,14 @@ Cette tâche ne produit aucun artefact versionné. Ne rien commiter.
 
 **Interfaces**
 - Consomme : Docker dans le LXC (tâche 2).
-- Produit : Firefly III répondant en HTTP sur `192.168.1.34:8080`, base
+- Produit : Firefly III répondant en HTTP sur `192.168.1.37:8080`, base
   `firefly` dans un Postgres nommé `db`. La tâche 4 route vers ce port ; la
   tâche 5 sauvegarde cette base.
 
 - [ ] **Étape 1 : écrire la vérification et la voir échouer**
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.1.34:8080/login
+curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.1.37:8080/login
 ```
 
 Attendu : échec de connexion (`Connection refused`).
@@ -248,7 +261,7 @@ Attendu : échec de connexion (`Connection refused`).
 Le dépôt épingle les images par digest. Relever les valeurs du jour :
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 docker pull fireflyiii/core:latest >/dev/null &&
 docker image inspect fireflyiii/core:latest --format \"{{index .RepoDigests 0}}\" &&
 docker pull postgres:17-alpine >/dev/null &&
@@ -276,7 +289,7 @@ services:
       - firefly-upload:/var/www/html/storage/upload
     ports:
       # Lie a l'IP LAN du LXC : Traefik (sur penny) est le seul client.
-      - "192.168.1.34:8080:8080"
+      - "192.168.1.37:8080:8080"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/login"]
       interval: 30s
@@ -341,7 +354,7 @@ STATIC_CRON_TOKEN=
 autre longueur fait échouer le démarrage avec un message peu clair.
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 mkdir -p /opt/finance &&
 head -c 4096 /dev/urandom | LC_ALL=C tr -dc \"A-Za-z0-9\" | head -c 32 > /tmp/appkey &&
 head -c 4096 /dev/urandom | LC_ALL=C tr -dc \"A-Za-z0-9\" | head -c 32 > /tmp/crontoken &&
@@ -359,8 +372,8 @@ finiraient dans le journal.
 # Depuis penny — pct push copie un fichier local vers le LXC
 scp /mnt/ssd/homelab-config/docker/finance/docker-compose.yml galahad:/tmp/
 scp /mnt/ssd/homelab-config/docker/finance/.env.example galahad:/tmp/
-ssh galahad 'pct push 109 /tmp/docker-compose.yml /opt/finance/docker-compose.yml'
-ssh galahad 'pct push 109 /tmp/.env.example /opt/finance/.env'
+ssh galahad 'sudo pct push 109 /tmp/docker-compose.yml /opt/finance/docker-compose.yml'
+ssh galahad 'sudo pct push 109 /tmp/.env.example /opt/finance/.env'
 rm -f /tmp/docker-compose.yml /tmp/.env.example
 ssh galahad 'rm -f /tmp/docker-compose.yml /tmp/.env.example'
 ```
@@ -368,7 +381,7 @@ ssh galahad 'rm -f /tmp/docker-compose.yml /tmp/.env.example'
 Injecter les trois secrets générés à l'étape précédente :
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 cd /opt/finance &&
 sed -i \"s|^APP_KEY=.*|APP_KEY=\$(cat /tmp/appkey)|\" .env &&
 sed -i \"s|^STATIC_CRON_TOKEN=.*|STATIC_CRON_TOKEN=\$(cat /tmp/crontoken)|\" .env &&
@@ -381,7 +394,7 @@ Vérifier qu'aucune des trois variables n'est restée vide, **sans afficher
 les valeurs** :
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "grep -cE \"^(APP_KEY|STATIC_CRON_TOKEN|DB_PASSWORD)=.+\" /opt/finance/.env"'
+ssh galahad 'sudo pct exec 109 -- bash -c "grep -cE \"^(APP_KEY|STATIC_CRON_TOKEN|DB_PASSWORD)=.+\" /opt/finance/.env"'
 ```
 
 Attendu : `3`.
@@ -389,15 +402,15 @@ Attendu : `3`.
 - [ ] **Étape 6 : démarrer et relancer la vérification**
 
 ```bash
-ssh galahad 'pct exec 109 -- docker compose -f /opt/finance/docker-compose.yml up -d'
+ssh galahad 'sudo pct exec 109 -- docker compose -f /opt/finance/docker-compose.yml up -d'
 sleep 90
-curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.1.34:8080/login
+curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.1.37:8080/login
 ```
 
 Attendu : `200`.
 
 En cas de `500`, lire les journaux :
-`ssh galahad 'pct exec 109 -- docker logs firefly --tail 50'`. Les deux
+`ssh galahad 'sudo pct exec 109 -- docker logs firefly --tail 50'`. Les deux
 causes fréquentes sont un `APP_KEY` de mauvaise longueur et un Postgres pas
 encore prêt.
 
@@ -443,8 +456,8 @@ WantedBy=timers.target
 Déposer les deux unités dans `/etc/systemd/system/` du LXC, puis :
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "systemctl daemon-reload && systemctl enable --now firefly-cron.timer && systemctl start firefly-cron.service"'
-ssh galahad 'pct exec 109 -- systemctl show firefly-cron.service -p Result --value'
+ssh galahad 'sudo pct exec 109 -- bash -c "systemctl daemon-reload && systemctl enable --now firefly-cron.timer && systemctl start firefly-cron.service"'
+ssh galahad 'sudo pct exec 109 -- systemctl show firefly-cron.service -p Result --value'
 ```
 
 Attendu : `success`. Un `exit-code` signale un jeton erroné — vérifier que
@@ -468,7 +481,7 @@ git commit -m "feat(finance): pile Firefly III + Postgres et cron interne"
   « Accès »)
 
 **Interfaces**
-- Consomme : Firefly III sur `192.168.1.34:8080` (tâche 3).
+- Consomme : Firefly III sur `192.168.1.37:8080` (tâche 3).
 - Produit : `https://finance.home.gabin-simond.fr` protégé par Authelia.
 
 **Correction du spec, à appliquer dans cette tâche.** Le spec prévoyait
@@ -516,7 +529,7 @@ http:
     finance:
       loadBalancer:
         servers:
-          - url: "http://192.168.1.34:8080"
+          - url: "http://192.168.1.37:8080"
 ```
 
 - [ ] **Étape 3 : déployer et vérifier la résolution DNS**
@@ -591,7 +604,7 @@ git commit -m "feat(finance): routage Traefik derriere Authelia, sans exception 
 - [ ] **Étape 1 : écrire la vérification et la voir échouer**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic snapshots --json"'
+ssh galahad 'sudo pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic snapshots --json"'
 ```
 
 Attendu : échec — `/root/.restic-env` absent, ou dépôt inexistant.
@@ -623,8 +636,8 @@ Prendre la valeur qui sort. Si plusieurs apparaissent, la plus récemment
 modifiée fait foi (`git log -1 --format=%ci -- <fichier>`).
 
 ```bash
-ssh galahad 'pct exec 109 -- chmod 600 /root/.restic-env'
-ssh galahad 'pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic init"'
+ssh galahad 'sudo pct exec 109 -- chmod 600 /root/.restic-env'
+ssh galahad 'sudo pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic init"'
 ```
 
 Attendu : `created restic repository ... `. Si le dépôt existe déjà, restic
@@ -745,16 +758,16 @@ WantedBy=timers.target
 - [ ] **Étape 5 : déployer et lancer une fois à la main**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "chmod 700 /root/finance-backup.sh && systemctl daemon-reload && systemctl enable --now finance-backup.timer"'
-ssh galahad 'pct exec 109 -- systemctl start finance-backup.service'
-ssh galahad 'pct exec 109 -- journalctl -u finance-backup.service -n 20 --no-pager'
+ssh galahad 'sudo pct exec 109 -- bash -c "chmod 700 /root/finance-backup.sh && systemctl daemon-reload && systemctl enable --now finance-backup.timer"'
+ssh galahad 'sudo pct exec 109 -- systemctl start finance-backup.service'
+ssh galahad 'sudo pct exec 109 -- journalctl -u finance-backup.service -n 20 --no-pager'
 ```
 
 - [ ] **Étape 6 : relancer la vérification**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic snapshots --json"' | head -c 400
-ssh galahad 'pct exec 109 -- systemctl list-timers finance-backup.timer --no-pager'
+ssh galahad 'sudo pct exec 109 -- bash -c "set -a; . /root/.restic-env; set +a; restic snapshots --json"' | head -c 400
+ssh galahad 'sudo pct exec 109 -- systemctl list-timers finance-backup.timer --no-pager'
 ```
 
 Attendu : au moins un instantané, et un timer avec une prochaine échéance.
@@ -786,7 +799,7 @@ parce que le dépôt principal a passé 251 h en panne silencieuse en août.
 - [ ] **Étape 1 : écrire la vérification et la voir échouer**
 
 ```bash
-ssh galahad 'pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -c "\dt"'
+ssh galahad 'sudo pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -c "\dt"'
 ```
 
 Attendu : échec, la base `firefly_restore_test` n'existe pas.
@@ -794,7 +807,7 @@ Attendu : échec, la base `firefly_restore_test` n'existe pas.
 - [ ] **Étape 2 : restaurer l'instantané dans une base jetable**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 set -a; . /root/.restic-env; set +a
 restic restore latest --target /tmp/restore-test
 ls -la /tmp/restore-test/var/backups/finance/"'
@@ -803,7 +816,7 @@ ls -la /tmp/restore-test/var/backups/finance/"'
 Attendu : `firefly.sql` présent, taille non nulle.
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "
+ssh galahad 'sudo pct exec 109 -- bash -c "
 docker exec firefly-db createdb -U firefly firefly_restore_test &&
 docker exec -i firefly-db psql -U firefly -d firefly_restore_test < /tmp/restore-test/var/backups/finance/firefly.sql"'
 ```
@@ -811,8 +824,8 @@ docker exec -i firefly-db psql -U firefly -d firefly_restore_test < /tmp/restore
 - [ ] **Étape 3 : relancer la vérification**
 
 ```bash
-ssh galahad 'pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -c "\dt" | head -20'
-ssh galahad 'pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -tAc "select count(*) from users"'
+ssh galahad 'sudo pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -c "\dt" | head -20'
+ssh galahad 'sudo pct exec 109 -- docker exec firefly-db psql -U firefly -d firefly_restore_test -tAc "select count(*) from users"'
 ```
 
 Attendu : la liste des tables de Firefly III, et **au moins 1** utilisateur.
@@ -822,7 +835,7 @@ précisément le mode d'échec que l'on cherche à exclure.
 - [ ] **Étape 4 : nettoyer**
 
 ```bash
-ssh galahad 'pct exec 109 -- bash -c "docker exec firefly-db dropdb -U firefly firefly_restore_test && rm -rf /tmp/restore-test"'
+ssh galahad 'sudo pct exec 109 -- bash -c "docker exec firefly-db dropdb -U firefly firefly_restore_test && rm -rf /tmp/restore-test"'
 ```
 
 - [ ] **Étape 5 : ajouter le LXC au job PBS**
@@ -830,15 +843,15 @@ ssh galahad 'pct exec 109 -- bash -c "docker exec firefly-db dropdb -U firefly f
 Relever d'abord le nom exact du stockage PBS et le job existant :
 
 ```bash
-ssh galahad 'pvesm status --content backup'
-ssh galahad 'cat /etc/pve/jobs.cfg'
+ssh galahad 'sudo pvesm status --content backup'
+ssh galahad 'sudo cat /etc/pve/jobs.cfg'
 ```
 
 Ajouter `109` à la liste `vmid` du job vzdump existant, puis déclencher une
 sauvegarde en reprenant le nom de stockage relevé ci-dessus :
 
 ```bash
-ssh galahad 'vzdump 109 --mode snapshot --storage <nom releve par pvesm status>'
+ssh galahad 'sudo vzdump 109 --mode snapshot --storage <nom releve par pvesm status>'
 ```
 
 Attendu : `INFO: Finished Backup of VM 109`. Attention au piège connu du
