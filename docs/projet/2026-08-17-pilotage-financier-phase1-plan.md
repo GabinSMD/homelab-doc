@@ -76,6 +76,12 @@ Valeurs exactes, à ne pas réinterpréter :
 
 Le vrai `.env` vit **uniquement dans le LXC**, jamais dans git.
 
+**Attention au dépôt.** « homelab-config » désigne ici le clone
+**`/mnt/ssd/config`**, dont le remote est **Forgejo** — la source de vérité, et
+celui que Traefik lit en bind mount. Il existe un second clone,
+`/mnt/ssd/homelab-config`, dont le remote est GitHub : il est **périmé, son
+historique a divergé, et écrire dedans n'a aucun effet sur les services**.
+
 ## Valeurs retenues
 
 À compléter à la tâche 1, après vérification. Ne pas présumer que ces
@@ -893,7 +899,11 @@ restaurées.
 
 | Drill | Date | Résultat |
 |---|---|---|
-| Restauration `restic-finance` | | |
+| Restauration `restic-finance` | 2026-08-17 | Restore snapshot `411c8e07` dans `firefly_restore_test` (LXC 109) : **81 tables**, `select count(*) from users` = **1** (attendu ≥ 1), `accounts` = 4, `transactions` = 2 — identique à l'état live. Base jetable et `/tmp/restore-test` supprimés après vérification. |
+
+**PBS.** Stockage relevé via `pvesm status --content backup` : `PBS`. Job existant `backup-galahad-daily` (`/etc/pve/jobs.cfg`, écrit via `nsenter -t 1 -m --`, la lecture SSH directe voyait déjà l'ancienne valeur en RO) : `vmid` étendu de `100,102,106` à `100,102,106,109`. `vzdump 109 --mode snapshot --storage PBS` lancé via `sudo nsenter -t 1 -m --` (la commande directe échoue avec « Read-only file system » sur `109.conf.tmp.*`, même piège de namespace que l'écriture) : bascule automatique en mode `suspend` (le stockage du rootfs LXC 109 ne supporte pas les snapshots), `Finished Backup of VM 109 (00:01:41)`, archive visible dans `pvesm list PBS --vmid 109`. Le piège connu du hook `pct.conf` (permission denied) n'a pas été rencontré — le hook `/root/vzdump-permfix-hook.sh` reste en place au cas où.
+
+**Contrôles mensuels.** `restic-finance` ajouté à `REPOS` dans `scripts/restic-check-monthly.sh` et `scripts/restic-drill-monthly.sh` (homelab-config), qui ne couvraient jusqu'ici que `restic`, `restic-vault`, `restic-dnsfailover` et `restic-logs` — le dépôt finance n'était vérifié ni restauré automatiquement. Les deux scripts déployés (`/root/restic-*-monthly.sh` sur penny) et relancés manuellement pour valider l'ajout avant le prochain passage du timer (1er du mois) : check OK (`OK restic-finance in 6s`, `All 5 repos OK in 62s`) et drill OK (`restic-finance: /var/backups/finance/firefly.sql restauré (247393 bytes) et lisible`).
 
 ```bash
 cd /mnt/ssd/homelab-doc
