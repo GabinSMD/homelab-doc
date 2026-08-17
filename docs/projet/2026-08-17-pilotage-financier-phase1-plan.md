@@ -39,6 +39,8 @@ Valeurs exactes, à ne pas réinterpréter :
   l'heure dite — c'est ce qui a fait rater le drill du 1er juin.
 - Images conteneur : **épinglées par digest**, comme le reste du dépôt.
 - Passerelle du LAN : **`192.168.1.254`** (Freebox). Ce n'est pas `.1`.
+- Stockage Proxmox sur galahad : **`local`** (type répertoire). `local-lvm`
+  n'existe pas sur ce nœud ; les seuls stockages sont `local` et `PBS`.
 - **Accès à galahad** : `ssh galahad` ouvre une session `gabins` (uid 1000),
   pas root, avec un `PATH` sans `/usr/sbin`. Toute commande Proxmox se
   préfixe donc de `sudo` : `ssh galahad 'sudo pct ...'`.
@@ -145,7 +147,7 @@ démarre pas dans un LXC non privilégié.
 ssh galahad 'sudo pct create 109 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
   --hostname finance \
   --cores 2 --memory 3072 --swap 1024 \
-  --rootfs local-lvm:16 \
+  --rootfs local:16 \
   --net0 name=eth0,bridge=vmbr0,ip=192.168.1.37/24,gw=192.168.1.254 \
   --nameserver "192.168.1.28 192.168.1.30" \
   --features nesting=1,keyctl=1 \
@@ -415,7 +417,9 @@ sleep 90
 curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.1.37:8080/login
 ```
 
-Attendu : `200`.
+Attendu : `200` ou `302` — sans compte créé, Firefly III redirige `/login`
+vers `/register`. Les deux prouvent que l'application répond ; un refus de
+connexion ou un `500` sont les seuls échecs.
 
 En cas de `500`, lire les journaux :
 `ssh galahad 'sudo pct exec 109 -- docker logs firefly --tail 50'`. Les deux
@@ -440,9 +444,21 @@ Requires=docker.service
 [Service]
 Type=oneshot
 EnvironmentFile=/opt/finance/.env
-ExecStart=/usr/bin/curl -fsS -o /dev/null --max-time 30 \
-  http://127.0.0.1:8080/api/v1/cron/${STATIC_CRON_TOKEN}
+ExecStart=/bin/bash -c '/usr/bin/docker exec firefly curl -sS -o /dev/null \
+  -w "%%{http_code}" --max-time 30 \
+  http://localhost:8080/api/v1/cron/${STATIC_CRON_TOKEN} | grep -q "^200$"'
 ```
+
+**L'appel part de l'intérieur du conteneur, pas de l'hôte du LXC.** Le Compose
+ne publie le port que sur `192.168.1.37`, donc rien n'écoute en loopback :
+un `curl` vers `127.0.0.1:8080` depuis l'hôte du LXC échouerait tous les jours.
+Passer par `docker exec` évite d'ouvrir un second point d'écoute pour une
+tâche interne, et rend l'unité indépendante de l'adresse IP du conteneur.
+
+**Le `grep -q "^200$"` n'est pas décoratif.** Un jeton erroné fait répondre 302,
+que `curl` traite comme un succès : l'unité serait `success` et le cron ne
+tournerait jamais. Exiger explicitement un 200 transforme cette panne
+silencieuse en échec visible. Le `%%` échappe le `%` pour systemd.
 
 Créer `homelab-config/system/finance/firefly-cron.timer` :
 
