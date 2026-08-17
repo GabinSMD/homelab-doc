@@ -78,9 +78,9 @@ valeurs sont libres.
 
 | Paramètre | Valeur | Vérifié le |
 |---|---|---|
-| ID du LXC | `109` (à confirmer) | |
-| IP LAN | `192.168.1.37` (à confirmer) | |
-| Nom d'hôte | `finance` | |
+| ID du LXC | `109` | 2026-08-17 |
+| IP LAN | `192.168.1.37` | 2026-08-17 |
+| Nom d'hôte | `finance` | 2026-08-17 |
 
 ---
 
