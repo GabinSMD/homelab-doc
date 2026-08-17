@@ -102,6 +102,7 @@ Chaque LXC critique a un backup `restic` indépendant direct vers R2, complement
 | `restic-vault` | LXC 102 vaultwarden | `/usr/local/bin/vault-backup.sh` | **hourly** | 7d/4w/6m | **3h** |
 | `restic-dnsfailover` | LXC 100 AdGuard secondaire | `/usr/local/bin/dnsfailover-backup.sh` | daily 02:30 | 7d/4w/6m | 30h |
 | `restic-logs` | LXC 101 Grafana+Loki+Prometheus | `/usr/local/bin/logs-backup.sh` | daily 02:45 | 7d/4w/6m | 30h |
+| `restic-finance` | LXC 109 Firefly III (galahad, pg_dump) | `/root/finance-backup.sh` (timer systemd) | daily 02:30 | 7d/4w/6m | 30h |
 
 Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur chaque host/LXC). R2 bucket unique `homelab-backups`, sous-path distinct par repo.
 
