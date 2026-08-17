@@ -109,9 +109,18 @@ N'en configurer qu'un est l'erreur la plus fréquente.
 Traefik en frontal, certificat DNS-01 Cloudflare, **Authelia devant**. Accès
 mobile par Tailscale, page épinglable sur l'écran d'accueil iOS.
 
-**L'API de Firefly III est exclue du middleware `forwardAuth`** et protégée par
-son propre jeton. L'importer appelle cette API ; derrière Authelia il recevrait
-un 302 et l'import mourrait en silence. Même arbitrage que pour Forgejo.
+**Tout passe derrière Authelia, sans exception — y compris l'API.**
+
+Une première version de ce design excluait `/api` du middleware `forwardAuth`,
+au motif que l'importer appelle cette API et qu'un 302 tuerait l'import en
+silence. C'est faux dans notre topologie : **l'importer tourne dans le même LXC
+et la même pile Compose**, donc il joint Firefly III par le réseau Docker interne
+(`http://app:8080`), sans jamais traverser Traefik ni Authelia.
+
+Exposer publiquement une route `/api` authentifiée par simple jeton créerait donc
+une surface d'attaque sans contrepartie. Si une application mobile tierce devient
+souhaitable, la route `/api` sera ajoutée **restreinte par `IPAllowList` à la
+plage Tailscale** — jamais en accès public.
 
 ### Sauvegardes
 

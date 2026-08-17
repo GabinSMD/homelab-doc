@@ -563,19 +563,15 @@ echo | openssl s_client -connect finance.home.gabin-simond.fr:443 -servername fi
 Attendu : un certificat Let's Encrypt valide, pas le certificat par défaut
 de Traefik.
 
-- [ ] **Étape 6 : mettre le spec à jour puis commiter**
+- [ ] **Étape 6 : commiter**
 
-Dans le spec, remplacer le paragraphe « L'API de Firefly III est exclue du
-middleware `forwardAuth` » par la décision prise ci-dessus.
+Le spec a déjà été corrigé sur ce point (commit `2b5bba1`, section
+« Accès ») — rien à faire de ce côté.
 
 ```bash
 cd /mnt/ssd/homelab-config
 git add traefik/dynamic/finance.yml
 git commit -m "feat(finance): routage Traefik derriere Authelia, sans exception API"
-
-cd /mnt/ssd/homelab-doc
-git add docs/projet/2026-08-17-pilotage-financier-design.md
-git commit -m "docs(projet): l'API Firefly III reste derriere Authelia (correction)"
 ```
 
 ---
