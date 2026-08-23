@@ -182,7 +182,7 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 - [x] systemd sucre.service survive reboot LXC — `sucre-unseal.service` + `sucre.service` enabled
 - [ ] Replicate Option B sur galahad + lancelot — bloque par soak sucre week 8 reeval
 - [ ] Grafana dashboard "sucre activity" — proposals/jour, approval rate, success rate, cost/mois
-- [x] Alertmanager route "sucre down" → ntfy direct — canary Tailscale dans `homelab_monitor.check_fish_service`, commit `fb56f53`
+- [x] Alertmanager route "sucre down" → ntfy direct — canary Tailscale dans `homelab_monitor.check_sucre_service`, commit `fb56f53`
 
 ### v2 — W5 UNKNOWN_INCIDENT auto-drafter (livre 2026-04-30)
 - [x] UNKNOWN_INCIDENT auto-draft pattern YAML — drafter shipped, dedup 7j, race-protected, failed-block actif
