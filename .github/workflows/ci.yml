@@ -20,8 +20,9 @@ jobs:
     # GITHUB_TOKEN) : elle ne peut pas aboutir sur Forgejo, ou elle echouait
     # systematiquement depuis l'activation d'Actions. Le meme scan passe sur
     # GitHub avec le meme contenu, ce qui ecarte un vrai secret.
-    # Couverture cote Forgejo : le hook pre-commit `pre-commit-secret-scan.sh`,
-    # actif sur les deux depots, scanne AVANT chaque commit.
+    # Couverture cote Forgejo : le job `secret-scan-maison` ci-dessous, qui
+    # utilise le meme scanner que le hook pre-commit et tourne sur les DEUX
+    # serveurs.
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +36,33 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
           GITLEAKS_ENABLE_SUMMARY: true
+
+  secret-scan-maison:
+    name: secret scan (scanner homelab)
+    # Volontairement SANS garde de serveur : contrairement a gitleaks-action,
+    # ce scanner n'appelle aucune API et tourne donc aussi bien sur Forgejo —
+    # qui est desormais la source de verite — que sur GitHub.
+    # C'est exactement le scanner du hook pre-commit, pour que la CI refuse ce
+    # que le hook aurait refuse. Copie depuis homelab-config/scripts/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scanner le diff
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          # Le scanner lit `git diff --cached` : on met le diff en zone d'index.
+          git diff "$base" "$head" --name-only -z 2>/dev/null | xargs -0 -r git add -- 2>/dev/null || true
+          chmod +x scripts/pre-commit-secret-scan.sh
+          ./scripts/pre-commit-secret-scan.sh
 
   markdown-lint:
     name: markdown lint (advisory)
