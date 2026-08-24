@@ -96,6 +96,7 @@ nav:
     - Grafana (logs): services/grafana.md
     - Alloy + Loki HA: services/alloy-loki-ha.md
     - Claude Remote Control: services/claude-remote.md
+    - Firefly III (finances): services/firefly.md
     - Project Zomboid: services/zomboid.md
   - Securite:
     - securite/index.md

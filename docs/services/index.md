@@ -8,6 +8,7 @@ Tous les conteneurs sur penny tournent depuis un seul `/mnt/ssd/config/docker/do
 
 Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [grafana.md](grafana.md).
 Vaultwarden est **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
+Firefly III et son importeur tournent dans le LXC `finance` (galahad, 192.168.1.37). Voir [firefly.md](firefly.md).
 Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
 | Service | Image | URL | Auth | Host | Réseau Docker |
@@ -23,6 +24,8 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **autoheal** | `willfarrell/autoheal` | — | — | penny | socket |
 | **Grafana (logs)** | — | `logs.home.*` | OIDC Authelia (two_factor + PKCE, auto-login) | LXC logs / lancelot | — |
 | **Vaultwarden** | — | `vault.home.*` | Master + TOTP | LXC vault / galahad | — |
+| **[Firefly III](firefly.md)** | `fireflyiii/core` | `finance.home.*` | ForwardAuth Authelia (`remote_user_guard`) | LXC finance / galahad | — |
+| **[Firefly Importer](firefly.md#importeur-de-donnees)** | `fireflyiii/data-importer` | `import.home.*` | ForwardAuth Authelia (aucune auth propre) | LXC finance / galahad | — |
 | **Proxmox galahad** | — | `galahad.home.*` | OIDC Authelia / root@pam | galahad (bare metal) | — |
 | **Proxmox lancelot** | — | `lancelot.home.*` | OIDC Authelia / root@pam | lancelot (bare metal) | — |
 | **Docs** | — | `homelab.gabin-simond.fr` | Aucune (publique) | hors infra | — |
@@ -58,6 +61,7 @@ graph TB
         Traefik -->|dynamic/| PVE2[lancelot]
         Traefik -->|dynamic/| Logs[Grafana LXC]
         Traefik -->|dynamic/| Vault[Vaultwarden LXC]
+        Traefik -->|dynamic/| Finance[Firefly III LXC]
     end
 ```
 
