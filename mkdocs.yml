@@ -115,6 +115,9 @@ nav:
     - Depannage: operations/depannage.md
     - Forgejo (acces urgence): operations/forgejo-acces-urgence.md
     - DR drill scenario 1: operations/dr-drill-scenario-1.md
+  - Mentions:
+    - Confidentialite: confidentialite.md
+    - Conditions d'utilisation: conditions.md
   - Guides:
     - guides/index.md
     - Ajouter un service: guides/ajouter-service.md
