@@ -16,6 +16,9 @@ concurrency:
 
 jobs:
   build:
+    # GitHub Pages n'existe pas sur Forgejo : ce workflow n'a de sens que sur GitHub.
+    # Sans cette garde, chaque push sur main y declencherait un echec permanent.
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,6 +39,9 @@ jobs:
           path: site
 
   deploy:
+    # GitHub Pages n'existe pas sur Forgejo : ce workflow n'a de sens que sur GitHub.
+    # Sans cette garde, chaque push sur main y declencherait un echec permanent.
+    if: github.server_url == 'https://github.com'
     needs: build
     runs-on: ubuntu-latest
     environment:
