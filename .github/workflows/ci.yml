@@ -16,6 +16,13 @@ concurrency:
 jobs:
   secret-scan:
     name: secret scan (gitleaks)
+    # `gitleaks-action` interroge l'API GitHub (type de depot, licence,
+    # GITHUB_TOKEN) : elle ne peut pas aboutir sur Forgejo, ou elle echouait
+    # systematiquement depuis l'activation d'Actions. Le meme scan passe sur
+    # GitHub avec le meme contenu, ce qui ecarte un vrai secret.
+    # Couverture cote Forgejo : le hook pre-commit `pre-commit-secret-scan.sh`,
+    # actif sur les deux depots, scanne AVANT chaque commit.
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
