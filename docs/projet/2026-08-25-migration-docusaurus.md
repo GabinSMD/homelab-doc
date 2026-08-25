@@ -1,7 +1,8 @@
 # Migration MkDocs → Docusaurus — plan
 
 **Date** : 2026-08-25
-**Statut** : plan validé, non démarré
+**Statut** : phases 0 et 1 faites — le squelette build, les 56 URLs sont identiques
+**Worktree** : `/mnt/ssd/homelab-docusaurus` (branche `migration-docusaurus`)
 **Portée** : le dépôt `homelab-doc`, le site `homelab.gabin-simond.fr`, les workflows CI/CD
 **Suite prévue** : pipeline Outline → Docusaurus (chantier séparé, à ne lancer qu'après bascule)
 
@@ -21,7 +22,7 @@ Chiffres relevés sur l'état du dépôt au 2026-08-25, pas des estimations.
 
 | Élément | Volume | Difficulté |
 |---|---|---|
-| Fichiers Markdown | 53 (9 266 lignes) | — |
+| Fichiers Markdown | 53 (9 266 lignes), 54 depuis `incidents-recurrents` | — |
 | Images en Markdown | **0** | néant |
 | Liens internes relatifs `.md` | 122 | néant (Docusaurus les résout nativement) |
 | Liens absolus internes | 0 | néant |
@@ -126,20 +127,30 @@ La différence attendue est vide.
 
 ## Phases
 
-### Phase 0 — préparation
+### Phase 0 — préparation — FAITE
 
-Branche `migration-docusaurus`. Construire le site MkDocs actuel et **archiver la
-liste de ses URLs** : c'est la référence contre laquelle tout sera comparé.
+Branche `migration-docusaurus`, isolée dans un **worktree dédié**
+`/mnt/ssd/homelab-docusaurus` (voir le piège n°1 ci-dessous). Référence des URLs
+archivée dans `.migration-urls-avant.txt`, produite par un MkDocs installé dans un
+venv jetable (`/tmp/mkdocs-ref`, mkdocs 1.6.1 — il n'est pas installé sur penny).
 
-```bash
-mkdocs build && find site -name '*.html' | sed 's|^site||;s|/index\.html$|/|' | sort > /tmp/urls-avant.txt
-```
+`scripts/compare-urls.sh` rejoue la comparaison à la demande.
 
-### Phase 1 — squelette
+### Phase 1 — squelette — FAITE
 
-Créer le projet Docusaurus, appliquer les quatre décisions ci-dessus, écrire
-`sidebars.js` depuis le `nav:` actuel, et vérifier qu'il build avec **un seul**
-fichier de test. Ne pas encore toucher aux 53 fichiers.
+Docusaurus **3.10.2**, écrit à la main plutôt que via `create-docusaurus` (le
+gabarit officiel installe un blog et des docs de démonstration qu'il faudrait
+ensuite supprimer). Dépendances installées par **bun 1.3.12**, qui a aussi produit
+le build : 1265 paquets en 24 s, build client en 4,8 min sur le Pi.
+
+Le squelette a été construit **directement contre les 54 fichiers réels**, et non
+contre un fichier de test comme prévu : c'était plus informatif, et ça a donné la
+liste de travail des phases 2 et 3 en une seule passe.
+
+**Résultat : `bun run build` réussit, et `compare-urls.sh` rend « 56 URLs
+identiques ».** Aucune erreur MDX — `format: 'detect'` fait bien son travail. Les
+admonitions MkDocs non converties ne cassent rien : elles s'affichent en texte brut,
+ce qui est un échec visible et non un échec de build.
 
 ### Phase 2 — conversion mécanique
 
@@ -207,14 +218,32 @@ page d'accueil, une page à Mermaid, une page à onglets et une page repliable.
 
 ## Pièges recensés
 
-1. **Dés-indentation des corps d'admonition** — silencieux, transforme la prose en
+1. **Le dépôt de travail est partagé avec d'autres sessions.** Constaté en direct :
+   pendant la phase 1, une autre session Claude a créé `operations/incidents-recurrents.md`,
+   modifié `mkdocs.yml`, patché `sidebars.js`, puis committé — **sur la branche
+   `migration-docusaurus`**, parce que `git checkout -b` change la branche du
+   checkout partagé pour tout le monde. Son commit a été replacé sur `main` et la
+   migration déplacée dans un worktree. Corollaire : toute la comparaison d'URLs
+   est fausse si le corpus bouge sous les pieds — **regénérer la référence depuis
+   la branche de migration, jamais depuis `main`**.
+2. **Dés-indentation des corps d'admonition** — silencieux, transforme la prose en
    blocs de code. Le plus coûteux si on le rate.
-2. **`trailingSlash`** — oublié, il casse les 53 URLs d'un coup.
-3. **`success` → `tip`** — sinon 26 admonitions rendues en texte brut.
-4. **Renommer un fichier « tant qu'on y est »** — chaque renommage est une URL morte.
+3. **`trailingSlash`** — oublié, il casse les 53 URLs d'un coup.
+4. **`success` → `tip`** — sinon 26 admonitions rendues en texte brut.
+5. **Renommer un fichier « tant qu'on y est »** — chaque renommage est une URL morte.
    Interdit pendant la migration.
-5. **Les 17 pages hors nav** — décision consciente à prendre, pas à subir.
-6. **Le cache npm sur le runner arm64** — sans lui, chaque build réinstalle tout.
+6. **Les 17 pages hors nav** — décision consciente à prendre, pas à subir.
+7. **Le cache npm sur le runner arm64** — sans lui, chaque build réinstalle tout.
+
+## Bonus : 12 ancres cassées, invisibles depuis toujours
+
+Docusaurus signale **12 liens vers des ancres inexistantes** (`#…`) que MkDocs n'a
+jamais relevés — il ne valide pas les ancres sans `validation.anchors`, non
+configuré ici. Ce ne sont donc pas des régressions de migration mais des liens
+morts déjà en production, dont trois pointent vers `/architecture/reseau/#les-dns-rewrites-la-piece-cle`.
+
+`onBrokenAnchors` est sur `warn` le temps de la migration. À passer sur `throw`
+en fin de phase 3, une fois les 12 corrigés — sinon le garde-fou ne sert à rien.
 
 ## Ce que ce plan ne couvre pas
 
