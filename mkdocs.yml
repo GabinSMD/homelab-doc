@@ -113,6 +113,7 @@ nav:
     - Backups: operations/backups.md
     - Break-glass: operations/break-glass.md
     - Depannage: operations/depannage.md
+    - Incidents recurrents: operations/incidents-recurrents.md
     - Forgejo (acces urgence): operations/forgejo-acces-urgence.md
     - DR drill scenario 1: operations/dr-drill-scenario-1.md
   - Mentions:
