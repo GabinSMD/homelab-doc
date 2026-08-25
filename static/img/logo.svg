@@ -1,0 +1,9 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="G">
+  <!-- Approximation du mark G — remplacer par le SVG original pour pixel-perfect -->
+  <g fill="#155DFC">
+    <rect x="0" y="0" width="160" height="36"/>
+    <rect x="0" y="0" width="36" height="160"/>
+    <rect x="0" y="124" width="160" height="36"/>
+    <rect x="86" y="70" width="74" height="34"/>
+  </g>
+</svg>
