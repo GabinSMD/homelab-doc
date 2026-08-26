@@ -115,37 +115,55 @@ rm /tmp/yk-id.txt
 - [ ] Master password Vaultwarden (memorise ou papier scelle)
 - [ ] Codes de récupération TOTP
 - [ ] Ce document en PDF
-- [ ] **Un moyen de s'authentifier à GitHub** — voir l'encadré ci-dessous
+- [ ] **Clé USB portant `homelab-break-glass-<date>.tar.age`** — voir l'encadré
 
-:::danger[Dépendance circulaire — vérifié le 2026-08-26, non résolu]
-`homelab-config` est un dépôt **privé**. Un `git clone` anonyme échoue :
+:::tip[Dépendance circulaire — fermée le 2026-08-26]
+Le drill du matin a buté sur ceci : `homelab-config` est **privé**, un `git
+clone` anonyme échoue, et c'est la toute première commande de la phase 3.
 
 ```console
 $ git ls-remote https://github.com/GabinSMD/homelab-config.git
 fatal: could not read Username for 'https://github.com'
 ```
 
-Or c'est la **toute première commande de la phase 3**, et c'est elle qui va
-chercher les configurations *et* les secrets chiffrés. La chaîne se referme sur
-elle-même :
+La chaîne se refermait sur elle-même : pour cloner il faut un identifiant
+GitHub ; cet identifiant est dans `.env.enc`, **qui est dans le dépôt** ; ou
+dans Vaultwarden, qui tourne sur le cluster qu'on reconstruit justement.
 
-- pour cloner, il faut un identifiant GitHub ;
-- l'identifiant est dans `.env.enc`… qui est **dans le dépôt** ;
-- ou dans Vaultwarden… qui tourne sur le cluster, donc absent en perte totale.
+C'est l'**option 2** qui a été retenue — une copie hors-ligne chiffrée — parce
+qu'elle ne dépend d'aucun tiers pendant la reprise : ni GitHub, ni Cloudflare,
+ni Vaultwarden. Un PAT dans le coffre aurait laissé la reprise suspendue à la
+disponibilité (et à la non-expiration) d'un service extérieur.
 
-La YubiKey déchiffre `restic-env.enc`, mais **seulement si on a le fichier**. En
-perte totale, la procédure s'arrête à sa première ligne.
+L'archive est produite par [`scripts/break-glass-bundle.sh`](https://github.com/GabinSMD/homelab-config)
+dans `homelab-config` :
 
-Deux façons de fermer la boucle, à trancher :
+```bash
+./break-glass-bundle.sh                 # sortie dans /mnt/ssd/break-glass
+./break-glass-bundle.sh /media/cle-usb  # directement sur la clé du coffre
+```
 
-1. **Un PAT GitHub en lecture seule dans le coffre**, portée `repo` sur ces deux
-   dépôts. Le plus simple, à faire tourner comme n'importe quel jeton.
-2. **Une copie hors-ligne chiffrée du dépôt** sur la clé USB du coffre. Mesuré :
-   **285 Mo** de contenu plus 22 Mo d'historique — ça tient partout. Avantage :
-   aucune dépendance à un tiers pendant la reprise.
+Elle contient un `git bundle --all` des **deux** dépôts (donc toute l'histoire,
+`.env.enc` et `system/secrets/` compris) plus un manifeste avec les SHA de HEAD
+et les commandes de reprise. Chiffrée avec `age` vers les **trois mêmes
+destinataires que sops** : clé logicielle de penny, YK1, YK2 — chacun ouvre
+seul, donc **YK2, qui est déjà dans ce coffre, suffit**.
 
-Tant que ce n'est pas fait, le scénario « perte totale » n'est pas exécutable,
-même avec les deux YubiKeys.
+**Taille réelle : 3,9 Mo**, pas les 285 Mo estimés pendant le drill — un `git
+bundle` ne transporte que l'historique versionné, pas les 264 Mo de données
+d'exécution non suivies qui traînent dans l'arborescence (`sucre/`, base
+SQLite d'Authelia, journaux). Le script vérifie son propre produit avant de
+rendre la main : déchiffrement réel, clonage des deux bundles, comparaison des
+HEAD, et présence de `.env.enc` dans le clone.
+
+**Ce que l'archive ne contient pas** : l'état d'exécution non versionné — la
+base Authelia (donc les inscriptions 2FA), les bases CrowdSec, les volumes
+Docker. Ça, c'est le périmètre de restic/R2 et de PBS. L'archive débloque la
+phase 3, elle ne remplace pas les sauvegardes.
+
+**À refaire** après toute rotation de secret ou changement de configuration
+notable, puis recopier sur la clé du coffre — le manifeste porte la date et les
+SHA, ce qui permet de savoir en un coup d'œil de quand date la copie.
 :::
 
 ### Comptes externes (doivent rester actifs)
@@ -266,9 +284,16 @@ mount /dev/sda1 /mnt/ssd
 #### Phase 3 — Restaurer les configs système (T+30min a T+45min)
 
 ```bash
-# Cloner le repo config (ou restaurer depuis la cle USB)
+# Depuis la cle USB du coffre — aucune authentification GitHub requise.
+# YK2 est dans le meme coffre ; -i peut aussi pointer une cle age logicielle.
 cd /mnt/ssd
-git clone https://github.com/GabinSMD/homelab-config.git config-repo
+age -d -i <cle-ou-yubikey> /media/cle-usb/homelab-break-glass-<date>.tar.age > bg.tar
+tar xf bg.tar                       # -> homelab-config.bundle, homelab-doc.bundle, MANIFESTE.txt
+git clone homelab-config.bundle config-repo
+git clone homelab-doc.bundle doc-repo    # ce runbook, hors ligne
+
+# Repli si la cle USB est perdue ET qu'un acces GitHub est disponible :
+#   git clone https://github.com/GabinSMD/homelab-config.git config-repo
 
 # Appliquer les configs systeme
 cd /mnt/ssd/config-repo
@@ -862,13 +887,14 @@ aucun service arrêté. Ce qui a été réellement exécuté est marqué comme t
 - **`restic check` passe** : 12 snapshots vérifiés, `no errors were found`. Le dépôt
   n'est pas seulement lisible, il est cohérent.
 
-### Trouvé, et pas résolu
+### Trouvé pendant le drill
 
-- **La dépendance circulaire GitHub** ci-dessus. C'est le seul point qui rend le
-  scénario de perte totale non exécutable.
-- **`restic` est en 0.14.0**, compilé en 2022. La série courante est bien plus
-  récente. Ça fonctionne, mais un outil de reprise après sinistre est le dernier
-  endroit où laisser vieillir une version.
+- **La dépendance circulaire GitHub** — **fermée le soir même** par la copie
+  hors-ligne chiffrée (voir l'encadré en tête de page). Reste un geste physique :
+  copier l'archive sur la clé USB du coffre.
+- **`restic` est en 0.14.0**, compilé en 2022 — toujours ouvert. La série
+  courante est bien plus récente. Ça fonctionne, mais un outil de reprise après
+  sinistre est le dernier endroit où laisser vieillir une version.
 
 ### Deux pièges rencontrés pendant l'exercice
 
