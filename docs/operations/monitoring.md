@@ -43,7 +43,7 @@ Script bash executé **chaque minute** via cron. Surveillé :
 | **Cluster hosts** | galahad/lancelot ping + SSH port | ⚠️ urgent |
 | **Logs stack** | Grafana + Loki HTTP 200 | ⚠️ haute |
 | **AdGuard sync** | Canary rewrite secondaire | ⚠️ haute |
-| **Restic freshness** | 4 repos B2 (3h vault, 30h autres) | ⚠️ urgent |
+| **Restic freshness** | 4 repos R2 (3h vault, 30h autres) | ⚠️ urgent |
 | **PBS health** | LXC 103 API :8007 | ⚠️ urgent |
 
 ### Cascade suppression (depuis 2026-04-19)
@@ -86,7 +86,7 @@ Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi 
 
 ### Restic repos freshness (multi-repo)
 
-`check_restic_repos_freshness` queries B2 directement pour les 4 repos backup :
+`check_restic_repos_freshness` interroge directement le backend restic — Cloudflare R2 EU depuis le 2026-05-11 — pour les 4 repos backup :
 
 | Repo | Seuil | Source |
 |---|---|---|
@@ -95,7 +95,7 @@ Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi 
 | `restic-dnsfailover` | 30h | LXC 100 AdGuard (`dnsfailover-backup.sh` @ 02:30) |
 | `restic-logs` | 30h | LXC 101 Grafana+Loki (`logs-backup.sh` @ 02:45) |
 
-Cache 1h par repo pour ne pas faire 4 round-trips B2 chaque minute. Alerte ntfy `restic-<repo>-stale` si depassement.
+Cache 1h par repo pour ne pas faire 4 round-trips R2 chaque minute. Alerte ntfy `restic-<repo>-stale` si depassement.
 
 ### Deduplication des alertes
 

@@ -102,6 +102,8 @@ const sidebars = {
         { type: 'doc', id: 'projet/2026-08-04-homepage-themes-fonds-design', label: 'Spec themes et fonds Homepage' },
         { type: 'doc', id: 'projet/2026-08-15-boite-a-outils-technique', label: 'Spec boite a outils technique' },
         { type: 'doc', id: 'projet/2026-08-15-forgejo-source-de-verite', label: 'Spec Forgejo source de verite' },
+        { type: 'doc', id: 'projet/2026-08-25-migration-docusaurus', label: 'Migration MkDocs -> Docusaurus' },
+        { type: 'doc', id: 'projet/2026-08-26-audit-fraicheur-doc', label: 'Audit de fraicheur de la doc' },
         { type: 'doc', id: 'projet/about', label: 'A propos' },
       ],
     },

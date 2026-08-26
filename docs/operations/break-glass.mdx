@@ -254,6 +254,22 @@ sysctl --system
 
 #### Phase 4 — Docker + services (T+45min a T+1h30)
 
+:::danger[Corrigé le 2026-08-26 — les commandes de restauration ne pouvaient pas s'authentifier]
+Jusqu'à cette date, les blocs de restauration de cette page exportaient
+`B2_ACCOUNT_ID B2_ACCOUNT_KEY`. Or `/root/.restic-env` ne contient plus ces
+variables depuis la migration vers Cloudflare R2 du **2026-05-11** : il porte
+`AWS_ACCESS_KEY_ID` et `AWS_SECRET_ACCESS_KEY`.
+
+Et comme ce fichier utilise des **assignations simples, sans `export`**, un
+`source` seul ne les transmet pas à `restic`, qui est un processus enfant. La
+procédure échouait donc sur une erreur d'authentification — pendant une reprise
+après sinistre, c'est-à-dire au pire moment.
+
+Cassé pendant trois mois et demi sans que rien ne le signale : **aucun chemin de
+code n'exécute cette page.** Un runbook n'est vérifié que par un exercice de
+reprise qui le suit à la lettre.
+:::
+
 ```bash
 # Installer les paquets essentiels
 dietpi-software install 162  # Docker
@@ -281,9 +297,9 @@ rm /tmp/yk-id.txt
 # Copier le docker-compose
 cp docker/docker-compose.yml /mnt/ssd/config/docker-compose.yml
 
-# Restaurer les volumes Docker depuis restic (B2, chiffre AES-256)
+# Restaurer les volumes Docker depuis restic (Cloudflare R2 EU, chiffre AES-256)
 source /root/.restic-env
-export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 
 # Lister les snapshots disponibles
 restic snapshots
@@ -309,7 +325,7 @@ rm -rf /tmp/restore
 ```bash
 # Restaurer la config Authelia depuis restic ou regenerer les secrets
 # (les configs bind-mount sont deja restaurees par restic dans /mnt/ssd/config/)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 if [ -d /tmp/restore/mnt/ssd/config/authelia ]; then
     cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
@@ -350,7 +366,7 @@ cd /mnt/ssd/config
 docker compose up -d
 
 # Verifier que restic fonctionne
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic snapshots  # doit lister les snapshots existants
 ```
 
@@ -459,8 +475,8 @@ pct exec 102 -- bash -c "
     mkdir -p /opt/vaultwarden
 "
 
-# Restaurer le volume Vaultwarden depuis B2
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+# Restaurer le volume Vaultwarden depuis R2
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/vaultwarden"
 # Copier les donnees restaurees vers le LXC
 pct push 102 /tmp/restore/mnt/ssd/.restic-staging/vaultwarden/ /opt/vaultwarden/data/ --recursive
@@ -566,9 +582,9 @@ gantt
 |-------|-------|------------------------------|
 | **T+0** | Achat/récupération du matériel — Flasher DietPi sur la SD card | — |
 | **T+0.5h** | OS, configs, SSD (Phase 2-3 du Scénario 1) | Proxmox installer boot USB |
-| **T+1h** | Docker up, restauration volumes depuis B2 | galahad : post-install.sh, création cluster |
+| **T+1h** | Docker up, restauration volumes depuis R2 | galahad : post-install.sh, création cluster |
 | **T+1.5h** | Authelia restaurée, Traefik + DNS UP | lancelot : rejoint le cluster |
-| **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis B2 |
+| **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis R2 |
 | **T+2.5h** | — | LXC 101 (logs) Grafana + Loki, SSO reconfiguré (OIDC Proxmox/Portainer/Grafana) |
 | **T+3h** | Tests end-to-end (voir checklist ci-dessous) | — |
 | **T+3.5h** | Agents Beszel + Tailscale, vérification backup (restic snapshots) | — |
@@ -602,7 +618,7 @@ docker logs authelia --tail 50
 
 # Option A : Restaurer depuis le dernier backup
 docker compose stop authelia
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
 rm -rf /tmp/restore

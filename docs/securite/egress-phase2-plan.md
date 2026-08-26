@@ -2,6 +2,14 @@
 
 **État au 2026-04-19** (preparation). Phase 1 audit en place depuis 14/04.
 
+:::note[Depuis : déployé]
+Ce document est le plan d'activation, figé à sa date. La **phase 2 a été déployée
+le 2026-05-05 sur les trois hôtes** et revérifiée le 2026-08-20 — voir
+[Roadmap sécurité → Egress firewall](roadmap.md#egress-firewall-penny--galahad--lancelot--done-2026-05-05).
+Les chiffres de couverture ci-dessous décrivent l'état de préparation, pas la
+production.
+:::
+
 ## Résumé phase 1
 
 `/root/egress-audit.sh` a installé des règles iptables LOG sur OUTPUT (host) et DOCKER-USER (containers), rate-limit 10/min, skip LAN + Tailscale + Docker bridges. Le but : collecter toutes les destinations externes légitimes avant de passer `OUTPUT DROP`.

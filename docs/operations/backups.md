@@ -236,11 +236,11 @@ Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
 pvesh create /nodes/<node>/lxc -archive <PBS-backup-ID> -storage local
 ```
 
-### Restaurer Vaultwarden depuis restic B2
+### Restaurer Vaultwarden depuis restic R2 {#restaurer-vaultwarden-depuis-restic-b2}
 
 ```bash
 # Depuis LXC 102 (ou un nouveau LXC)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --tag vault
 cp -a /tmp/restore/opt/vaultwarden/. /opt/vaultwarden/
 # Restaurer le snapshot SQLite propre
@@ -252,7 +252,7 @@ systemctl restart vaultwarden
 ### Restaurer un volume Docker (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/beszel"
 
 docker compose stop beszel
@@ -267,7 +267,7 @@ rm -rf /tmp/restore
 ### Restaurer une config (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 
 docker compose stop authelia
@@ -284,7 +284,7 @@ Voir [break-glass.md](break-glass.mdx) pour la procédure pas-a-pas.
 2. Cloner `homelab-config` depuis GitHub
 3. Suivre le README (copier boot, udev, fstab, network, docker)
 4. Restaurer `.restic-env` depuis la clé USB chiffrée
-5. `restic restore latest` depuis B2
+5. `restic restore latest` depuis R2
 6. Restaurer les volumes et configs
 7. Regenerer les secrets Authelia si nécessaire (voir README)
 8. `docker compose up -d`

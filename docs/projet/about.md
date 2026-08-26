@@ -52,6 +52,6 @@ Le pantheon s'applique aux **machines physiques** uniquement. Les services Docke
 
 ## Ce site
 
-Ce site est généré avec [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) et déployé automatiquement sur GitHub Pages via GitHub Actions.
+Ce site est généré avec [Docusaurus](https://docusaurus.io/) (migré depuis MkDocs Material le 2026-08-26, voir [le plan de migration](2026-08-25-migration-docusaurus.md)) et déployé automatiquement sur GitHub Pages via GitHub Actions.
 
 Le code source est disponible sur [GitHub](https://github.com/GabinSMD/homelab-doc).
