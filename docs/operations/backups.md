@@ -278,7 +278,7 @@ rm -rf /tmp/restore
 
 ### Restauration complète (nouveau RPi)
 
-Voir [break-glass.md](break-glass.md) pour la procédure pas-a-pas.
+Voir [break-glass.md](break-glass.mdx) pour la procédure pas-a-pas.
 
 1. Installer DietPi
 2. Cloner `homelab-config` depuis GitHub
@@ -317,4 +317,4 @@ API token Cloudflare Object Read & Write scoped uniquement à ce bucket.
 
 - [Comptes PBS](../securite/comptes.md#proxmox-backup-server-lxc-103) — convention comptes et tokens
 - [Monitoring](monitoring.md) — checks backup freshness
-- [Break-glass](break-glass.md) — procédure reconstruction d'urgence
+- [Break-glass](break-glass.mdx) — procédure reconstruction d'urgence

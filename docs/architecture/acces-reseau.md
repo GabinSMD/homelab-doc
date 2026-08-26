@@ -2,7 +2,7 @@
 
 Cette page répond à une seule question : **quand une machine demande
 `grafana.home.gabin-simond.fr`, par où passe la requête ?** Elle complète
-[Réseau actuel](reseau.md), qui décrit l'adressage, et sert de légende à la
+[Réseau actuel](reseau.mdx), qui décrit l'adressage, et sert de légende à la
 cartographie Homelable.
 
 Il n'y a que **trois** chemins d'entrée. Aucun autre n'existe.

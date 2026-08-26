@@ -88,7 +88,7 @@ Ou dans la config (`user_rules` dans `AdGuardHome.yaml`) :
 ```
 
 :::info[Pourquoi deux règles ?]
-AdGuard tourne en `network_mode: host` et voit les vraies IPs clients. LAN recoit l'IP locale, Tailscale recoit l'IP Tailscale. Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le détail.
+AdGuard tourne en `network_mode: host` et voit les vraies IPs clients. LAN recoit l'IP locale, Tailscale recoit l'IP Tailscale. Voir [Comment fonctionne le DNS](../architecture/reseau.mdx#les-dns-rewrites-la-piece-cle) pour le détail.
 :::
 
 ## Étape 3 — Déployer

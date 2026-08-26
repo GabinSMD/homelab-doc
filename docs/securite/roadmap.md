@@ -21,7 +21,7 @@ Tu as :
 
 **Mais jamais reconstruit penny depuis zero**. Le drill mensuel vérifie intégrité données, pas full restore. Scénario reel : SSD meurt → Pi neuf → restore B2 + sops → est-ce que ca reboot dans un état exploitable en X heures ?
 
-**Effort** : 1/2 journee. Pi 4 spare ou VM x86. Suivre [break-glass](../operations/break-glass.md) + [dr-drill-scénario-1](../operations/dr-drill-scenario-1.md), chronometrer, noter les surprises.
+**Effort** : 1/2 journee. Pi 4 spare ou VM x86. Suivre [break-glass](../operations/break-glass.mdx) + [dr-drill-scénario-1](../operations/dr-drill-scenario-1.md), chronometrer, noter les surprises.
 
 ---
 
@@ -109,8 +109,8 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 - Threat model documenté ([politique.md](politique.md))
 - Politique rotation / revocation documentée
-- Procédure revocation Tailscale ([réseau.md](../architecture/reseau.md))
-- Break-glass procédure ([break-glass.md](../operations/break-glass.md))
+- Procédure revocation Tailscale ([réseau.md](../architecture/reseau.mdx))
+- Break-glass procédure ([break-glass.md](../operations/break-glass.mdx))
 - DR drill Vaultwarden (RTO 7s)
 - Scope token Cloudflare vérifie (1 zone)
 

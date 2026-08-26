@@ -250,4 +250,4 @@ Homelab/
 
 - [Politique credentials](politique.md) — modèle de menace, mots de passe, inventaire secrets
 - [Hardening](hardening.md) — mesures techniques par couche
-- [Break-glass](../operations/break-glass.md) — procédure de reconstruction d'urgence
+- [Break-glass](../operations/break-glass.mdx) — procédure de reconstruction d'urgence

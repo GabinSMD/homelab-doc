@@ -121,4 +121,4 @@ pvecm qdevice setup 192.168.1.28 -f
 ## Voir aussi
 
 - [Dépannage : pmxcfs stuck RO](../operations/depannage.md#pmxcfs-stuck-read-only-apres-recovery-node-cluster)
-- [Réseau](reseau.md) — topologie 2-node cluster
+- [Réseau](reseau.mdx) — topologie 2-node cluster
