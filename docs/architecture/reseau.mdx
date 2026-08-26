@@ -1,11 +1,15 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Réseau
 
 État actuel du réseau homelab : topologie, adressage, DNS, VPN mesh et certificats TLS.
 
-!!! tip "Par où passe une requête ?"
-    Cette page décrit l'**adressage**. Pour savoir quel chemin emprunte un
-    accès — depuis le LAN, depuis le tailnet, ou par le Funnel public — voir
-    [Accès aux services](acces-reseau.md).
+:::tip[Par où passe une requête ?]
+Cette page décrit l'**adressage**. Pour savoir quel chemin emprunte un
+accès — depuis le LAN, depuis le tailnet, ou par le Funnel public — voir
+[Accès aux services](acces-reseau.md).
+:::
 
 ## Topologie actuelle
 
@@ -96,27 +100,31 @@ AdGuard Home utilisé une **règle de reecriture conditionnelle** dans `user_rul
 
 Un client Tailscale distant n'est pas sur le LAN. Il atteint `192.168.1.28:443` (Traefik) parce que **penny advertise la route subnet `192.168.1.28/32`** sur le tailnet (`tailscale set --advertise-routes=192.168.1.28/32`, approuvée dans la console). Le trafic VPN vers cette IP est routé jusqu'à penny.
 
-!!! warning "Nœuds tailnet RÉSIDENTS du LAN : `accept-routes` doit rester `false`"
-    Un nœud Tailscale qui est **lui-même sur le LAN 192.168.1.0/24** (ex : sucre/LXC 105) et qui a `accept-routes: true` va router `192.168.1.28` via Tailscale au lieu du LAN direct. Conséquence : quand **penny initie** vers ce nœud (`ssh`, ping, health Homepage), le nœud **répond via Tailscale** → routage asymétrique → le `rp_filter` de penny droppe la réponse → 100% packet loss (sens penny→nœud uniquement). Vécu 2026-06-25 sur sucre. **Fix : `tailscale set --accept-routes=false`** sur les nœuds LAN-résidents (ils joignent penny en direct, ils n'ont pas besoin d'accepter la route). Diagnostic : `ip route get 192.168.1.28` sur le nœud doit montrer `dev eth0`, pas `dev tailscale0`. galahad/lancelot/dns-failover ne sont pas concernés (pas d'accept-routes).
+:::warning[Nœuds tailnet RÉSIDENTS du LAN : `accept-routes` doit rester `false`]
+Un nœud Tailscale qui est **lui-même sur le LAN 192.168.1.0/24** (ex : sucre/LXC 105) et qui a `accept-routes: true` va router `192.168.1.28` via Tailscale au lieu du LAN direct. Conséquence : quand **penny initie** vers ce nœud (`ssh`, ping, health Homepage), le nœud **répond via Tailscale** → routage asymétrique → le `rp_filter` de penny droppe la réponse → 100% packet loss (sens penny→nœud uniquement). Vécu 2026-06-25 sur sucre. **Fix : `tailscale set --accept-routes=false`** sur les nœuds LAN-résidents (ils joignent penny en direct, ils n'ont pas besoin d'accepter la route). Diagnostic : `ip route get 192.168.1.28` sur le nœud doit montrer `dev eth0`, pas `dev tailscale0`. galahad/lancelot/dns-failover ne sont pas concernés (pas d'accept-routes).
+:::
 
-!!! danger "Ne PAS renvoyer les clients Tailscale vers l'IP Tailscale de penny"
-    Tentation naturelle : `client=100.64.0.0/10 → 100.97.239.90` (l'IP Tailscale). **Ça casse en TLS** : `SSL_ERROR_INTERNAL_ERROR_ALERT` (alert 80). Raison : l'IP Tailscale:443 de penny est tenue par le **Funnel Tailscale (→ ntfy `127.0.0.1:8090`)**, qui n'a de cert que pour `penny.tail*.ts.net` — pas pour `home.*`. Traefik ne bind QUE `192.168.1.28` + `127.0.0.1` (le Funnel squatte l'IP Tailscale:443, cf mémoire `traefik-tailscale-443-conflict`). Un SNI `home.*` arrivant sur l'IP Tailscale n'a donc aucun cert → abort handshake. Ce piège a été actif jusqu'au **2026-06-25** (corrigé via route subnet + rewrite → IP LAN).
+:::danger[Ne PAS renvoyer les clients Tailscale vers l'IP Tailscale de penny]
+Tentation naturelle : `client=100.64.0.0/10 → 100.97.239.90` (l'IP Tailscale). **Ça casse en TLS** : `SSL_ERROR_INTERNAL_ERROR_ALERT` (alert 80). Raison : l'IP Tailscale:443 de penny est tenue par le **Funnel Tailscale (→ ntfy `127.0.0.1:8090`)**, qui n'a de cert que pour `penny.tail*.ts.net` — pas pour `home.*`. Traefik ne bind QUE `192.168.1.28` + `127.0.0.1` (le Funnel squatte l'IP Tailscale:443, cf mémoire `traefik-tailscale-443-conflict`). Un SNI `home.*` arrivant sur l'IP Tailscale n'a donc aucun cert → abort handshake. Ce piège a été actif jusqu'au **2026-06-25** (corrigé via route subnet + rewrite → IP LAN).
+:::
 
-!!! danger "Ne pas utiliser les DNS Rewrites statiques"
-    La section **DNS Rewrites** d'AdGuard (Filters > DNS Rewrites) ne doit **pas** contenir d'entrees pour `*.home.gabin-simond.fr`.
-    Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
-    Elles ecraseraient les règles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, même aux clients Tailscale — rendant les services inaccessibles via VPN.
+:::danger[Ne pas utiliser les DNS Rewrites statiques]
+La section **DNS Rewrites** d'AdGuard (Filters > DNS Rewrites) ne doit **pas** contenir d'entrees pour `*.home.gabin-simond.fr`.
+Les rewrites statiques sont appliquees **avant** les `user_rules` et ne supportent pas le filtrage par client.
+Elles ecraseraient les règles conditionnelles ci-dessus, renvoyant toujours l'IP LAN, même aux clients Tailscale — rendant les services inaccessibles via VPN.
 
-    **Seule exception** : `switch.lan` → `192.168.1.2` (équipement HTTP-only, hors du domaine `home.*` pour éviter le HSTS).
+**Seule exception** : `switch.lan` → `192.168.1.2` (équipement HTTP-only, hors du domaine `home.*` pour éviter le HSTS).
+:::
 
-!!! success "AdGuard en `network_mode: host`"
-    AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
+:::tip[AdGuard en `network_mode: host`]
+AdGuard tourne avec `network_mode: host` — il voit les **vraies IPs clients** (LAN et Tailscale), pas l'IP du bridge Docker.
 
-    Avantages :
+Avantages :
 
-    - **2 règles DNS** au lieu de 4 — plus de bricolage avec le bridge Docker
-    - **Stats par client** dans AdGuard — on voit quel device fait quelles requêtes
-    - **Reverse proxy** toujours actif via Traefik file provider (`dynamic/dns.yml`)
+- **2 règles DNS** au lieu de 4 — plus de bricolage avec le bridge Docker
+- **Stats par client** dans AdGuard — on voit quel device fait quelles requêtes
+- **Reverse proxy** toujours actif via Traefik file provider (`dynamic/dns.yml`)
+:::
 
 #### Wildcard `home.gabin-simond.fr`
 
@@ -132,26 +140,30 @@ La règle utilisé `||home.gabin-simond.fr^` — c'est un **wildcard**. Ca match
 
 ### Flow complet d'une requête
 
-=== "Depuis le LAN"
+<Tabs>
+<TabItem value="depuis-le-lan" label="Depuis le LAN">
 
-    ```
-    1. Navigateur → adguard.home.gabin-simond.fr ?
-    2. AdGuard → rewrite → 192.168.1.28 (regle client=192.168.1.0/24)
-    3. Navigateur → HTTPS 192.168.1.28:443
-    4. Traefik → match Host header → forward vers container adguard:3000
-    5. Reponse ← chiffree TLS (certificat Let's Encrypt)
-    ```
+```
+1. Navigateur → adguard.home.gabin-simond.fr ?
+2. AdGuard → rewrite → 192.168.1.28 (regle client=192.168.1.0/24)
+3. Navigateur → HTTPS 192.168.1.28:443
+4. Traefik → match Host header → forward vers container adguard:3000
+5. Reponse ← chiffree TLS (certificat Let's Encrypt)
+```
 
-=== "Depuis Tailscale (distant)"
+</TabItem>
+<TabItem value="depuis-tailscale-distant" label="Depuis Tailscale (distant)">
 
-    ```
-    1. Navigateur → adguard.home.gabin-simond.fr ?
-    2. DNS → resolution publique ou AdGuard via Tailscale
-    3. Navigateur → HTTPS 100.97.239.90:443 (via tunnel Tailscale)
-    4. Traefik → match Host header → forward vers container adguard:3000
-    5. Reponse ← chiffree TLS
-    ```
+```
+1. Navigateur → adguard.home.gabin-simond.fr ?
+2. DNS → resolution publique ou AdGuard via Tailscale
+3. Navigateur → HTTPS 100.97.239.90:443 (via tunnel Tailscale)
+4. Traefik → match Host header → forward vers container adguard:3000
+5. Reponse ← chiffree TLS
+```
 
+</TabItem>
+</Tabs>
 ### DNS upstream
 
 Pour les domaines **non locaux** (tout sauf `*.home.gabin-simond.fr`), AdGuard forward vers :

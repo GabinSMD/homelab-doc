@@ -38,3 +38,60 @@
   font-family: var(--ifm-heading-font-family);
   letter-spacing: -0.01em;
 }
+
+/* Hero de la page d'accueil. Porte depuis l'ancien docs/stylesheets/extra.css :
+   memes proportions et memes polices, variables `--md-*` traduites en `--ifm-*`.
+   Le bloc dependait de `md_in_html` cote MkDocs ; il est desormais du JSX dans
+   docs/index.mdx (`className`, `<br />`). */
+.hero {
+  margin: -1.5rem -0.8rem 2.4rem -0.8rem;
+  padding: 3.2rem 1.5rem 2.6rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background:
+    radial-gradient(ellipse at top left, rgba(21, 93, 252, 0.06), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.04), transparent 50%);
+}
+
+[data-theme='dark'] .hero {
+  background:
+    radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.10), transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(21, 93, 252, 0.06), transparent 55%);
+}
+
+.hero__eyebrow {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ifm-color-primary);
+  margin: 0 0 0.6rem 0;
+}
+
+/* clamp() plutot que les 3.4rem d'origine : la zone de contenu de Docusaurus est
+   plus etroite que celle de MkDocs Material, le titre debordait sur mobile. */
+.hero__title {
+  font-family: var(--ifm-heading-font-family);
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4em 0;
+  color: var(--ifm-font-color-base);
+}
+
+.hero__lede {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 38em;
+  color: var(--ifm-color-emphasis-700);
+  margin: 0 0 1.8rem 0;
+}
+
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem 2rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.74rem;
+  color: var(--ifm-color-emphasis-600);
+}
