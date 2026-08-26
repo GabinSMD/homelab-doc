@@ -25,10 +25,10 @@ fonctionnement continu.
 | Incident | Matches en 4 mois | Risque du remede |
 |---|---|---|
 | [Conteneurs a l'arret apres reboot](#conteneurs-a-larret-apres-un-reboot) | 84 | Faible |
-| [Traefik : provider docker en EOF](#traefik-provider-docker-en-unexpected-eof) | 23 | Faible |
+| [Traefik : provider docker en EOF](#traefik--provider-docker-en--unexpected-eof-) | 23 | Faible |
 | [AdGuard secondaire desynchronise](#adguard-secondaire-desynchronise) | 5 | Faible |
 | [pmxcfs bloque en lecture seule](#pmxcfs-bloque-en-lecture-seule-apres-recovery) | 1 | Moyen |
-| [Beszel : page blanche apres OIDC](#beszel-page-blanche-apres-le-flux-oidc) | 0 | Faible |
+| [Beszel : page blanche apres OIDC](#beszel--page-blanche-apres-le-flux-oidc) | 0 | Faible |
 | [Loki injoignable (LXC 101)](#loki-injoignable-lxc-101) | 0 | Moyen |
 | [dockerd en boucle de SIGBUS](#dockerd-en-boucle-de-sigbus) | 0 | **Eleve** |
 | [Mises a jour de securite en attente](#mises-a-jour-de-securite-en-attente) | 0 | Moyen |
