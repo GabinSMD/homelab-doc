@@ -115,6 +115,38 @@ rm /tmp/yk-id.txt
 - [ ] Master password Vaultwarden (memorise ou papier scelle)
 - [ ] Codes de récupération TOTP
 - [ ] Ce document en PDF
+- [ ] **Un moyen de s'authentifier à GitHub** — voir l'encadré ci-dessous
+
+:::danger[Dépendance circulaire — vérifié le 2026-08-26, non résolu]
+`homelab-config` est un dépôt **privé**. Un `git clone` anonyme échoue :
+
+```console
+$ git ls-remote https://github.com/GabinSMD/homelab-config.git
+fatal: could not read Username for 'https://github.com'
+```
+
+Or c'est la **toute première commande de la phase 3**, et c'est elle qui va
+chercher les configurations *et* les secrets chiffrés. La chaîne se referme sur
+elle-même :
+
+- pour cloner, il faut un identifiant GitHub ;
+- l'identifiant est dans `.env.enc`… qui est **dans le dépôt** ;
+- ou dans Vaultwarden… qui tourne sur le cluster, donc absent en perte totale.
+
+La YubiKey déchiffre `restic-env.enc`, mais **seulement si on a le fichier**. En
+perte totale, la procédure s'arrête à sa première ligne.
+
+Deux façons de fermer la boucle, à trancher :
+
+1. **Un PAT GitHub en lecture seule dans le coffre**, portée `repo` sur ces deux
+   dépôts. Le plus simple, à faire tourner comme n'importe quel jeton.
+2. **Une copie hors-ligne chiffrée du dépôt** sur la clé USB du coffre. Mesuré :
+   **285 Mo** de contenu plus 22 Mo d'historique — ça tient partout. Avantage :
+   aucune dépendance à un tiers pendant la reprise.
+
+Tant que ce n'est pas fait, le scénario « perte totale » n'est pas exécutable,
+même avec les deux YubiKeys.
+:::
 
 ### Comptes externes (doivent rester actifs)
 
@@ -807,3 +839,59 @@ Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a
 - **Mise a jour clé USB** : mensuelle (première semaine du mois)
 - **Test DR** : annuel minimum, trimestriel recommandé
 - **Responsable** : GabinSMD
+
+## Compte rendu du drill du 2026-08-26
+
+Premier exercice à suivre cette page. **Non destructif** : aucune LXC détruite,
+aucun service arrêté. Ce qui a été réellement exécuté est marqué comme tel.
+
+### Vérifié, et ça marche
+
+- **Les 15 fichiers que les phases 3 et 4 copient existent tous** dans
+  `homelab-config` — `boot/`, `udev/`, `system/`, `network/`, `docker/`,
+  `adguard/`, `traefik/`, `homepage/`, et les deux `.enc`.
+- **La commande de restauration corrigée fonctionne.** Exécutée telle qu'écrite :
+  les 4 variables attendues sont transmises, l'authentification à R2 passe,
+  `restic snapshots` renvoie les 12 snapshots. C'est la preuve que le correctif
+  `set -a` de ce matin est réel et pas théorique.
+- **Une restauration complète a été faite depuis R2** vers un répertoire jetable,
+  puis comparée aux fichiers vivants : **15 fichiers, aucun écart**. Les données
+  sont récupérables, pas seulement présentes.
+- **La rétention est saine** : mensuel, hebdomadaire, puis les sept derniers jours.
+  Dernier snapshot du jour même.
+- **`restic check` passe** : 12 snapshots vérifiés, `no errors were found`. Le dépôt
+  n'est pas seulement lisible, il est cohérent.
+
+### Trouvé, et pas résolu
+
+- **La dépendance circulaire GitHub** ci-dessus. C'est le seul point qui rend le
+  scénario de perte totale non exécutable.
+- **`restic` est en 0.14.0**, compilé en 2022. La série courante est bien plus
+  récente. Ça fonctionne, mais un outil de reprise après sinistre est le dernier
+  endroit où laisser vieillir une version.
+
+### Deux pièges rencontrés pendant l'exercice
+
+:::warning[Ne jamais piper `restic` dans `head` ou `tail`]
+Le SIGPIPE tue `restic` avant qu'il ne libère son verrou, et le dépôt reste
+verrouillé. C'est arrivé pendant ce drill même, et **c'est la mécanique exacte qui
+avait laissé la sauvegarde Vaultwarden muette pendant six jours.**
+
+Rediriger vers un fichier, puis lire le fichier. Et avant de retirer un verrou,
+vérifier que son PID est mort — `kill -0 <pid>` — plutôt que de dévérouiller par
+réflexe.
+:::
+
+:::note[`restic snapshots --latest 1` n'est pas « le plus récent »]
+L'option renvoie le dernier snapshot **par groupe** (hôte + chemins + tags), pas le
+sommet absolu. Lu trop vite pendant ce drill, ça donne l'impression que les
+sauvegardes sont arrêtées depuis dix-sept jours alors qu'elles tournent
+normalement. Pour l'âge réel : lister tout et trier.
+:::
+
+### Ce que ce drill n'a pas prouvé
+
+La partie destructive. Recréer une LXC, réinstaller un OS, reconstruire le
+cluster : rien de tout ça n'a été exécuté. Les temps annoncés dans les objectifs de
+reprise restent donc des estimations, et le parcours complet n'est toujours pas
+chronométré.
