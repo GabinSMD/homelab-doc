@@ -1,97 +1,39 @@
-/* Feuille de style neuve. L'ancien docs/stylesheets/extra.css (theme MkDocs
-   Material) est volontairement abandonne : il ciblait des classes `md-*` qui
-   n'existent pas ici. Les polices sont chargees par `stylesheets` dans
-   docusaurus.config.js. */
+/* Feuille globale.
+ *
+ * VOLONTAIREMENT NUE. La personnalisation heritee du theme MkDocs (polices
+ * Instrument Serif / Inter Tight / JetBrains Mono chargees depuis Google Fonts,
+ * palette verte, titres en serif, bloc hero de l'accueil) a ete retiree le
+ * 2026-08-26 : elle avait ete portee telle quelle pendant la migration, sans
+ * etre retravaillee pour Docusaurus, et le resultat ne tenait pas.
+ *
+ * On repart donc du theme `classic` par defaut. Un habillage propre sera concu
+ * plus tard, a partir de zero plutot qu'en recyclant l'ancien.
+ *
+ * Ne pas remettre de chargement de polices distant sans y penser : c'etait deux
+ * `preconnect` plus une feuille Google Fonts sur chaque page du site public.
+ */
 
 :root {
-  --ifm-font-family-base: 'Inter Tight', system-ui, -apple-system, sans-serif;
-  --ifm-heading-font-family: 'Instrument Serif', Georgia, serif;
-  --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, monospace;
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
 
-  --ifm-color-primary: #2e7d63;
-  --ifm-color-primary-dark: #29715a;
-  --ifm-color-primary-darker: #276a55;
-  --ifm-color-primary-darkest: #205746;
-  --ifm-color-primary-light: #33896c;
-  --ifm-color-primary-lighter: #359071;
-  --ifm-color-primary-lightest: #3c9d7c;
-
-  --ifm-code-font-size: 92%;
+  --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme='dark'] {
-  --ifm-color-primary: #6ec9a8;
-  --ifm-color-primary-dark: #55bf99;
-  --ifm-color-primary-darker: #49ba90;
-  --ifm-color-primary-darkest: #379a76;
-  --ifm-color-primary-light: #87d3b7;
-  --ifm-color-primary-lighter: #93d8c0;
-  --ifm-color-primary-lightest: #b7e5d6;
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
 
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
-}
-
-.markdown h1,
-.markdown h2,
-.markdown h3 {
-  font-family: var(--ifm-heading-font-family);
-  letter-spacing: -0.01em;
-}
-
-/* Hero de la page d'accueil. Porte depuis l'ancien docs/stylesheets/extra.css :
-   memes proportions et memes polices, variables `--md-*` traduites en `--ifm-*`.
-   Le bloc dependait de `md_in_html` cote MkDocs ; il est desormais du JSX dans
-   docs/index.mdx (`className`, `<br />`). */
-.hero {
-  margin: -1.5rem -0.8rem 2.4rem -0.8rem;
-  padding: 3.2rem 1.5rem 2.6rem;
-  border-bottom: 1px solid var(--ifm-color-emphasis-200);
-  background:
-    radial-gradient(ellipse at top left, rgba(21, 93, 252, 0.06), transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.04), transparent 50%);
-}
-
-[data-theme='dark'] .hero {
-  background:
-    radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.10), transparent 55%),
-    radial-gradient(ellipse at bottom right, rgba(21, 93, 252, 0.06), transparent 55%);
-}
-
-.hero__eyebrow {
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--ifm-color-primary);
-  margin: 0 0 0.6rem 0;
-}
-
-/* clamp() plutot que les 3.4rem d'origine : la zone de contenu de Docusaurus est
-   plus etroite que celle de MkDocs Material, le titre debordait sur mobile. */
-.hero__title {
-  font-family: var(--ifm-heading-font-family);
-  font-size: clamp(2rem, 6vw, 3.4rem);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.4em 0;
-  color: var(--ifm-font-color-base);
-}
-
-.hero__lede {
-  font-size: 1.05rem;
-  line-height: 1.55;
-  max-width: 38em;
-  color: var(--ifm-color-emphasis-700);
-  margin: 0 0 1.8rem 0;
-}
-
-.hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.4rem 2rem;
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.74rem;
-  color: var(--ifm-color-emphasis-600);
 }

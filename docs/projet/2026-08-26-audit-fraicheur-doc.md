@@ -92,7 +92,67 @@ Une seule ancre publiée était touchée
 (`#restaurer-vaultwarden-depuis-restic-b2`) : elle est **préservée** par un id
 explicite, le titre seul change. Une ancre est une URL.
 
-## À arbitrer — non corrigé
+## Arbitré le 2026-08-26
+
+Les points ouverts par ce rapport ont été tranchés le jour même.
+
+**Les identifiants B2 restent à révoquer côté fournisseur.** L'inventaire de
+[`securite/comptes.md`](../securite/comptes.md) ne les mentionne plus, et
+vérification faite il n'existe plus aucune variable `B2_*` sur penny — ni dans
+`.restic-env`, ni dans la config rclone. L'exposition est donc entièrement côté
+Backblaze : supprimer la clé applicative dans leur console, puis l'entrée
+Vaultwarden. C'est la seule action de cette liste qui ne peut pas être faite
+depuis le dépôt.
+
+**Les specs sont figées à leur date.** Convention retenue : on ne réécrit pas une
+spec de `projet/`, on lui ajoute un encadré quand la réalité a bougé. Appliqué à
+[la spec Forgejo](2026-08-15-forgejo-source-de-verite.md), qui décrivait un
+`deploy.yml` construisant MkDocs.
+
+**Une seule roadmap fait foi.** [`projet/roadmap.md`](roadmap.md) pour le matériel
+et les phases, [`securite/roadmap.md`](../securite/roadmap.md) pour la sécurité.
+[`roadmap-2026-05.md`](roadmap-2026-05.md) est une synthèse figée du 11 mai et
+porte désormais un bandeau qui le dit.
+
+**Les index minces sont un choix, pas un oubli.** Ce sont des aiguillages avec une
+colonne « quand l'utiliser », et la barre latérale porte la liste exhaustive. Un
+seul manque réel corrigé : `operations/index.md` n'orientait pas vers
+[le catalogue d'incidents](../operations/incidents-recurrents.md), qu'on veut
+justement ouvrir en premier.
+
+**Le contrôle de fraîcheur est automatisé.** `scripts/check-doc-fraicheur.py`
+échoue en CI si une page qu'on **suit en situation** (`operations/`, `guides/`,
+`services/`, `architecture/`) référence un terme retiré — identifiants B2,
+construction MkDocs, l'agent SRE sous son ancien nom. Le reste de `docs/` garde le
+droit de parler du passé : c'est son rôle. Chaque terme porte une liste blanche
+justifiée ligne par ligne, précisément pour ne pas reproduire le `grep` naïf qui
+avait faussé cet audit à son démarrage. Testé dans les deux sens : il détecte une
+réintroduction, et il passe sur l'état corrigé.
+
+**`markdown-lint` couvre à nouveau les `.mdx`.** Son glob était `docs/**/*.md` :
+les trois fichiers passés en `.mdx` pendant la migration étaient sortis de la
+couverture sans que rien ne le signale.
+
+**La CI reste sur bun, et ce n'est pas un choix de confort.** `node` est absent de
+penny, de galahad, de lancelot **et** du runner Forgejo — vérifié. Générer un
+`package-lock.json` pour passer à `npm ci` demanderait une machine qui n'existe pas
+dans le parc. Le point est clos, pas reporté.
+
+## Ce qui reste ouvert
+
+- **La révocation Backblaze** ci-dessus, côté fournisseur.
+- **La tuile `sucre` du dashboard Homepage** pointe toujours sur un service arrêté.
+  Non retirée parce qu'une autre session édite `homepage/services.yaml` et
+  `homepage/custom.js` en même temps, et que `custom.js` référence le bloc `sucre`
+  comme précédent de mise en forme. À faire quand son travail est commité.
+- **L'habillage du site.** La personnalisation héritée de MkDocs a été retirée le
+  2026-08-26 — polices distantes, palette, bloc hero, `overrides/` et
+  `docs/stylesheets/extra.css`. Le site est revenu au thème `classic` par défaut.
+  Un habillage propre sera conçu plus tard, à partir de zéro plutôt qu'en
+  recyclant l'ancien.
+
+## Anciennement à arbitrer — le détail
+
 
 Ces points demandent une décision, pas une réécriture mécanique.
 

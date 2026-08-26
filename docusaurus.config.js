@@ -45,21 +45,7 @@ const config = {
 
   themes: ['@docusaurus/theme-mermaid'],
 
-  headTags: [
-    {
-      tagName: 'link',
-      attributes: { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    },
-    {
-      tagName: 'link',
-      attributes: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
-    },
-  ],
-
   // Reprises telles quelles depuis overrides/main.html (theme MkDocs abandonne).
-  stylesheets: [
-    'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap',
-  ],
 
   presets: [
     [

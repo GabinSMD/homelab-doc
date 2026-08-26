@@ -4,6 +4,17 @@
 **Statut** : validé, en attente d'une action manuelle avant démarrage
 **Portée** : les 13 dépôts GitHub, les clones de travail sur penny, la configuration de Forgejo
 
+:::note[Spec figée à sa date]
+Convention retenue le 2026-08-26 pour toutes les specs de `projet/` : **une spec
+est un artefact daté, on ne la réécrit pas.** Quand la réalité a bougé, on ajoute
+un encadré comme celui-ci plutôt que de retoucher le corps du texte.
+
+Ici : `deploy.yml` ne construit plus MkDocs mais Docusaurus depuis le 2026-08-26
+(voir [le plan de migration](2026-08-25-migration-docusaurus.md)). Le raisonnement
+ci-dessous sur la contradiction Forgejo/Pages reste valable — seul l'outil de build
+a changé.
+:::
+
 ## Objectif
 
 Faire de Forgejo hébergé sur penny la source de vérité du code, et de GitHub une

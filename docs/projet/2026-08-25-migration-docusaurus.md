@@ -65,8 +65,13 @@ et sans perdre la couverture du scanner de secrets en CI.
 
 Le thème actuel n'est pas conservé : `overrides/` et `docs/stylesheets/extra.css`
 sont abandonnés au profit du thème `classic` et d'un `src/css/custom.css` neuf.
-Les trois polices (Instrument Serif, Inter Tight, JetBrains Mono) sont en revanche
-reprises à l'identique.
+Les trois polices (Instrument Serif, Inter Tight, JetBrains Mono) avaient été
+reprises à l'identique pendant la migration. **Elles ont été retirées le
+2026-08-26**, avec le reste de l'habillage : porter tel quel un thème conçu pour
+MkDocs Material ne donnait pas un résultat tenable. Le site est revenu au thème
+`classic` par défaut, et `overrides/` comme `docs/stylesheets/extra.css` — qui
+n'existaient plus que pour ça — ont été supprimés. Un habillage propre sera conçu
+plus tard, à partir de zéro.
 
 ## Inventaire mesuré
 

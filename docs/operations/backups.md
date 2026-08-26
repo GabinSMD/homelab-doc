@@ -240,7 +240,7 @@ pvesh create /nodes/<node>/lxc -archive <PBS-backup-ID> -storage local
 
 ```bash
 # Depuis LXC 102 (ou un nouveau LXC)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --tag vault
 cp -a /tmp/restore/opt/vaultwarden/. /opt/vaultwarden/
 # Restaurer le snapshot SQLite propre
@@ -252,7 +252,7 @@ systemctl restart vaultwarden
 ### Restaurer un volume Docker (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/beszel"
 
 docker compose stop beszel
@@ -267,7 +267,7 @@ rm -rf /tmp/restore
 ### Restaurer une config (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 
 docker compose stop authelia

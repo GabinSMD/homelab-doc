@@ -227,10 +227,21 @@ Homelab/
 │   └── Internals/     → jwt, session, storage, hmac secrets
 ├── OS-Infra/
 │   ├── SSH/           → cles SSH par machine
-│   ├── Backup/        → PBS tokens, restic passwords, B2 credentials
+│   ├── Backup/        → PBS tokens, restic passwords, credentials Cloudflare R2
 │   └── Break-glass/   → root@pam passwords (urgence)
-└── Externals/         → Cloudflare, Tailscale, B2, ntfy
+└── Externals/         → Cloudflare, Tailscale, ntfy
 ```
+
+:::danger[Révocation en attente — action manuelle]
+Backblaze B2 a été décommissionné le **2026-05-29** après la migration vers
+Cloudflare R2. L'inventaire ci-dessus ne le mentionne plus, mais **les
+identifiants eux-mêmes n'ont pas été révoqués** : il reste à supprimer la clé
+applicative dans la console Backblaze, puis l'entrée correspondante dans
+Vaultwarden. Vérifié le 2026-08-26 : plus aucune variable `B2_*` sur penny, ni
+dans `.restic-env`, ni dans la config rclone — l'exposition est côté fournisseur,
+pas côté homelab.
+:::
+
 
 ---
 

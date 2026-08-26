@@ -1,5 +1,14 @@
 # Roadmap consolidee 2026-05
 
+:::warning[Instantané du 2026-05-11 — ce n'est pas la roadmap vivante]
+Arbitré le 2026-08-26 : la roadmap qui fait foi est
+**[projet/roadmap.md](roadmap.md)** pour le matériel et les phases, et
+**[sécurité/roadmap.md](../securite/roadmap.md)** pour la sécurité. Cette page-ci
+est une **synthèse figée** produite après la session du 2026-05-11 pour
+prioriser à un instant donné ; elle n'est pas tenue à jour et ne doit pas servir
+de référence.
+:::
+
 > **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [sucre.md roadmap](sucre.md#roadmap), prioritisee par impact/effort/blockers.
 
 ## TL;DR

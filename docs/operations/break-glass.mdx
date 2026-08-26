@@ -268,6 +268,12 @@ après sinistre, c'est-à-dire au pire moment.
 Cassé pendant trois mois et demi sans que rien ne le signale : **aucun chemin de
 code n'exécute cette page.** Un runbook n'est vérifié que par un exercice de
 reprise qui le suit à la lettre.
+
+Le correctif n'est pas de mettre à jour la liste des variables — ce serait le même
+piège, reporté au prochain changement de backend. C'est `set -a`, qui auto-exporte
+tout ce que le fichier assigne, sans rien coder en dur. C'est déjà ce que fait
+`vault-lxc-backup.sh` en production depuis le début ; la page, elle, ne l'avait
+jamais repris.
 :::
 
 ```bash
@@ -298,8 +304,7 @@ rm /tmp/yk-id.txt
 cp docker/docker-compose.yml /mnt/ssd/config/docker-compose.yml
 
 # Restaurer les volumes Docker depuis restic (Cloudflare R2 EU, chiffre AES-256)
-source /root/.restic-env
-export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 
 # Lister les snapshots disponibles
 restic snapshots
@@ -325,7 +330,7 @@ rm -rf /tmp/restore
 ```bash
 # Restaurer la config Authelia depuis restic ou regenerer les secrets
 # (les configs bind-mount sont deja restaurees par restic dans /mnt/ssd/config/)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 if [ -d /tmp/restore/mnt/ssd/config/authelia ]; then
     cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
@@ -366,7 +371,7 @@ cd /mnt/ssd/config
 docker compose up -d
 
 # Verifier que restic fonctionne
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic snapshots  # doit lister les snapshots existants
 ```
 
@@ -476,7 +481,7 @@ pct exec 102 -- bash -c "
 "
 
 # Restaurer le volume Vaultwarden depuis R2
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/vaultwarden"
 # Copier les donnees restaurees vers le LXC
 pct push 102 /tmp/restore/mnt/ssd/.restic-staging/vaultwarden/ /opt/vaultwarden/data/ --recursive
@@ -618,7 +623,7 @@ docker logs authelia --tail 50
 
 # Option A : Restaurer depuis le dernier backup
 docker compose stop authelia
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
 rm -rf /tmp/restore

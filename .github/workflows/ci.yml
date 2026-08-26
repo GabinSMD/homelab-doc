@@ -74,8 +74,26 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@v17
         continue-on-error: true
         with:
-          globs: "docs/**/*.md"
+          # .mdx inclus depuis le 2026-08-26 : sans ca, les fichiers passes en
+          # .mdx pendant la migration sortaient silencieusement de la couverture.
+          globs: "docs/**/*.{md,mdx}"
           config: .markdownlint.json
+
+  doc-fraicheur:
+    name: fraicheur de la doc (termes retires)
+    # Volontairement SANS garde de serveur : Python 3 pur, aucun appel reseau,
+    # tourne donc aussi bien sur Forgejo que sur GitHub.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Interdit les termes retires dans les pages qu'on SUIT en situation
+      # (operations/, guides/, services/, architecture/). Le reste de docs/ a le
+      # droit de parler du passe. Voir scripts/check-doc-fraicheur.py pour le
+      # pourquoi : break-glass a restaure depuis B2 pendant 3 mois et demi apres
+      # la migration R2, parce qu'aucun chemin de code n'execute un runbook.
+      - name: Termes retires dans les pages operationnelles
+        run: python3 scripts/check-doc-fraicheur.py
 
   docusaurus-build:
     name: docusaurus build
