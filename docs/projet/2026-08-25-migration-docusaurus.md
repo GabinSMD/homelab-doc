@@ -1,7 +1,7 @@
 # Migration MkDocs → Docusaurus — plan
 
 **Date** : 2026-08-25
-**Statut** : phases 0 a 4 faites (2026-08-26). Reste la phase 5 : diff d'URLs vide, fusion, verification a l'oeil.
+**Statut** : **MIGRATION TERMINEE** le 2026-08-26. Les 5 phases sont faites, le site public sert Docusaurus.
 **Worktree** : `/mnt/ssd/homelab-docusaurus` (branche `migration-docusaurus`)
 **Portée** : le dépôt `homelab-doc`, le site `homelab.gabin-simond.fr`, les workflows CI/CD
 **Suite prévue** : pipeline Outline → Docusaurus (chantier séparé, à ne lancer qu'après bascule)
@@ -262,7 +262,7 @@ Dans `.github/workflows/` :
   Outline arrivera, puisque c'est lui qui verra le contenu rédigé hors du dépôt.
 - Conserver les gardes `if: github.server_url == 'https://github.com'`.
 
-### Phase 5 — bascule et vérification — RESTE À FAIRE
+### Phase 5 — bascule et vérification — FAITE
 
 Comparer `/tmp/urls-avant.txt` au build Docusaurus. **Diff vide obligatoire avant
 de fusionner.** Puis fusionner, laisser Pages déployer, et vérifier à la main la
@@ -303,3 +303,44 @@ Le pipeline Outline → Docusaurus. Il se branche après la bascule, sur un site
 build déjà. Rien dans ce plan ne doit l'anticiper, sauf un point : les fichiers
 générés depuis Outline devront être commités dans ce dépôt, pour que
 `secret-scan-maison` les voie.
+
+## Bascule : ce qui a ete verifie le 2026-08-26
+
+Porte franchie dans cet ordre, chaque etape conditionnant la suivante :
+
+1. `bun run build` en local : succes, 0 erreur, 0 avertissement.
+2. `compare-urls.sh` : **57 URLs identiques**, diff vide.
+3. Fusion en fast-forward (9 commits), push Forgejo puis GitHub.
+4. CI GitHub verte en **58 s** — `bun install --frozen-lockfile` + `bun run build`
+   fonctionne hors du Pi, ou le meme build prend 13 min. L'ecart au plan sur
+   `npm ci` est donc valide par l'usage.
+5. Deploy Pages vert en 1 min 11.
+6. Verification sur le site EN LIGNE, pas sur le build local : hero rendu,
+   2 onglets, 21 repliables, 13 admonitions sur `depannage`, 19 icones warning
+   sur `monitoring`, l'ancre corrigee `#réseaux-docker--isolation-et-icc`
+   presente, et les 4 pages `guides/` + 11 pages `projet/` de retour dans la
+   barre laterale.
+
+Deux faux signaux rencontres, notes parce qu'ils se reproduiront :
+
+- **`compare-urls.sh` a rendu « OK — 57 URLs identiques » sur un build en
+  echec.** Docusaurus ecrit tout le HTML puis valide les liens en dernier : un
+  build tombe sur `throw` laisse un `build/` complet et comparable. Le script
+  refuse desormais un build perime, et exige d'etre enchaine en `&&` derriere le
+  build — seul le code de retour du build peut prouver quelque chose.
+- **Mermaid parait absent du HTML** : c'est normal, Docusaurus ne pre-rend pas
+  les diagrammes cote serveur. La source vit dans les bundles JS
+  (`build/assets/js/`). Ne pas conclure a une regression sur un `grep` du HTML.
+
+## Reste a decider (hors migration)
+
+- `mkdocs.yml`, `overrides/` et `docs/stylesheets/extra.css` sont du poids mort,
+  volontairement conserves : `mkdocs.yml` reste le seul moyen de regenerer la
+  reference d'URLs pour recontroler une bascule future.
+- `markdown-lint` a pour glob `docs/**/*.md` : les 3 fichiers passes en `.mdx`
+  ne sont plus lintes. Job `continue-on-error`, enjeu faible.
+- Le worktree `/mnt/ssd/homelab-docusaurus` est conserve : c'est le seul endroit
+  qui porte `node_modules` pour une previsualisation locale. Sa branche est
+  fusionnee — ne pas le prendre pour du travail en cours.
+- Passer la CI a Node + `npm ci` demandera de generer un `package-lock.json` sur
+  une machine qui a Node.
