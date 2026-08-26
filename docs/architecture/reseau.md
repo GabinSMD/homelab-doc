@@ -2,6 +2,11 @@
 
 État actuel du réseau homelab : topologie, adressage, DNS, VPN mesh et certificats TLS.
 
+!!! tip "Par où passe une requête ?"
+    Cette page décrit l'**adressage**. Pour savoir quel chemin emprunte un
+    accès — depuis le LAN, depuis le tailnet, ou par le Funnel public — voir
+    [Accès aux services](acces-reseau.md).
+
 ## Topologie actuelle
 
 Réseau plat `192.168.1.0/24` derriere une Freebox (gateway `192.168.1.254`). Pas de VLANs pour l'instant — la segmentation est prévue dans l'[architecture cible](reseau-cible.md). L'acces distant est assure par un mesh VPN Tailscale (WireGuard) superpose au LAN. Il **n'y a aucun port forwarde** sur la Freebox — tout le trafic inter-devices distant passe par le tunnel WireGuard.
