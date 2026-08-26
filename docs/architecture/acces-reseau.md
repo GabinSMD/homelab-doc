@@ -36,11 +36,12 @@ Trois familles de clients y ont droit : le **LAN**, les **réseaux Docker**, et
 le **tailnet** (`100.64.0.0/10`). Toute autre source — dont `127.0.0.1` — obtient
 une réponse vide.
 
-!!! warning "Le joker ne doit pas avaler `_acme-challenge`"
-    Une réécriture trop large a déjà cassé **tous** les renouvellements TLS en
-    silence : `_acme-challenge.*` tombait dans le joker au lieu d'aller chez
-    Cloudflare. La règle ci-dessus est scopée par client, et les resolvers ACME
-    sont forcés sur du DNS public.
+:::warning[Le joker ne doit pas avaler `_acme-challenge`]
+Une réécriture trop large a déjà cassé **tous** les renouvellements TLS en
+silence : `_acme-challenge.*` tombait dans le joker au lieu d'aller chez
+Cloudflare. La règle ci-dessus est scopée par client, et les resolvers ACME
+sont forcés sur du DNS public.
+:::
 
 Ensuite, tout entre par **Traefik sur `192.168.1.28:443`** — un seul port, pour
 une vingtaine de vhosts. Traefik route soit vers un conteneur de penny (par nom
@@ -86,12 +87,13 @@ graph LR
 
 Il faut donc, côté client, `--accept-routes` pour que cette route soit installée.
 
-!!! danger "N'active pas `--accept-routes` sur une machine déjà sur le LAN"
-    Une machine du LAN qui accepte la route reçoit `192.168.1.28/32` dans la
-    table 52 et se met à joindre penny **par le tunnel** : le SYN part par
-    Tailscale, le SYN-ACK revient par le LAN, et la connexion tombe en timeout
-    alors que le ping passe. Symptôme classique : SSH qui gèle sur un LXC qui
-    répond au ping.
+:::danger[N'active pas `--accept-routes` sur une machine déjà sur le LAN]
+Une machine du LAN qui accepte la route reçoit `192.168.1.28/32` dans la
+table 52 et se met à joindre penny **par le tunnel** : le SYN part par
+Tailscale, le SYN-ACK revient par le LAN, et la connexion tombe en timeout
+alors que le ping passe. Symptôme classique : SSH qui gèle sur un LXC qui
+répond au ping.
+:::
 
 ### Membres du tailnet
 
@@ -116,11 +118,12 @@ Un unique service est exposé **publiquement**, sans passer par le tailnet ni pa
 Authelia : **ntfy**, parce que les notifications push iOS exigent une URL
 publique. Rien d'autre ne sort par là.
 
-!!! note "Contrainte de port"
-    `tailscaled` tient le `:443` de l'interface Tailscale tant que `serve` ou
-    `funnel` est actif. Traefik n'écoute donc **que** sur `192.168.1.28:443` et
-    `127.0.0.1:443`, jamais sur `100.97.239.90:443` — et c'est pour cette raison
-    que le chemin 2 passe par la route `/32` et pas par un `tailscale serve`.
+:::note[Contrainte de port]
+`tailscaled` tient le `:443` de l'interface Tailscale tant que `serve` ou
+`funnel` est actif. Traefik n'écoute donc **que** sur `192.168.1.28:443` et
+`127.0.0.1:443`, jamais sur `100.97.239.90:443` — et c'est pour cette raison
+que le chemin 2 passe par la route `/32` et pas par un `tailscale serve`.
+:::
 
 ## Ce qui n'est joignable par aucun de ces chemins
 

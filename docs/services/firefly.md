@@ -24,14 +24,15 @@ L'integration passe donc par le middleware forwardAuth applique sur le routeur T
 Authelia authentifie, pose un en-tete `Remote-User`, et Firefly fait confiance a cet
 en-tete via `AUTHENTICATION_GUARD=remote_user_guard`.
 
-!!! warning "Le middleware EST l'authentification"
-    Ce n'est pas de la defense en profondeur. Retirer `authelia@docker` du routeur ne
-    rend pas Firefly ouvert — prive de l'en-tete il redirige vers un formulaire qui ne
-    peut plus rien authentifier — mais rend l'application totalement inaccessible.
+:::warning[Le middleware EST l'authentification]
+Ce n'est pas de la defense en profondeur. Retirer `authelia@docker` du routeur ne
+rend pas Firefly ouvert — prive de l'en-tete il redirige vers un formulaire qui ne
+peut plus rien authentifier — mais rend l'application totalement inaccessible.
 
-    Pour l'importeur c'est pire : il n'a **aucune** authentification propre et detient un
-    jeton capable d'ecrire des ecritures. Sans forwardAuth, quiconque atteint l'URL
-    dispose d'un chemin d'ecriture anonyme dans les comptes.
+Pour l'importeur c'est pire : il n'a **aucune** authentification propre et detient un
+jeton capable d'ecrire des ecritures. Sans forwardAuth, quiconque atteint l'URL
+dispose d'un chemin d'ecriture anonyme dans les comptes.
+:::
 
 ### Le piege du rattachement
 
@@ -45,18 +46,19 @@ L'identifiant retenu est le **login** Authelia, plus stable qu'une adresse e-mai
 `AUTHENTICATION_GUARD_EMAIL` ne participe pas au rattachement : il ne fait que remplir la
 preference `remote_guard_alt_email`, que Firefly utilise pour router ses notifications.
 
-!!! danger "Toute sonde doit porter l'en-tete"
-    Une requete web sans `Remote-User` fait journaliser
-    `production.ERROR: No user in header "HTTP_REMOTE_USER"`. Le healthcheck du conteneur
-    et la sonde du monitor produisaient ainsi ~4300 lignes par jour.
+:::danger[Toute sonde doit porter l'en-tete]
+Une requete web sans `Remote-User` fait journaliser
+`production.ERROR: No user in header "HTTP_REMOTE_USER"`. Le healthcheck du conteneur
+et la sonde du monitor produisaient ainsi ~4300 lignes par jour.
 
-    Le probleme n'est pas le volume : ce message est un **vrai signal**. Si le forwardAuth
-    cessait d'envoyer l'en-tete, Firefly repondrait toujours 200 et les sondes resteraient
-    au vert pendant que plus personne ne peut se connecter. Noye dans le bruit, il ne
-    signalait plus rien. Les deux sondes portent desormais l'en-tete.
+Le probleme n'est pas le volume : ce message est un **vrai signal**. Si le forwardAuth
+cessait d'envoyer l'en-tete, Firefly repondrait toujours 200 et les sondes resteraient
+au vert pendant que plus personne ne peut se connecter. Noye dans le bruit, il ne
+signalait plus rien. Les deux sondes portent desormais l'en-tete.
 
-    A savoir : `->withoutMiddleware(['web'])` sur la route `/health` n'empeche **pas**
-    l'invocation du garde. Les appels d'API porteurs d'un jeton, eux, ne le declenchent pas.
+A savoir : `->withoutMiddleware(['web'])` sur la route `/health` n'empeche **pas**
+l'invocation du garde. Les appels d'API porteurs d'un jeton, eux, ne le declenchent pas.
+:::
 
 ## Importeur de donnees
 
@@ -70,10 +72,11 @@ les ecritures portant l'etiquette.
 
 L'emplacement pour une synchro bancaire GoCardless est prepare mais volontairement vide.
 
-!!! warning "Avant d'activer GoCardless"
-    Le consentement bancaire expire tous les 90 jours et se renouvele a la main. Une
-    expiration est **silencieuse** : le flux s'arrete, rien ne le dit. Ne pas l'activer
-    sans ajouter en meme temps un controle de fraicheur des ecritures importees.
+:::warning[Avant d'activer GoCardless]
+Le consentement bancaire expire tous les 90 jours et se renouvele a la main. Une
+expiration est **silencieuse** : le flux s'arrete, rien ne le dit. Ne pas l'activer
+sans ajouter en meme temps un controle de fraicheur des ecritures importees.
+:::
 
 ## Surveillance
 
@@ -84,11 +87,12 @@ L'emplacement pour une synchro bancaire GoCardless est prepare mais volontaireme
 | Silence | Regle `alert-host-finance-silent` | Moins de 5 lignes en 10 min |
 | Authentification cassee | Regle `alert-firefly-remote-user-missing` | En-tete absent, doit rester a zero |
 
-!!! note "Sonder en direct, jamais via Traefik"
-    Depuis l'exterieur, Authelia repond 302 (ou 401 sur `/api`) **meme si le backend est
-    mort**. Un code de retour pris via Traefik ne prouve donc rien. La sonde attaque le
-    port du LXC directement, et `/health` fait un `User::count()`, ce qui couvre aussi
-    PostgreSQL.
+:::note[Sonder en direct, jamais via Traefik]
+Depuis l'exterieur, Authelia repond 302 (ou 401 sur `/api`) **meme si le backend est
+mort**. Un code de retour pris via Traefik ne prouve donc rien. La sonde attaque le
+port du LXC directement, et `/health` fait un `User::count()`, ce qui couvre aussi
+PostgreSQL.
+:::
 
 Il n'y a pas de regle Grafana « Firefly down » : le monitor journalise deja
 `FIREFLY HEALTH: DOWN`, capte par la regle generique des alertes d'infrastructure.
@@ -97,10 +101,11 @@ Il n'y a pas de regle Grafana « Firefly down » : le monitor journalise deja
 
 Trois jetons d'acces personnels distincts : outillage, importeur, widget du dashboard.
 
-!!! note "Separer ne reduit pas les droits"
-    Les jetons Firefly n'ont **aucune portee** : ils donnent tous l'acces complet a l'API
-    du compte. L'interet est le decouplage de revocation — revoquer le jeton d'outillage
-    ne doit pas arreter l'importeur en silence — et l'attribution.
+:::note[Separer ne reduit pas les droits]
+Les jetons Firefly n'ont **aucune portee** : ils donnent tous l'acces complet a l'API
+du compte. L'interet est le decouplage de revocation — revoquer le jeton d'outillage
+ne doit pas arreter l'importeur en silence — et l'attribution.
+:::
 
 Le jeton de l'importeur est lu depuis un **fichier** (suffixe `_FILE`), il n'apparait donc
 ni dans `docker inspect` ni dans `docker compose config`. Ce fichier doit appartenir a

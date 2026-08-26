@@ -65,12 +65,13 @@ Le dashboard du matin — 5 secondes pour savoir si tout va bien.
 | Logs événements | SSD / Power / Certificats TLS |
 | Logs erreurs | Erreurs recentes tous services |
 
-!!! warning "Panneau `Watchtower` mort à retirer du dashboard"
-    `homelab-overview.json` contient encore un panneau `Watchtower` alors que le
-    conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
-    Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
-    il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
-    dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
+:::warning[Panneau `Watchtower` mort à retirer du dashboard]
+`homelab-overview.json` contient encore un panneau `Watchtower` alors que le
+conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
+Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
+il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
+dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
+:::
 
 ### Sécurité (`auth-security`)
 
@@ -145,8 +146,9 @@ done
 echo "Deploye — Grafana recharge automatiquement (updateIntervalSeconds: 60)"
 ```
 
-!!! info "Pas besoin de restart Grafana"
-    Le provisioner Grafana scanne `/opt/logs/dashboards/` toutes les 60 secondes. Les dashboards sont recharges automatiquement après un `pct push`.
+:::info[Pas besoin de restart Grafana]
+Le provisioner Grafana scanne `/opt/logs/dashboards/` toutes les 60 secondes. Les dashboards sont recharges automatiquement après un `pct push`.
+:::
 
 ### Reset du compte admin (en cas d'urgence)
 

@@ -16,10 +16,11 @@ Gestionnaire de mots de passe auto-heberge, compatible avec les clients Bitwarde
 
 Vaultwarden conserve intentionnellement son propre master password, sans SSO Authelia.
 
-!!! warning "Dépendance circulaire"
-    Si Authelia tombe (RPi crash, SSD deconnecte), tous les services SSO deviennent inaccessibles.
-    Si Vaultwarden dépend aussi d'Authelia, on perd l'acces au coffre-fort de mots de passe
-    nécessaire pour reparer les autres services.
+:::warning[Dépendance circulaire]
+Si Authelia tombe (RPi crash, SSD deconnecte), tous les services SSO deviennent inaccessibles.
+Si Vaultwarden dépend aussi d'Authelia, on perd l'acces au coffre-fort de mots de passe
+nécessaire pour reparer les autres services.
+:::
 
 Vaultwarden est le **filet de sécurité** : il stocké tous les credentials (Authelia, Proxmox, AdGuard, etc.)
 et reste accessible même quand le reste est casse.

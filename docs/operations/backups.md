@@ -73,8 +73,9 @@ Les deux nodes PVE (galahad + lancelot) envoient leurs LXC directement au PBS vi
 | 102 (vault) | Vaultwarden | galahad | **Critique** |
 | 103 (pbs) | PBS lui-même | lancelot | Moyenne (reconstructible) |
 
-!!! warning "vzdump hook temporaire"
-    Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
+:::warning[vzdump hook temporaire]
+Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
+:::
 
 ### vzdump-permfix-hook.sh
 
@@ -128,16 +129,17 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 Systemd timer penny `1er de chaque mois 05:00` (`restic-drill-monthly.timer`) : restore réel d'un fichier du dernier snapshot de **chaque repo restic** (lisibilité vérifiée), puis **pbs-datastore** : `rclone check --one-way` R2→local (hash, ~11 min dominées par le hash local des ~10 GiB) + restore témoin d'un fichier avec comparaison md5. Détecte une corruption qui passerait `check`, et couvre le datastore PBS qui est hors restic (sync rclone direct).
 
-!!! warning "Pourquoi des timers systemd et plus des crons (2026-06-11)"
-    Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé
-    pendant le downtime penny du 31/05-03/06 et a sauté **silencieusement** — première
-    fenêtre depuis le fix du parsing R2, donc la chaîne de restore est restée non
-    validée tout le mois. Les 4 jobs hebdo/mensuels (`restic-check-monthly`,
-    `restic-drill-monthly`, `digest-drift-check`, `lynis-weekly`) sont migrés vers des
-    timers `Persistent=true` : un run manqué s'exécute au boot suivant. Les jobs
-    quotidiens restent en cron (un run manqué se rattrape le lendemain).
-    Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
-    `Environment=HOME=/root` (sans lui restic tourne sans cache).
+:::warning[Pourquoi des timers systemd et plus des crons (2026-06-11)]
+Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé
+pendant le downtime penny du 31/05-03/06 et a sauté **silencieusement** — première
+fenêtre depuis le fix du parsing R2, donc la chaîne de restore est restée non
+validée tout le mois. Les 4 jobs hebdo/mensuels (`restic-check-monthly`,
+`restic-drill-monthly`, `digest-drift-check`, `lynis-weekly`) sont migrés vers des
+timers `Persistent=true` : un run manqué s'exécute au boot suivant. Les jobs
+quotidiens restent en cron (un run manqué se rattrape le lendemain).
+Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
+`Environment=HOME=/root` (sans lui restic tourne sans cache).
+:::
 
 ### Freshness monitor
 
@@ -302,8 +304,9 @@ R2_BUCKET=homelab-backups
 R2_ENDPOINT=https://<account-id>.eu.r2.cloudflarestorage.com
 ```
 
-!!! danger "Ce fichier est scellé via sops + age + 2 YubiKeys (DR)"
-    Source de vérité : `system/secrets/restic-env.enc`. Live runtime : `/root/.restic-env` (chmod 600, déchiffré via age key locale OU YubiKey). Perte de tous les age keys + plaintext = perte des backups (`RESTIC_PASSWORD` est nécessaire pour décrypter les snapshots restic même si tu re-créais les keys API R2).
+:::danger[Ce fichier est scellé via sops + age + 2 YubiKeys (DR)]
+Source de vérité : `system/secrets/restic-env.enc`. Live runtime : `/root/.restic-env` (chmod 600, déchiffré via age key locale OU YubiKey). Perte de tous les age keys + plaintext = perte des backups (`RESTIC_PASSWORD` est nécessaire pour décrypter les snapshots restic même si tu re-créais les keys API R2).
+:::
 
 Bucket `homelab-backups` sur Cloudflare R2 EU jurisdiction.
 API token Cloudflare Object Read & Write scoped uniquement à ce bucket.

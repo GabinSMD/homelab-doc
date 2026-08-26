@@ -1,7 +1,8 @@
 # Runbook : Backblaze B2 cap exceeded
 
-!!! success "RÉSOLU 2026-05-11 — migration vers Cloudflare R2"
-    Suite à l'incident du 2026-05-11 (Storage cap + Transaction cap simultanément exceeded), tout le pipeline backup cloud a été **migré vers Cloudflare R2 EU** ([r2-migration.md](r2-migration.md)). R2 n'a pas de cap journalier — le scénario décrit ci-dessous ne peut plus se reproduire sur ton infra. Le runbook est conservé pour archive et au cas où tu utilises B2 sur un autre projet.
+:::tip[RÉSOLU 2026-05-11 — migration vers Cloudflare R2]
+Suite à l'incident du 2026-05-11 (Storage cap + Transaction cap simultanément exceeded), tout le pipeline backup cloud a été **migré vers Cloudflare R2 EU** ([r2-migration.md](r2-migration.md)). R2 n'a pas de cap journalier — le scénario décrit ci-dessous ne peut plus se reproduire sur ton infra. Le runbook est conservé pour archive et au cas où tu utilises B2 sur un autre projet.
+:::
 
 ## Symptômes
 

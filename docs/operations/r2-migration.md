@@ -1,7 +1,8 @@
 # Migration backups : Backblaze B2 → Cloudflare R2
 
-!!! success "LIVE depuis 2026-05-11"
-    Migration validée end-to-end. **4 repos restic + PBS datastore** maintenant sur R2 EU. **4.083 GiB** utilisés sur les 10 GB free tier (40%). Voir [b2-cap-exceeded.md](b2-cap-exceeded.md) pour le contexte de l'incident déclencheur.
+:::tip[LIVE depuis 2026-05-11]
+Migration validée end-to-end. **4 repos restic + PBS datastore** maintenant sur R2 EU. **4.083 GiB** utilisés sur les 10 GB free tier (40%). Voir [b2-cap-exceeded.md](b2-cap-exceeded.md) pour le contexte de l'incident déclencheur.
+:::
 
 ## Pourquoi cette migration
 

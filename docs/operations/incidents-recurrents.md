@@ -3,18 +3,19 @@
 Dix incidents deja vecus sur le homelab, avec leur signal de detection, leur
 remede exact et sa verification.
 
-!!! info "Origine : le catalogue de sucre, retire le 2026-08-25"
-    Ces fiches viennent du catalogue de patterns de **sucre**, l'assistant SRE
-    maison (LXC 105 sur lancelot). sucre a tourne du 2026-04-30 au 2026-08-25 :
-    4 795 incidents observes, 113 reconnaissances correctes, **0 execution**
-    (le mode « essai a blanc » n'a jamais ete leve), pour 29,70 EUR d'API.
+:::info[Origine : le catalogue de sucre, retire le 2026-08-25]
+Ces fiches viennent du catalogue de patterns de **sucre**, l'assistant SRE
+maison (LXC 105 sur lancelot). sucre a tourne du 2026-04-30 au 2026-08-25 :
+4 795 incidents observes, 113 reconnaissances correctes, **0 execution**
+(le mode « essai a blanc » n'a jamais ete leve), pour 29,70 EUR d'API.
 
-    Le service est arrete et desactive, la base d'audit est conservee. Le
-    catalogue, lui, est le seul actif non reproductible du projet : il encode
-    des pannes que personne d'autre ne peut connaitre. D'ou cette page.
+Le service est arrete et desactive, la base d'audit est conservee. Le
+catalogue, lui, est le seul actif non reproductible du projet : il encode
+des pannes que personne d'autre ne peut connaitre. D'ou cette page.
 
-    La detection passe desormais par Pulse Patrol. Les remedes ci-dessous
-    restent valables quel que soit l'outil qui leve l'alerte.
+La detection passe desormais par Pulse Patrol. Les remedes ci-dessous
+restent valables quel que soit l'outil qui leve l'alerte.
+:::
 
 ## Par frequence reellement observee
 
@@ -61,10 +62,11 @@ docker compose up -d <service>    # ou un seul service
 
 **Verification.** `docker compose ps` : plus aucun service en `exited`.
 
-!!! tip "Consequence en cascade a connaitre"
-    AdGuard vit dans cette stack. Une stack a terre coupe donc le DNS de tous
-    les LXC. Un message « backup vault perime » est souvent le symptome visible
-    d'une stack a terre, pas un probleme de sauvegarde.
+:::tip[Consequence en cascade a connaitre]
+AdGuard vit dans cette stack. Une stack a terre coupe donc le DNS de tous
+les LXC. Un message « backup vault perime » est souvent le symptome visible
+d'une stack a terre, pas un probleme de sauvegarde.
+:::
 
 ---
 
@@ -79,10 +81,11 @@ degrade au fur et a mesure que la configuration dynamique se perime.
 **Cause.** Ce n'est pas Traefik : c'est **socket-proxy** qui est tombe (crash,
 OOM, recreate). Traefik retente seul et se reconnecte des le retour du proxy.
 
-!!! warning "Relancer Traefik est le mauvais reflexe"
-    Le premier brouillon automatique de ce remede relancait Traefik : coupure
-    HTTP complete, et le mauvais composant. Corrige a la revue humaine du
-    2026-07-07. On vise socket-proxy, la cause racine, sans aucune coupure.
+:::warning[Relancer Traefik est le mauvais reflexe]
+Le premier brouillon automatique de ce remede relancait Traefik : coupure
+HTTP complete, et le mauvais composant. Corrige a la revue humaine du
+2026-07-07. On vise socket-proxy, la cause racine, sans aucune coupure.
+:::
 
 **Remede.**
 
@@ -124,13 +127,14 @@ autoritaire pendant la synchronisation.
 /root/adguard-sync.sh
 ```
 
-!!! danger "Le piege de version, verifie avant de synchroniser"
-    `adguard-sync` recopie **la configuration entiere** du primaire (Docker,
-    image `latest`) vers le secondaire (installation native). Si les deux
-    versions divergent, le schema de configuration ne correspond plus et le
-    secondaire part en boucle de crash. Un garde-fou de version existe
-    (PR #38). En cas de casse, la recuperation passe par une installation
-    manuelle du binaire.
+:::danger[Le piege de version, verifie avant de synchroniser]
+`adguard-sync` recopie **la configuration entiere** du primaire (Docker,
+image `latest`) vers le secondaire (installation native). Si les deux
+versions divergent, le schema de configuration ne correspond plus et le
+secondaire part en boucle de crash. Un garde-fou de version existe
+(PR #38). En cas de casse, la recuperation passe par une installation
+manuelle du binaire.
+:::
 
 ---
 
@@ -202,20 +206,22 @@ pct exec 101 -- bash -lc 'cd /opt/logs && docker compose restart loki'
 **Risque : moyen.** Trou d'ingestion de logs de 10 a 30 s, visible dans
 Grafana. Pas de perte de donnees, le WAL de Loki preserve les chunks en vol.
 
-!!! note "Chemin du compose"
-    Le compose est dans `/opt/logs/`, et ce repertoire **n'est pas versionne**.
-    Le renommage `observability` vers `logs` a laisse des chemins perimes
-    ailleurs. L'acces se fait par Tailscale SSH vers lancelot
-    (100.69.6.13) puis `pct exec 101`, pas par l'IP du LAN.
+:::note[Chemin du compose]
+Le compose est dans `/opt/logs/`, et ce repertoire **n'est pas versionne**.
+Le renommage `observability` vers `logs` a laisse des chemins perimes
+ailleurs. L'acces se fait par Tailscale SSH vers lancelot
+(100.69.6.13) puis `pct exec 101`, pas par l'IP du LAN.
+:::
 
 ---
 
 ## dockerd en boucle de SIGBUS
 
-!!! danger "Risque eleve : coupure de tous les conteneurs de penny"
-    Ce remede redemarre Docker, soit environ 30 s d'indisponibilite de **tous**
-    les conteneurs de penny. Jamais en automatique, toujours avec accord
-    explicite et dans une fenetre de maintenance.
+:::danger[Risque eleve : coupure de tous les conteneurs de penny]
+Ce remede redemarre Docker, soit environ 30 s d'indisponibilite de **tous**
+les conteneurs de penny. Jamais en automatique, toujours avec accord
+explicite et dans une fenetre de maintenance.
+:::
 
 **Symptome.** `SIGBUS` ou `signal: bus error` dans les logs de `docker.service`,
 avec au moins 3 redemarrages en une heure.
@@ -235,11 +241,12 @@ jq '. + {"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}'
 systemctl restart docker
 ```
 
-!!! warning "La limite ne s'applique qu'aux conteneurs recrees"
-    Poser `max-size` dans `daemon.json` ne rétroagit pas. Les conteneurs
-    existants gardent leur journal sans limite jusqu'a leur recreation. Un
-    `json.log` de 982 Mo a deja sature un LXC et fait disparaitre un conteneur
-    pendant 3 jours et demi.
+:::warning[La limite ne s'applique qu'aux conteneurs recrees]
+Poser `max-size` dans `daemon.json` ne rétroagit pas. Les conteneurs
+existants gardent leur journal sans limite jusqu'a leur recreation. Un
+`json.log` de 982 Mo a deja sature un LXC et fait disparaitre un conteneur
+pendant 3 jours et demi.
+:::
 
 ---
 
@@ -261,11 +268,12 @@ apt-get upgrade -y \
 **Risque : moyen.** Un `apt upgrade` peut declencher le redemarrage de services
 (dkms, systemd). A jouer en fenetre de maintenance.
 
-!!! danger "Sur penny, ne pas lancer depuis la session SSH"
-    Le `postinst` de tailscale redemarre `tailscaled` et tue la session, donc
-    l'`apt` en cours, en pleine phase `Setting up`. Passer par `systemd-run`
-    pour sortir du cgroup de la session. Voir
-    [Maintenance et depannage](depannage.md).
+:::danger[Sur penny, ne pas lancer depuis la session SSH]
+Le `postinst` de tailscale redemarre `tailscaled` et tue la session, donc
+l'`apt` en cours, en pleine phase `Setting up`. Passer par `systemd-run`
+pour sortir du cgroup de la session. Voir
+[Maintenance et depannage](depannage.md).
+:::
 
 ---
 
@@ -292,9 +300,10 @@ systemctl stop restic-check-monthly.timer restic-drill-monthly.timer \
 
 Ne pas oublier de les relancer au retour du WAN.
 
-!!! note "Freebox injoignable = ce n'est plus ce pattern"
-    Si la Freebox elle-meme ne repond pas, le probleme est sur le LAN, pas chez
-    l'operateur.
+:::note[Freebox injoignable = ce n'est plus ce pattern]
+Si la Freebox elle-meme ne repond pas, le probleme est sur le LAN, pas chez
+l'operateur.
+:::
 
 ---
 
@@ -321,24 +330,27 @@ bruit comme un incident.
 
 ## Trois lecons du catalogue
 
-!!! warning "Un remede jamais execute n'est pas un remede teste"
-    A l'arret de sucre, **4 des 10 fiches pointaient vers un script de remede
-    inexistant** : `adguard-desync`, `audit-execve-grep-warning-noise`,
-    `internet-wan-down` et `loki-lxc-down` referencaient `<nom>.sh` alors que le
-    fichier sur disque s'appelle `<nom>-fix.sh`. Le bug avait deja ete trouve et
-    corrige une fois sur `traefik-docker-provider-eof` le 2026-07-07, sans que
-    personne pense a verifier les autres.
+:::warning[Un remede jamais execute n'est pas un remede teste]
+A l'arret de sucre, **4 des 10 fiches pointaient vers un script de remede
+inexistant** : `adguard-desync`, `audit-execve-grep-warning-noise`,
+`internet-wan-down` et `loki-lxc-down` referencaient `<nom>.sh` alors que le
+fichier sur disque s'appelle `<nom>-fix.sh`. Le bug avait deja ete trouve et
+corrige une fois sur `traefik-docker-provider-eof` le 2026-07-07, sans que
+personne pense a verifier les autres.
 
-    Rien ne l'a signale pendant quatre mois, parce que rien n'a jamais tente de
-    les executer. Un chemin de code jamais emprunte se degrade en silence.
+Rien ne l'a signale pendant quatre mois, parce que rien n'a jamais tente de
+les executer. Un chemin de code jamais emprunte se degrade en silence.
+:::
 
-!!! warning "Le brouillon automatique se trompe de composant"
-    Le remede genere pour l'EOF de Traefik relancait Traefik, ce qui coupe le
-    HTTP sans corriger la cause. Un remede propose par un modele doit etre relu
-    par un humain avant d'avoir le droit de s'executer, meme quand la detection
-    est juste.
+:::warning[Le brouillon automatique se trompe de composant]
+Le remede genere pour l'EOF de Traefik relancait Traefik, ce qui coupe le
+HTTP sans corriger la cause. Un remede propose par un modele doit etre relu
+par un humain avant d'avoir le droit de s'executer, meme quand la detection
+est juste.
+:::
 
-!!! warning "Un signal sans exutoire ne coute pas rien"
-    98 % des appels au modele portaient sur des incidents sans fiche
-    correspondante : 27,88 EUR des 29,70 EUR depenses. Le filtrage par
-    catalogue devait passer **avant** l'appel au modele, pas apres.
+:::warning[Un signal sans exutoire ne coute pas rien]
+98 % des appels au modele portaient sur des incidents sans fiche
+correspondante : 27,88 EUR des 29,70 EUR depenses. Le filtrage par
+catalogue devait passer **avant** l'appel au modele, pas apres.
+:::

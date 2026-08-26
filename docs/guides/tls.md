@@ -48,8 +48,9 @@ environment:
   - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}  # Token API (pas la Global API Key)
 ```
 
-!!! tip "Token API vs Global API Key"
-    Utilisé un **API Token** avec uniquement la permission `Zone:DNS:Edit` sur ta zone, pas la Global API Key. Principe de moindre privilege.
+:::tip[Token API vs Global API Key]
+Utilisé un **API Token** avec uniquement la permission `Zone:DNS:Edit` sur ta zone, pas la Global API Key. Principe de moindre privilege.
+:::
 
 ### Labels Docker (par service)
 
@@ -67,11 +68,12 @@ Les certificats sont stockes dans le volume Docker `traefik-certs` au fichier `/
 - Un seul fichier JSON contient tous les certificats
 - Si le fichier est perdu, Traefik re-demande tous les certificats au prochain démarrage
 
-!!! warning "Rate limits Let's Encrypt"
-    Let's Encrypt a des limités : 50 certificats par domaine par semaine. Pour tester, utiliser le serveur **staging** :
-    ```yaml
-    caServer: https://acme-staging-v02.api.letsencrypt.org/directory
-    ```
+:::warning[Rate limits Let's Encrypt]
+Let's Encrypt a des limités : 50 certificats par domaine par semaine. Pour tester, utiliser le serveur **staging** :
+```yaml
+caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+```
+:::
 
 ## Entrypoints et redirection HTTP → HTTPS
 

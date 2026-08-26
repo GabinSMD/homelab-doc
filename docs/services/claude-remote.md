@@ -59,10 +59,11 @@ Le serveur enregistre un **environment** côté Anthropic — c'est cette entit�
 
 **tmux plutôt que `script(1)`.** La TUI de `claude` exige un pty ; tmux le fournit et rend la session attachable (`tmux -L claude attach -t claude`) pour voir son état exact. La sortie n'inonde pas journald — on évite le chemin journald/mmap responsable des SIGBUS récurrents sur ARM. Socket dédié `-L claude` pour ne pas collider avec les sessions tmux interactives.
 
-!!! warning "Le pane tmux ne conserve AUCUN historique"
-    Contrairement à ce que cette page affirmait jusqu'au 2026-08-05, la sortie du serveur **ne s'accumule pas** dans le scrollback tmux. La TUI tourne en **écran alterné** : `tmux display-message -p '#{history_size}'` renvoie **0**, quel que soit `history-limit`. Les lignes d'événement (`Session failed`, `Reconnected after 16s`) s'effacent donc en défilant, sans laisser de trace — et journald ne peut pas servir de filet puisqu'il est en `Storage=volatile` sur cette machine.
+:::warning[Le pane tmux ne conserve AUCUN historique]
+Contrairement à ce que cette page affirmait jusqu'au 2026-08-05, la sortie du serveur **ne s'accumule pas** dans le scrollback tmux. La TUI tourne en **écran alterné** : `tmux display-message -p '#{history_size}'` renvoie **0**, quel que soit `history-limit`. Les lignes d'événement (`Session failed`, `Reconnected after 16s`) s'effacent donc en défilant, sans laisser de trace — et journald ne peut pas servir de filet puisqu'il est en `Storage=volatile` sur cette machine.
 
-    C'est ce qui a rendu **définitivement inanalysable** l'échec de session du 2026-08-04 17:50:29. D'où les deux instruments ajoutés depuis : `--debug-file` côté serveur et `claude-remote-watch` côté scrape.
+C'est ce qui a rendu **définitivement inanalysable** l'échec de session du 2026-08-04 17:50:29. D'où les deux instruments ajoutés depuis : `--debug-file` côté serveur et `claude-remote-watch` côté scrape.
+:::
 
 **Log dans `/var/lib`, pas `/var/log`.** Sur DietPi, `/var/log` est un tmpfs de 50 MiB purgé **chaque heure** par `dietpi-ramlog` (`AUTO_SETUP_LOGGING_INDEX=-1`). Un log de santé y serait effacé toutes les heures. `StateDirectory=claude-remote` place le fichier sur la carte SD, persistant.
 

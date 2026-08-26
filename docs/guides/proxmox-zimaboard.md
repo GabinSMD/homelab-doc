@@ -42,13 +42,15 @@ wget -O- <IP_DU_RPI>:8888/proxmox-fix-emmc.sh | sh
 dhclient -r enp1s0
 ```
 
-!!! note "Pourquoi `dhclient -r` ?"
-    Libérer le bail DHCP après le patch pour que l'installeur Proxmox puisse configurer le réseau lui-même proprement.
+:::note[Pourquoi `dhclient -r` ?]
+Libérer le bail DHCP après le patch pour que l'installeur Proxmox puisse configurer le réseau lui-même proprement.
+:::
 
 Le script patche `Proxmox::Sys::Block.pm` pour ajouter le support des devices `mmcblk`.
 
-!!! info "Que fait le patch ?"
-    Il ajoute un pattern matching pour `/dev/mmcblkX` dans la fonction qui généré les noms de partitions, permettant a l'installeur de créer `/dev/mmcblk0p1`, `/dev/mmcblk0p2`, etc.
+:::info[Que fait le patch ?]
+Il ajoute un pattern matching pour `/dev/mmcblkX` dans la fonction qui généré les noms de partitions, permettant a l'installeur de créer `/dev/mmcblk0p1`, `/dev/mmcblk0p2`, etc.
+:::
 
 ### 4. Lancer l'installation
 
@@ -71,9 +73,10 @@ Ce script :
 - **Met a jour le système** (`apt update && apt dist-upgrade`)
 - **Supprimé le popup "No valid subscription"** (patch du JS de l'interface web)
 
-!!! warning "Déconnexion de l'interface web"
-    En dernière étape, le script redémarre `pveproxy` pour appliquer le patch.
-    La session web sera coupee — il suffit de recharger la page et se reconnecter.
+:::warning[Déconnexion de l'interface web]
+En dernière étape, le script redémarre `pveproxy` pour appliquer le patch.
+La session web sera coupee — il suffit de recharger la page et se reconnecter.
+:::
 
 ### 6. DNS et acces web
 
@@ -96,8 +99,9 @@ La configuration se fait a trois endroits :
 
 3. **Acces** — local et Tailscale uniquement (pas de DNS public)
 
-!!! tip "Fallback"
-    Si le RPi/Traefik est down, les nœuds restent accessibles via `https://IP:8006` (certificat auto-signe, warning navigateur).
+:::tip[Fallback]
+Si le RPi/Traefik est down, les nœuds restent accessibles via `https://IP:8006` (certificat auto-signe, warning navigateur).
+:::
 
 ## Scripts
 
@@ -128,8 +132,9 @@ pveum acl modify / --user gabins@authelia --role Administrator
 
 La config se propage automatiquement via `/etc/pve/domains.cfg` — pas besoin de repeter sur chaque nœud.
 
-!!! info "Trois realms conserves"
-    **Authelia** (OIDC, defaut) pour le quotidien, **Linux PAM** pour l'acces d'urgence via `root@pam`, **PVE** pour les comptes de service/API. Ne jamais supprimer PAM — c'est le filet de sécurité si Authelia est down.
+:::info[Trois realms conserves]
+**Authelia** (OIDC, defaut) pour le quotidien, **Linux PAM** pour l'acces d'urgence via `root@pam`, **PVE** pour les comptes de service/API. Ne jamais supprimer PAM — c'est le filet de sécurité si Authelia est down.
+:::
 
 ## Repetition
 

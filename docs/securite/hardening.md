@@ -67,8 +67,9 @@ UseDNS no
 X11Forwarding no
 ```
 
-!!! note "dietpi.conf override"
-    Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent être aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+:::note[dietpi.conf override]
+Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent être aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+:::
 
 ### Firewall iptables
 

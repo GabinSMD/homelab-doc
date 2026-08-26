@@ -1,7 +1,8 @@
 # sucre — SRE perso
 
-!!! note "Renommage 2026-07-06"
-    Anciennement **fish**. Renommé **sucre** le 2026-07-06 — le nom « Fish » est réservé au futur assistant général du homelab. Toutes les références (user SSH, services systemd, chemins, labels Loki, node Tailscale) ont été migrées.
+:::note[Renommage 2026-07-06]
+Anciennement **fish**. Renommé **sucre** le 2026-07-06 — le nom « Fish » est réservé au futur assistant général du homelab. Toutes les références (user SSH, services systemd, chemins, labels Loki, node Tailscale) ont été migrées.
+:::
 
 > **Intelligence calme, observé, exécuté, repare.**
 

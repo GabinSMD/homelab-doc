@@ -4,8 +4,9 @@ DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabil
 
 ## Stabilité SSD (bridge USB-SATA ASMedia ASM1156)
 
-!!! danger "Problème"
-    Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **déconnexions aléatoires** sur RPi 4 a cause de la gestion d'énergie PCIe.
+:::danger[Problème]
+Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **déconnexions aléatoires** sur RPi 4 a cause de la gestion d'énergie PCIe.
+:::
 
 ### Paramètres kernel (`cmdline.txt`)
 
@@ -50,11 +51,12 @@ PARTUUID=503f5518-01 /boot/firmware   vfat noatime,lazytime,rw                  
 UUID=b32ed1bb-... /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
 ```
 
-!!! info "Points clés"
-    - `noatime,lazytime` sur toutes les partitions — réduit les ecritures
-    - `nofail` sur le SSD — le système boot même si le SSD n'est pas branche
-    - `errors=remount-ro` — protégé le filesystem en cas d'erreur I/O
-    - Pas de swap (swappiness=1)
+:::info[Points clés]
+- `noatime,lazytime` sur toutes les partitions — réduit les ecritures
+- `nofail` sur le SSD — le système boot même si le SSD n'est pas branche
+- `errors=remount-ro` — protégé le filesystem en cas d'erreur I/O
+- Pas de swap (swappiness=1)
+:::
 
 ## Headless / economie de ressources
 
@@ -142,8 +144,9 @@ priority          = 1
 | Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
 | Temperature critique | **Non** | Couvert par homelab_monitor.sh |
 
-!!! warning "Le watchdog ne remplacé pas le monitoring"
-    Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **première ligne** (quelque chose va mal mais le système tourne encore). Les deux sont complementaires.
+:::warning[Le watchdog ne remplacé pas le monitoring]
+Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **première ligne** (quelque chose va mal mais le système tourne encore). Les deux sont complementaires.
+:::
 
 ### Vérification
 
@@ -207,7 +210,8 @@ autoheal:
 
 ## Limités connues
 
-!!! note "Limitations hardware du bridge ASMedia"
-    - **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
-    - **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
-    - **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
+:::note[Limitations hardware du bridge ASMedia]
+- **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
+- **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
+- **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
+:::

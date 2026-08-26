@@ -52,26 +52,27 @@ Sept services, tous en conteneurs sur penny.
 | Forgejo | forge git + suivi de tickets | `git.` | 512 Mo | **dépôts + SQLite** |
 | Outline (+ PostgreSQL + Redis) | wiki privé | `wiki.` | 512 + 256 + 64 Mo | **base + pièces jointes** |
 
-!!! warning "IT Tools abandonné le 2026-08-23 — six services au lieu de sept"
-    Les six autres ont été déployés dans la foulée du 15/08. IT Tools, non — et
-    l'écart est resté invisible huit jours : le joker DNS
-    `*.home.gabin-simond.fr` résout `ittools.` vers Traefik, qui répondait 404.
-    Un sous-domaine qui répond une erreur ressemble à un service en panne, pas à
-    un service inexistant.
+:::warning[IT Tools abandonné le 2026-08-23 — six services au lieu de sept]
+Les six autres ont été déployés dans la foulée du 15/08. IT Tools, non — et
+l'écart est resté invisible huit jours : le joker DNS
+`*.home.gabin-simond.fr` résout `ittools.` vers Traefik, qui répondait 404.
+Un sous-domaine qui répond une erreur ressemble à un service en panne, pas à
+un service inexistant.
 
-    **Raison de l'abandon** : le recouvrement avec CyberChef, déjà en place —
-    base64, hachages, JWT, regex, conversions relèvent du même usage. IT Tools
-    n'apportait en propre que des générateurs (UUID, mots de passe, analyse de
-    cron) et une interface plus directe.
+**Raison de l'abandon** : le recouvrement avec CyberChef, déjà en place —
+base64, hachages, JWT, regex, conversions relèvent du même usage. IT Tools
+n'apportait en propre que des générateurs (UUID, mots de passe, analyse de
+cron) et une interface plus directe.
 
-    L'argument « coût quasi nul » de cette page reste vrai en ressources
-    (64 Mo, sans état) mais il ignore un coût réel : chaque service ajoute une
-    ligne au scan Trivy, un certificat à renouveler, une entrée Homepage et une
-    surface exposée derrière Authelia. À usage recouvert, ce coût n'est pas
-    justifié.
+L'argument « coût quasi nul » de cette page reste vrai en ressources
+(64 Mo, sans état) mais il ignore un coût réel : chaque service ajoute une
+ligne au scan Trivy, un certificat à renouveler, une entrée Homepage et une
+surface exposée derrière Authelia. À usage recouvert, ce coût n'est pas
+justifié.
 
-    Décision réversible : cinq lignes de compose, le DNS et Authelia sont déjà
-    prêts.
+Décision réversible : cinq lignes de compose, le DNS et Authelia sont déjà
+prêts.
+:::
 
 ### Pourquoi penny et pas les nœuds
 

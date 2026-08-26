@@ -104,181 +104,265 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ## Déjà fait
 
-??? success "Observabilite / documentation"
-    - Threat model documenté ([politique.md](politique.md))
-    - Politique rotation / revocation documentée
-    - Procédure revocation Tailscale ([réseau.md](../architecture/reseau.md))
-    - Break-glass procédure ([break-glass.md](../operations/break-glass.md))
-    - DR drill Vaultwarden (RTO 7s)
-    - Scope token Cloudflare vérifie (1 zone)
+<details>
+<summary>Observabilite / documentation</summary>
 
-??? success "Backups"
-    - **Proxmox Backup Server** (LXC 103 "pbs" sur lancelot, IP 192.168.1.33) — backup natif de tous les LXC (100, 101, 102, 103) via API PBS
-    - Datastore "main" sur NFS penny (`/mnt/ssd/pbs-datastore`, 65536 chunk dirs)
-    - NFS export `all_squash anonuid=100034` (UID mappe LXC unprivileged)
-    - Traefik route `backup.home.gabin-simond.fr` → PBS UI
-    - Authelia OIDC realm "authelia" pour login PBS + comptes break-glass locaux
-    - vzdump-permfix-hook.sh sur galahad + lancelot (workaround pct.conf permissions, TEMPORAIRE — a supprimer après migration ZFS)
-    - **Cloud offsite migré B2 → Cloudflare R2 EU** — 2026-05-11. 4 repos restic (`restic`, `restic-vault`, `restic-dnsfailover`, `restic-logs`) + PBS datastore via rclone direct. Endpoint `s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups`. 0 transaction cap (vs B2 daily caps), 0 egress fee.
-    - **Vaultwarden restic-direct** (LXC 102 → R2:restic-vault, SQLite atomic snapshot, cron 02h, indépendant de PBS)
-    - Off-site R2 chiffré (restic AES-256) pour penny configs + volumes Docker
-    - Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
-    - Retention 7d/4w/6m + prune automatique
-    - **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
-    - RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
-    - **Monitor B2 cap probe** (`check_b2_cap` dans homelab_monitor.sh, 2026-05-11) — détecte 80%/95% usage avant fail ; skip silencieux si B2_ACCOUNT_ID absent (post-migration R2)
+- Threat model documenté ([politique.md](politique.md))
+- Politique rotation / revocation documentée
+- Procédure revocation Tailscale ([réseau.md](../architecture/reseau.md))
+- Break-glass procédure ([break-glass.md](../operations/break-glass.md))
+- DR drill Vaultwarden (RTO 7s)
+- Scope token Cloudflare vérifie (1 zone)
 
-??? success "Authentification"
-    - **PVE root@pam TFA cluster-wide** (WebAuthn YK1 + WebAuthn YK2 + TOTP + Recovery Keys, propagé via pmxcfs) — 2026-05-11. Relying Party `home.gabin-simond.fr`, accès via Traefik `https://galahad.home.gabin-simond.fr`.
-    - Authelia 2FA (TOTP + WebAuthn FIDO2 YubiKey)
-    - **Authelia regulation anti brute-force** (5 retries / 2min / ban 10min) — 2026-04-14
-    - Consent mode `pre-configured` (1 an) sur tous les clients OIDC
-    - SSH clés uniquement, ports custom, MaxAuthTries 3
-    - **SSH hardening LXC** (100, 101, 102, 103) : `PermitRootLogin no`, `PasswordAuthentication no` — 2026-04-16
-    - **penny SSH** : `PermitRootLogin no`, `PasswordAuthentication no` (dietpi.conf override) — 2026-04-16
-    - **galahad/lancelot SSH** : `PermitRootLogin prohibit-password` (exception cluster Proxmox) — 2026-04-16
-    - Comptes `gabins` partout, plus de `gabin` legacy
-    - Sudo NOPASSWD (clé SSH = auth forte)
-    - SSH hardening Lynis (`AllowTcpForwarding no`, etc.)
-    - **Login.defs hardened** (UMASK 027, ENCRYPT_METHOD YESCRYPT, SHA_CRYPT_MIN_ROUNDS 65536, PASS_MIN/MAX/WARN) sur penny+galahad+lancelot
-    - **PAM password strength** (libpam-passwdqc), libpam-tmpdir, needrestart, apt-listbugs sur 3 hosts
+</details>
 
-??? success "OIDC SSO (Authelia)"
-    - Proxmox galahad + lancelot (Administrator sur gabins@authelia)
-    - **PBS** (LXC 103, `gabins@authelia` Admin sur /, two_factor, pre-configured consent 1y) — 2026-04-16
-    - Portainer
-    - Beszel
-    - Grafana (GrafanaAdmin, admin legacy désactivé)
-    - **Rotation 2026-04-13** des 4 client_secret + AdGuard bcrypt — plains stockes Vaultwarden
+<details>
+<summary>Backups</summary>
 
-??? success "ForwardAuth Authelia (services sans OIDC natif)"
-    - Traefik dashboard
-    - Homepage (etait sans auth)
-    - AdGuard primaire (etait bcrypt seul)
-    - AdGuard secondaire dns-failover (route dns-failover.home.*)
-    - **WUD** (etait exposé anonyme — remplacé par Watchtower headless 2026-04-14)
+- **Proxmox Backup Server** (LXC 103 "pbs" sur lancelot, IP 192.168.1.33) — backup natif de tous les LXC (100, 101, 102, 103) via API PBS
+- Datastore "main" sur NFS penny (`/mnt/ssd/pbs-datastore`, 65536 chunk dirs)
+- NFS export `all_squash anonuid=100034` (UID mappe LXC unprivileged)
+- Traefik route `backup.home.gabin-simond.fr` → PBS UI
+- Authelia OIDC realm "authelia" pour login PBS + comptes break-glass locaux
+- vzdump-permfix-hook.sh sur galahad + lancelot (workaround pct.conf permissions, TEMPORAIRE — a supprimer après migration ZFS)
+- **Cloud offsite migré B2 → Cloudflare R2 EU** — 2026-05-11. 4 repos restic (`restic`, `restic-vault`, `restic-dnsfailover`, `restic-logs`) + PBS datastore via rclone direct. Endpoint `s3:https://<account-id>.eu.r2.cloudflarestorage.com/homelab-backups`. 0 transaction cap (vs B2 daily caps), 0 egress fee.
+- **Vaultwarden restic-direct** (LXC 102 → R2:restic-vault, SQLite atomic snapshot, cron 02h, indépendant de PBS)
+- Off-site R2 chiffré (restic AES-256) pour penny configs + volumes Docker
+- Volumes Docker stages sur `/mnt/ssd/.restic-staging` puis backup restic
+- Retention 7d/4w/6m + prune automatique
+- **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
+- RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
+- **Monitor B2 cap probe** (`check_b2_cap` dans homelab_monitor.sh, 2026-05-11) — détecte 80%/95% usage avant fail ; skip silencieux si B2_ACCOUNT_ID absent (post-migration R2)
 
-??? success "Authelia session config explicite"
-    - `expiration: 4h`
-    - `inactivity: 30m`
-    - `remember_me: 1M`
+</details>
 
-??? success "Traefik TLS hardening"
-    - minVersion TLS 1.2 (TLS 1.3 default actif)
-    - Cipher suites Mozilla intermediate (ChaCha20+AES-GCM ECDHE only)
-    - Curves X25519/P256/P384
-    - sniStrict (rejette SNI non-route)
+<details>
+<summary>Authentification</summary>
 
-??? success "Réseau"
-    - Firewall iptables penny (INPUT DROP)
-    - Firewall Proxmox cluster (galahad + lancelot)
-    - **Firewall iptables LXC** (vault, logs, dns-failover, pbs) — INPUT DROP + whitelist par rôle
-    - **NFS rules** (ports 2049, 111) pour LAN + Tailscale sur penny — 2026-04-16
-    - Suppression règles temporaires vault-import (port 8765) — 2026-04-16
-    - sysctl hardening (rp_filter, SYN flood, source route, martians)
-    - **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
-    - Rate limit Traefik Authelia (100 req/s SPA)
-    - **`insecureSkipVerify` scope Proxmox only** (serversTransport dedie, retire du global Traefik) — 2026-04-14
-    - DNSSEC validation (AdGuard primaire + dns-failover)
-    - CAA records Cloudflare
-    - Security headers HTTPS (HSTS, X-Frame, Referrer, Permissions-Policy)
-    - **Topic ntfy randomise** (hex 32 chars, plus de topic prévisible) — 2026-04-14
+- **PVE root@pam TFA cluster-wide** (WebAuthn YK1 + WebAuthn YK2 + TOTP + Recovery Keys, propagé via pmxcfs) — 2026-05-11. Relying Party `home.gabin-simond.fr`, accès via Traefik `https://galahad.home.gabin-simond.fr`.
+- Authelia 2FA (TOTP + WebAuthn FIDO2 YubiKey)
+- **Authelia regulation anti brute-force** (5 retries / 2min / ban 10min) — 2026-04-14
+- Consent mode `pre-configured` (1 an) sur tous les clients OIDC
+- SSH clés uniquement, ports custom, MaxAuthTries 3
+- **SSH hardening LXC** (100, 101, 102, 103) : `PermitRootLogin no`, `PasswordAuthentication no` — 2026-04-16
+- **penny SSH** : `PermitRootLogin no`, `PasswordAuthentication no` (dietpi.conf override) — 2026-04-16
+- **galahad/lancelot SSH** : `PermitRootLogin prohibit-password` (exception cluster Proxmox) — 2026-04-16
+- Comptes `gabins` partout, plus de `gabin` legacy
+- Sudo NOPASSWD (clé SSH = auth forte)
+- SSH hardening Lynis (`AllowTcpForwarding no`, etc.)
+- **Login.defs hardened** (UMASK 027, ENCRYPT_METHOD YESCRYPT, SHA_CRYPT_MIN_ROUNDS 65536, PASS_MIN/MAX/WARN) sur penny+galahad+lancelot
+- **PAM password strength** (libpam-passwdqc), libpam-tmpdir, needrestart, apt-listbugs sur 3 hosts
 
-??? success "Containers"
-    - docker-socket-proxy + réseau `socket` isolé
-    - `cap_drop: ALL` sur Authelia, Traefik, Homepage, Watchtower, Beszel
-    - `no-new-privileges: true` global
-    - ICC disabled sur bridge par defaut
-    - Plus aucun port direct exposé (tout via Traefik HTTPS)
-    - **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, Watchtower
-    - **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
-    - **Cosign installe** (apt Trixie) — vérifie : aucune des 3 images critiques n'est signed upstream, attendre évolution
-    - Healthchecks Beszel + Portainer + beszel-agent : non applicable (images scratch/distroless, aucun outil CLI disponible)
+</details>
 
-??? success "Systemd-units hardening"
-    - fail2ban : exposure 9.6 -> 4.7 (OK 🙂) sur penny+galahad+lancelot
-    - ssh : exposure 9.6 -> 8.1 sur penny+galahad+lancelot
-    - lynis : exposure 9.6 -> ~5
-    - Docker/cron/getty : non hardened (besoin privileges, casserait service)
+<details>
+<summary>OIDC SSO (Authelia)</summary>
 
-??? success "Audit / détection"
-    - Lynis + cron hebdo + ntfy (penny 76, galahad 68, lancelot 69)
-    - **auditd actif sur penny + galahad + lancelot** (auth, sudo, SSH, crontabs, firewall, Docker socket sur hosts Docker)
-    - fail2ban (penny + galahad)
-    - unattended-upgrades (penny + galahad)
-    - rpcbind désactivé (galahad + lancelot) ; activé sur penny pour NFS (PBS datastore)
+- Proxmox galahad + lancelot (Administrator sur gabins@authelia)
+- **PBS** (LXC 103, `gabins@authelia` Admin sur /, two_factor, pre-configured consent 1y) — 2026-04-16
+- Portainer
+- Beszel
+- Grafana (GrafanaAdmin, admin legacy désactivé)
+- **Rotation 2026-04-13** des 4 client_secret + AdGuard bcrypt — plains stockes Vaultwarden
 
-??? success "Observabilite"
-    - Loki + Grafana Alloy sur LXC `logs`
-    - Grafana renomme `logs.home.gabin-simond.fr`
-    - Dashboards : **Homelab Overview** (nouveau), Auth & Sécurité (ameliore), Traefik Access (ameliore), Logs Explorer
-    - **Alerting rules** (Authelia auth failures, fail2ban bans, Traefik 5xx, auditd sudo) -> ntfy
-    - **Topic ntfy corrige** dans repo git + Grafana contact point (2026-04-14)
-    - Retention 30 jours
+</details>
 
-??? success "Surveillance / résilience"
-    - Watchdog hardware BCM2835 (penny)
-    - Autoheal (restart containers unhealthy)
-    - Auto-recovery SSD (device rename détection)
-    - dns-failover LXC (health check externe penny depuis galahad)
-    - DNS redondant primaire/secondaire
-    - **AdGuard wildcard** `*.home.gabin-simond.fr` → penny (Traefik reverse proxy) — 2026-04-16
-    - **adguard-sync.sh** : synchronisation primary → secondary (avec vérification canary) — 2026-04-16
-    - **homelab_monitor.sh** : checks `check_adguard_sync`, `check_backup_freshness`, `check_vault_backup_freshness` — 2026-04-16
-    - **Cluster quorum via qdevice sur penny** — 3 votes, survit perte 1 node — 2026-04-19
-    - **Auto-repair docker** (`check_docker_autorepair`) — `docker compose up -d` automatique si stack vide + daemon UP > 2 min, circuit breaker 3/24h — 2026-04-19
-    - **Cascade alert suppression** — `house-down` / `lancelot-down` suppriment les alertes enfants redondantes — 2026-04-19
-    - **check_cluster_hosts** + **check_house** (Freebox + internet reach) — cause-racine avant symptomes — 2026-04-19
-    - **check_restic_repos_freshness** — surveillé 4 repos B2 avec seuils par repo — 2026-04-19
+<details>
+<summary>ForwardAuth Authelia (services sans OIDC natif)</summary>
 
-??? success "Supply chain code"
-    - Pre-commit hook anti-leak (`scripts/pre-commit-secret-scan.sh`) sur homelab-config + homelab-doc
-    - Patterns : AWS, GitHub, Tailscale, B2, CF, PEM, password=, secret=
-    - **12/13 images Docker pinnees @sha256** (loki-replica ajoute 2026-04-19, reste 1 non-pinnee decelee)
+- Traefik dashboard
+- Homepage (etait sans auth)
+- AdGuard primaire (etait bcrypt seul)
+- AdGuard secondaire dns-failover (route dns-failover.home.*)
+- **WUD** (etait exposé anonyme — remplacé par Watchtower headless 2026-04-14)
 
-??? success "Secrets management"
-    - **Authelia secrets externalises** (jwt, session, encryption_key, hmac → fichiers `/config/secrets/` chmod 600, charges via `AUTHELIA_*_FILE` env vars) — 2026-04-14
-    - Clé JWKS OIDC dans `oidc.pem` séparée (gitignored)
-    - Configuration Authelia versionnable sans secrets inline
-    - **Sops + age scellement in-place** des secrets authelia+crowdsec credentials — 2026-04-19
-    - Unseal au boot via `homelab-unseal.service` → tmpfs `/run/homelab/` → bind-mount Docker
-    - Age private key backupee sur B2 (`/root/.config/sops/age` dans `homelab_backup.sh` paths) — 2026-04-19
+</details>
 
-??? success "Hardening systemd mount leaks"
-    - Drop-ins `PrivateMounts=yes` sur 10 services penny (ssh, fail2ban, networkd, timesyncd, auditd, fstrim, hostnamed, localed, logind, timedated) — 2026-04-17/19
-    - Idem 6 services sur galahad + lancelot (ssh, fail2ban, postfix, chrony, beszel-agent, logind) — 2026-04-19
-    - Fix la cascade `/etc /usr /boot` RO au niveau namespace host via ProtectSystem=strict/full shared mount propagation
-    - PVE firewall cluster.fw : `-log nolog` → `-log warning` sur galahad+lancelot — 2026-04-19
+<details>
+<summary>Authelia session config explicite</summary>
 
-??? success "Observabilite HA"
-    - **Alloy dual-write Loki** : primary (LXC 101 lancelot:3100) + replica (container loki-replica penny:3101) depuis les 3 hosts — 2026-04-19 étendu aux PVE nodes
-    - Survit perte lancelot : replica continue sur penny
-    - WAL Alloy rejoue si un sink down = zero perte
+- `expiration: 4h`
+- `inactivity: 30m`
+- `remember_me: 1M`
 
-??? success "Backup tiers indépendants PBS"
-    - 4 chaines restic-direct vers Cloudflare R2 (EU) : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19) — migré depuis B2 2026-05-11
-    - `restic-check-monthly.sh` multi-repo : structure + 10% data subset sur les 4 repos — 2026-04-19
-    - Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily) — `check_restic_repos_freshness` patché pour supporter S3 URLs 2026-05-11
+</details>
 
-??? success "SMTP submission outbound — port 25 fermé"
-    - **Postfix relay sur galahad + lancelot** → `smtp.protonmail.ch:587` (auth via Proton SMTP submission token, sealed sops) — 2026-05-11
-    - `/etc/postfix/sasl_passwd` mode 600, postmap'd, chmod 600 sur `.db`
-    - `sender_canonical` regexp rewrite → `homelab@gabin-simond.fr` (Proton refuse sinon MAIL FROM mismatch)
-    - `/etc/aliases` : `root: homelab@gabin-simond.fr` + `newaliases`
-    - Chroot disabled sur smtp unix service (Debian default chrootait, masquait `/usr/lib/.../sasl2/`)
-    - libsasl2-modules installé sur les 2 nodes (sans : "No worthy mechs found")
-    - **Egress firewall : port 25 outbound DROPPED, port 587 only** sur galahad+lancelot — 2026-05-11. Plus de spam-relay risk si compromission container.
-    - Script `setup-postfix-relay.sh` : seal/deploy/test/status/rollback, idempotent
+<details>
+<summary>Traefik TLS hardening</summary>
 
-??? success "Convention comptes et service accounts"
-    - [comptes.md](comptes.md) : 3 tiers (root break-glass, gabins admin 2FA, svc-* automation)
-    - Naming convention, arbre de decision, stockage Vaultwarden — 2026-04-16
-    - Matrice par type de système (machines, PVE, PBS, Authelia, Docker, LXC, services web)
+- minVersion TLS 1.2 (TLS 1.3 default actif)
+- Cipher suites Mozilla intermediate (ChaCha20+AES-GCM ECDHE only)
+- Curves X25519/P256/P384
+- sniStrict (rejette SNI non-route)
 
-??? success "Migrations terminees"
-    - Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isolé de logs sur lancelot, 2026-04-13)
-    - Volume Docker orphelin `config_vaultwarden-data` supprimé de penny (2026-04-14)
-    - Proxmox cluster : pve1/pve2 -> galahad/lancelot
-    - **Galahad + lancelot déjà sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster
-    - Tailscale : container -> host natif (SSH natif)
-    - Wallos : supprimé
+</details>
+
+<details>
+<summary>Réseau</summary>
+
+- Firewall iptables penny (INPUT DROP)
+- Firewall Proxmox cluster (galahad + lancelot)
+- **Firewall iptables LXC** (vault, logs, dns-failover, pbs) — INPUT DROP + whitelist par rôle
+- **NFS rules** (ports 2049, 111) pour LAN + Tailscale sur penny — 2026-04-16
+- Suppression règles temporaires vault-import (port 8765) — 2026-04-16
+- sysctl hardening (rp_filter, SYN flood, source route, martians)
+- **kernel.kptr_restrict=2 + kernel.yama.ptrace_scope=2** (galahad+lancelot ; YAMA n/a kernel RPi)
+- Rate limit Traefik Authelia (100 req/s SPA)
+- **`insecureSkipVerify` scope Proxmox only** (serversTransport dedie, retire du global Traefik) — 2026-04-14
+- DNSSEC validation (AdGuard primaire + dns-failover)
+- CAA records Cloudflare
+- Security headers HTTPS (HSTS, X-Frame, Referrer, Permissions-Policy)
+- **Topic ntfy randomise** (hex 32 chars, plus de topic prévisible) — 2026-04-14
+
+</details>
+
+<details>
+<summary>Containers</summary>
+
+- docker-socket-proxy + réseau `socket` isolé
+- `cap_drop: ALL` sur Authelia, Traefik, Homepage, Watchtower, Beszel
+- `no-new-privileges: true` global
+- ICC disabled sur bridge par defaut
+- Plus aucun port direct exposé (tout via Traefik HTTPS)
+- **`read_only: true` + tmpfs** sur Traefik, Homepage, Beszel, Watchtower
+- **Pinning digests `@sha256:...`** sur Vaultwarden, Authelia, Traefik (supply chain)
+- **Cosign installe** (apt Trixie) — vérifie : aucune des 3 images critiques n'est signed upstream, attendre évolution
+- Healthchecks Beszel + Portainer + beszel-agent : non applicable (images scratch/distroless, aucun outil CLI disponible)
+
+</details>
+
+<details>
+<summary>Systemd-units hardening</summary>
+
+- fail2ban : exposure 9.6 -> 4.7 (OK 🙂) sur penny+galahad+lancelot
+- ssh : exposure 9.6 -> 8.1 sur penny+galahad+lancelot
+- lynis : exposure 9.6 -> ~5
+- Docker/cron/getty : non hardened (besoin privileges, casserait service)
+
+</details>
+
+<details>
+<summary>Audit / détection</summary>
+
+- Lynis + cron hebdo + ntfy (penny 76, galahad 68, lancelot 69)
+- **auditd actif sur penny + galahad + lancelot** (auth, sudo, SSH, crontabs, firewall, Docker socket sur hosts Docker)
+- fail2ban (penny + galahad)
+- unattended-upgrades (penny + galahad)
+- rpcbind désactivé (galahad + lancelot) ; activé sur penny pour NFS (PBS datastore)
+
+</details>
+
+<details>
+<summary>Observabilite</summary>
+
+- Loki + Grafana Alloy sur LXC `logs`
+- Grafana renomme `logs.home.gabin-simond.fr`
+- Dashboards : **Homelab Overview** (nouveau), Auth & Sécurité (ameliore), Traefik Access (ameliore), Logs Explorer
+- **Alerting rules** (Authelia auth failures, fail2ban bans, Traefik 5xx, auditd sudo) -> ntfy
+- **Topic ntfy corrige** dans repo git + Grafana contact point (2026-04-14)
+- Retention 30 jours
+
+</details>
+
+<details>
+<summary>Surveillance / résilience</summary>
+
+- Watchdog hardware BCM2835 (penny)
+- Autoheal (restart containers unhealthy)
+- Auto-recovery SSD (device rename détection)
+- dns-failover LXC (health check externe penny depuis galahad)
+- DNS redondant primaire/secondaire
+- **AdGuard wildcard** `*.home.gabin-simond.fr` → penny (Traefik reverse proxy) — 2026-04-16
+- **adguard-sync.sh** : synchronisation primary → secondary (avec vérification canary) — 2026-04-16
+- **homelab_monitor.sh** : checks `check_adguard_sync`, `check_backup_freshness`, `check_vault_backup_freshness` — 2026-04-16
+- **Cluster quorum via qdevice sur penny** — 3 votes, survit perte 1 node — 2026-04-19
+- **Auto-repair docker** (`check_docker_autorepair`) — `docker compose up -d` automatique si stack vide + daemon UP > 2 min, circuit breaker 3/24h — 2026-04-19
+- **Cascade alert suppression** — `house-down` / `lancelot-down` suppriment les alertes enfants redondantes — 2026-04-19
+- **check_cluster_hosts** + **check_house** (Freebox + internet reach) — cause-racine avant symptomes — 2026-04-19
+- **check_restic_repos_freshness** — surveillé 4 repos B2 avec seuils par repo — 2026-04-19
+
+</details>
+
+<details>
+<summary>Supply chain code</summary>
+
+- Pre-commit hook anti-leak (`scripts/pre-commit-secret-scan.sh`) sur homelab-config + homelab-doc
+- Patterns : AWS, GitHub, Tailscale, B2, CF, PEM, password=, secret=
+- **12/13 images Docker pinnees @sha256** (loki-replica ajoute 2026-04-19, reste 1 non-pinnee decelee)
+
+</details>
+
+<details>
+<summary>Secrets management</summary>
+
+- **Authelia secrets externalises** (jwt, session, encryption_key, hmac → fichiers `/config/secrets/` chmod 600, charges via `AUTHELIA_*_FILE` env vars) — 2026-04-14
+- Clé JWKS OIDC dans `oidc.pem` séparée (gitignored)
+- Configuration Authelia versionnable sans secrets inline
+- **Sops + age scellement in-place** des secrets authelia+crowdsec credentials — 2026-04-19
+- Unseal au boot via `homelab-unseal.service` → tmpfs `/run/homelab/` → bind-mount Docker
+- Age private key backupee sur B2 (`/root/.config/sops/age` dans `homelab_backup.sh` paths) — 2026-04-19
+
+</details>
+
+<details>
+<summary>Hardening systemd mount leaks</summary>
+
+- Drop-ins `PrivateMounts=yes` sur 10 services penny (ssh, fail2ban, networkd, timesyncd, auditd, fstrim, hostnamed, localed, logind, timedated) — 2026-04-17/19
+- Idem 6 services sur galahad + lancelot (ssh, fail2ban, postfix, chrony, beszel-agent, logind) — 2026-04-19
+- Fix la cascade `/etc /usr /boot` RO au niveau namespace host via ProtectSystem=strict/full shared mount propagation
+- PVE firewall cluster.fw : `-log nolog` → `-log warning` sur galahad+lancelot — 2026-04-19
+
+</details>
+
+<details>
+<summary>Observabilite HA</summary>
+
+- **Alloy dual-write Loki** : primary (LXC 101 lancelot:3100) + replica (container loki-replica penny:3101) depuis les 3 hosts — 2026-04-19 étendu aux PVE nodes
+- Survit perte lancelot : replica continue sur penny
+- WAL Alloy rejoue si un sink down = zero perte
+
+</details>
+
+<details>
+<summary>Backup tiers indépendants PBS</summary>
+
+- 4 chaines restic-direct vers Cloudflare R2 (EU) : `restic` (penny daily), `restic-vault` (LXC 102 hourly), `restic-dnsfailover` (LXC 100 daily, 2026-04-19), `restic-logs` (LXC 101 daily, 2026-04-19) — migré depuis B2 2026-05-11
+- `restic-check-monthly.sh` multi-repo : structure + 10% data subset sur les 4 repos — 2026-04-19
+- Freshness monitor par repo avec seuils dedies (vault 3h hourly, autres 30h daily) — `check_restic_repos_freshness` patché pour supporter S3 URLs 2026-05-11
+
+</details>
+
+<details>
+<summary>SMTP submission outbound — port 25 fermé</summary>
+
+- **Postfix relay sur galahad + lancelot** → `smtp.protonmail.ch:587` (auth via Proton SMTP submission token, sealed sops) — 2026-05-11
+- `/etc/postfix/sasl_passwd` mode 600, postmap'd, chmod 600 sur `.db`
+- `sender_canonical` regexp rewrite → `homelab@gabin-simond.fr` (Proton refuse sinon MAIL FROM mismatch)
+- `/etc/aliases` : `root: homelab@gabin-simond.fr` + `newaliases`
+- Chroot disabled sur smtp unix service (Debian default chrootait, masquait `/usr/lib/.../sasl2/`)
+- libsasl2-modules installé sur les 2 nodes (sans : "No worthy mechs found")
+- **Egress firewall : port 25 outbound DROPPED, port 587 only** sur galahad+lancelot — 2026-05-11. Plus de spam-relay risk si compromission container.
+- Script `setup-postfix-relay.sh` : seal/deploy/test/status/rollback, idempotent
+
+</details>
+
+<details>
+<summary>Convention comptes et service accounts</summary>
+
+- [comptes.md](comptes.md) : 3 tiers (root break-glass, gabins admin 2FA, svc-* automation)
+- Naming convention, arbre de decision, stockage Vaultwarden — 2026-04-16
+- Matrice par type de système (machines, PVE, PBS, Authelia, Docker, LXC, services web)
+
+</details>
+
+<details>
+<summary>Migrations terminees</summary>
+
+- Vaultwarden : penny Docker → LXC 102 `vault` sur galahad (isolé de logs sur lancelot, 2026-04-13)
+- Volume Docker orphelin `config_vaultwarden-data` supprimé de penny (2026-04-14)
+- Proxmox cluster : pve1/pve2 -> galahad/lancelot
+- **Galahad + lancelot déjà sur Trixie (Debian 13 / PVE 9.1.7 / kernel 6.17.2-1-pve)** — uniformite cluster
+- Tailscale : container -> host natif (SSH natif)
+- Wallos : supprimé
+
+</details>
