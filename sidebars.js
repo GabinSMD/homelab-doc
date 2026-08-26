@@ -162,6 +162,8 @@ const sidebars = {
           items: [
             { type: 'doc', id: 'projet/journal/2026-08-26-audit-fraicheur-doc', label: '2026-08-26 — Audit de fraicheur de la doc' },
             { type: 'doc', id: 'projet/journal/2026-08-25-migration-docusaurus', label: '2026-08-25 — Migration MkDocs vers Docusaurus' },
+            { type: 'doc', id: 'projet/journal/2026-08-17-pilotage-financier-phase1-plan', label: '2026-08-17 — Pilotage financier : plan phase 1' },
+            { type: 'doc', id: 'projet/journal/2026-08-17-pilotage-financier-design', label: '2026-08-17 — Pilotage financier : conception' },
             { type: 'doc', id: 'projet/journal/2026-08-15-forgejo-source-de-verite', label: '2026-08-15 — Forgejo source de verite' },
             { type: 'doc', id: 'projet/journal/2026-08-15-boite-a-outils-technique', label: '2026-08-15 — Boite a outils technique' },
             { type: 'doc', id: 'projet/journal/2026-08-04-homepage-themes-fonds-design', label: '2026-08-04 — Homepage : themes et fonds' },

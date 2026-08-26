@@ -26,6 +26,8 @@ avait, au lieu d'une version lissée après coup.
 |---|---|
 | 2026-08-26 | [Audit de fraîcheur de la doc](journal/2026-08-26-audit-fraicheur-doc.md) |
 | 2026-08-25 | [Migration MkDocs → Docusaurus](journal/2026-08-25-migration-docusaurus.md) |
+| 2026-08-17 | [Pilotage financier — plan phase 1](journal/2026-08-17-pilotage-financier-phase1-plan.md) |
+| 2026-08-17 | [Pilotage financier — conception](journal/2026-08-17-pilotage-financier-design.md) |
 | 2026-08-15 | [Forgejo source de vérité](journal/2026-08-15-forgejo-source-de-verite.md) |
 | 2026-08-15 | [Boîte à outils technique](journal/2026-08-15-boite-a-outils-technique.md) |
 | 2026-08-04 | [Homepage : thèmes et fonds](journal/2026-08-04-homepage-themes-fonds-design.md) |
