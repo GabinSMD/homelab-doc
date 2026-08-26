@@ -65,12 +65,13 @@ Le dashboard du matin — 5 secondes pour savoir si tout va bien.
 | Logs événements | SSD / Power / Certificats TLS |
 | Logs erreurs | Erreurs recentes tous services |
 
-!!! warning "Panneau `Watchtower` mort à retirer du dashboard"
-    `homelab-overview.json` contient encore un panneau `Watchtower` alors que le
-    conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
-    Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
-    il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
-    dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
+:::warning[Panneau `Watchtower` mort à retirer du dashboard]
+`homelab-overview.json` contient encore un panneau `Watchtower` alors que le
+conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
+Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
+il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
+dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
+:::
 
 ### Sécurité (`auth-security`)
 
@@ -145,8 +146,62 @@ done
 echo "Deploye — Grafana recharge automatiquement (updateIntervalSeconds: 60)"
 ```
 
-!!! info "Pas besoin de restart Grafana"
-    Le provisioner Grafana scanne `/opt/logs/dashboards/` toutes les 60 secondes. Les dashboards sont recharges automatiquement après un `pct push`.
+:::info[Pas besoin de restart Grafana]
+Le provisioner Grafana scanne `/opt/logs/dashboards/` toutes les 60 secondes. Les dashboards sont recharges automatiquement après un `pct push`.
+:::
+
+### Retirer une règle d'alerte
+
+:::danger[Retirer la règle du fichier ne la supprime PAS]
+Le provisioning Grafana ne fait que **créer et mettre à jour** ce qu'il trouve
+dans `rules.yml`. Une règle qu'on en retire reste vivante dans `grafana.db`
+(`is_paused=0`) et continue de s'évaluer — indéfiniment, à travers les
+redémarrages, sans que rien ne le signale.
+
+Constaté le 2026-08-26 : les deux règles « Sucre », retirées du fichier le 25/08
+après l'arrêt du service, tournaient encore le lendemain. Celle qui surveillait
+le silence de sucre était un dead-man-switch sur un service volontairement mort :
+**38 notifications ntfy en 24 heures, 60 % du trafic du topic.**
+:::
+
+Il faut nommer explicitement les `uid` dans un bloc `deleteRules`, au même niveau
+que `groups` :
+
+```yaml
+deleteRules:
+  - orgId: 1
+    uid: alert-host-sucre-silent
+  - orgId: 1
+    uid: alert-sucre-llm-unavailable
+```
+
+Le bloc est **idempotent** : une fois les `uid` disparus de la base, Grafana
+l'ignore en silence. On peut donc le garder comme trace du démantèlement.
+
+Puis déployer et vérifier que la **base** reflète le changement — c'est la preuve
+que le provisioning a bien agi, pas le fichier :
+
+```bash
+logs/deploy-to-lxc101.sh    # push + restart grafana + controle des orphelines
+```
+
+Ce script compare depuis le 2026-08-26 les `uid` de `rules.yml` à ceux de la table
+`alert_rule` et **échoue** en affichant le bloc `deleteRules` à coller. En
+manuel :
+
+```bash
+tailscale ssh root@lancelot \
+  "pct exec 101 -- sqlite3 /opt/logs/grafana/grafana.db \
+   'SELECT uid, title FROM alert_rule'"
+```
+
+:::warning[Un dead-man-switch sur une machine à moitié éteinte clignote]
+La règle ne restait pas allumée, elle battait `FIRING`/`RESOLVED` : Alloy tournait
+encore dans le LXC, donc des logs sporadiques frôlaient le seuil dans les deux
+sens. Chaque transition est une notification. Avant de retirer une règle de
+silence, couper aussi ce qui émet encore des logs — ou la règle sera plus bruyante
+morte que vivante.
+:::
 
 ### Reset du compte admin (en cas d'urgence)
 

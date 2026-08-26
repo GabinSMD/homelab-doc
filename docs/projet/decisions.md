@@ -194,11 +194,12 @@ Architecture Decision Records (ADR) — pourquoi ces choix et pas d'autres.
 
 ## Updates Docker : Watchtower plutôt que WUD
 
-!!! warning "Décision périmée depuis le 2026-07-06"
-    Watchtower a été **retiré**. L'auto-update d'images a été abandonné au profit
-    d'images épinglées par digest `@sha256` et du timer `digest-drift-check`, qui
-    notifie quand l'amont bouge sans rien appliquer. Le raisonnement ci-dessous
-    est conservé comme trace de décision, il ne décrit plus l'état courant.
+:::warning[Décision périmée depuis le 2026-07-06]
+Watchtower a été **retiré**. L'auto-update d'images a été abandonné au profit
+d'images épinglées par digest `@sha256` et du timer `digest-drift-check`, qui
+notifie quand l'amont bouge sans rien appliquer. Le raisonnement ci-dessous
+est conservé comme trace de décision, il ne décrit plus l'état courant.
+:::
 
 **Contexte** : WUD (What's Up Docker) surveillait les mises a jour images mais exposait une API web anonyme sur le réseau interne (item sécurité P2 ouvert, auth interne cassee).
 

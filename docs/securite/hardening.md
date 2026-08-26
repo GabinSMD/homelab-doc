@@ -67,8 +67,9 @@ UseDNS no
 X11Forwarding no
 ```
 
-!!! note "dietpi.conf override"
-    Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent être aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+:::note[dietpi.conf override]
+Sur penny (DietPi), `PermitRootLogin no` et `PasswordAuthentication no` doivent être aussi dans `/etc/ssh/sshd_config.d/dietpi.conf` car DietPi override les defaults au reboot.
+:::
 
 ### Firewall iptables
 
@@ -361,7 +362,7 @@ Tous les services accessibles ont un healthcheck (wget/curl). Autoheal restart l
 - [Authelia (SSO)](../services/authelia.md) — configuration SSO, clients OIDC, secrets rotation
 - [Traefik](../services/traefik.md) — middlewares, TLS, reverse proxy
 - [Backups](../operations/backups.md) — architecture, retention, restauration
-- [Tailscale ACLs](../architecture/reseau.md) — VPN mesh, key expiry, ACL policy
+- [Tailscale ACLs](../architecture/reseau.mdx) — VPN mesh, key expiry, ACL policy
 
 ---
 

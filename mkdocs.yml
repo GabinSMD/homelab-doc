@@ -10,7 +10,6 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   language: fr
-  custom_dir: overrides
   font: false
   palette:
     - scheme: slate
@@ -42,9 +41,6 @@ theme:
     repo: fontawesome/brands/github
   logo: assets/logo.svg
   favicon: assets/logo.svg
-
-extra_css:
-  - stylesheets/extra.css
 
 plugins:
   - search:
@@ -83,6 +79,7 @@ nav:
     - Machines: architecture/hardware.md
     - Optimisations OS: architecture/os.md
     - Reseau actuel: architecture/reseau.md
+    - Acces aux services: architecture/acces-reseau.md
     - Reseau cible: architecture/reseau-cible.md
     - Cluster qdevice: architecture/cluster-qdevice.md
     - Sucre observability: architecture/sucre-observability.md
@@ -96,6 +93,7 @@ nav:
     - Grafana (logs): services/grafana.md
     - Alloy + Loki HA: services/alloy-loki-ha.md
     - Claude Remote Control: services/claude-remote.md
+    - Firefly III (finances): services/firefly.md
     - Project Zomboid: services/zomboid.md
   - Securite:
     - securite/index.md
@@ -112,8 +110,12 @@ nav:
     - Backups: operations/backups.md
     - Break-glass: operations/break-glass.md
     - Depannage: operations/depannage.md
+    - Incidents recurrents: operations/incidents-recurrents.md
     - Forgejo (acces urgence): operations/forgejo-acces-urgence.md
     - DR drill scenario 1: operations/dr-drill-scenario-1.md
+  - Mentions:
+    - Confidentialite: confidentialite.md
+    - Conditions d'utilisation: conditions.md
   - Guides:
     - guides/index.md
     - Ajouter un service: guides/ajouter-service.md

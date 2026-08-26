@@ -29,8 +29,9 @@ graph TB
 
 ### Raspberry Pi 4 — Appliance réseau
 
-!!! success "Indépendant du cluster"
-    Si le cluster Proxmox tombe, le réseau continue de fonctionner.
+:::tip[Indépendant du cluster]
+Si le cluster Proxmox tombe, le réseau continue de fonctionner.
+:::
 
 - **AdGuard Home** — DNS principal + ad-blocking
 - **Traefik** — reverse proxy + TLS auto
@@ -115,31 +116,31 @@ graph LR
 
 ### VLAN 10 — Management
 
-- :material-check: Acces a **tous** les VLANs (administration)
-- :material-check: Acces internet
+- ✅ Acces a **tous** les VLANs (administration)
+- ✅ Acces internet
 
 ### VLAN 20 — Services
 
-- :material-check: Acces internet
-- :material-check: Acces NAS (VLAN 20 interne)
-- :material-close: Pas d'acces au management (VLAN 10)
+- ✅ Acces internet
+- ✅ Acces NAS (VLAN 20 interne)
+- ❌ Pas d'acces au management (VLAN 10)
 
 ### VLAN 30 — LAN personnel
 
-- :material-check: Acces internet
-- :material-check: Acces services : DNS, NAS, Jellyfin (VLAN 20)
-- :material-close: Pas d'acces management (VLAN 10)
+- ✅ Acces internet
+- ✅ Acces services : DNS, NAS, Jellyfin (VLAN 20)
+- ❌ Pas d'acces management (VLAN 10)
 
 ### VLAN 40 — IoT / Domotique
 
-- :material-check: Acces internet **limité**
-- :material-check: Acces DNS uniquement (VLAN 20, port 53)
-- :material-close: **Isolé** de tout le reste (pas de LAN, pas de management)
+- ✅ Acces internet **limité**
+- ✅ Acces DNS uniquement (VLAN 20, port 53)
+- ❌ **Isolé** de tout le reste (pas de LAN, pas de management)
 
 ### VLAN 50 — Invites
 
-- :material-check: Acces internet uniquement
-- :material-close: **Isolé** de tout (pas de LAN, pas de services, pas d'IoT)
+- ✅ Acces internet uniquement
+- ❌ **Isolé** de tout (pas de LAN, pas de services, pas d'IoT)
 
 ## WiFi et VLANs
 

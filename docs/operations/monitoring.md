@@ -26,25 +26,25 @@ Script bash executé **chaque minute** via cron. Surveillé :
 
 | Check | Seuil | Alerte |
 |---|---|---|
-| SSD monte | `/mnt/ssd` absent | :octicons-alert-16: critique |
-| SSD lisible | Erreur I/O | :octicons-alert-16: critique |
-| SSD read-only | Remonte en ro | :octicons-alert-16: critique |
-| USB errors dans dmesg | Disconnect/offline | :octicons-alert-16: haute |
-| **SMART SSD** (horaire) | CRC errors ↑ (câble/bridge suspect) haute ; realloc/pending/uncorr ↑ (NAND) urgente ; temp > 65°C | :octicons-alert-16: variable |
-| Temperature | > 70°C warning, > 80°C critique | :octicons-alert-16: variable |
-| Alimentation | Throttling / under-voltage | :octicons-alert-16: haute |
-| Espace disque SD/SSD | > 80% warning, > 95% critique | :octicons-alert-16: variable |
-| RAM + OOM kill | > 90% ou OOM détecté | :octicons-alert-16: critique |
-| Docker daemon | Ne répond plus | :octicons-alert-16: critique |
-| Containers | Stopped / unhealthy | :octicons-alert-16: haute |
-| **Auto-repair docker** | Stack vide + daemon UP > 2 min | :octicons-alert-16: info (wrench) |
-| **House alive** | Freebox injoignable TCP 80/443 | :octicons-alert-16: urgent |
-| **Internet reach** | 1.1.1.1 + 9.9.9.9 TCP 53 KO | :octicons-alert-16: haute |
-| **Cluster hosts** | galahad/lancelot ping + SSH port | :octicons-alert-16: urgent |
-| **Logs stack** | Grafana + Loki HTTP 200 | :octicons-alert-16: haute |
-| **AdGuard sync** | Canary rewrite secondaire | :octicons-alert-16: haute |
-| **Restic freshness** | 4 repos B2 (3h vault, 30h autres) | :octicons-alert-16: urgent |
-| **PBS health** | LXC 103 API :8007 | :octicons-alert-16: urgent |
+| SSD monte | `/mnt/ssd` absent | ⚠️ critique |
+| SSD lisible | Erreur I/O | ⚠️ critique |
+| SSD read-only | Remonte en ro | ⚠️ critique |
+| USB errors dans dmesg | Disconnect/offline | ⚠️ haute |
+| **SMART SSD** (horaire) | CRC errors ↑ (câble/bridge suspect) haute ; realloc/pending/uncorr ↑ (NAND) urgente ; temp > 65°C | ⚠️ variable |
+| Temperature | > 70°C warning, > 80°C critique | ⚠️ variable |
+| Alimentation | Throttling / under-voltage | ⚠️ haute |
+| Espace disque SD/SSD | > 80% warning, > 95% critique | ⚠️ variable |
+| RAM + OOM kill | > 90% ou OOM détecté | ⚠️ critique |
+| Docker daemon | Ne répond plus | ⚠️ critique |
+| Containers | Stopped / unhealthy | ⚠️ haute |
+| **Auto-repair docker** | Stack vide + daemon UP > 2 min | ⚠️ info (wrench) |
+| **House alive** | Freebox injoignable TCP 80/443 | ⚠️ urgent |
+| **Internet reach** | 1.1.1.1 + 9.9.9.9 TCP 53 KO | ⚠️ haute |
+| **Cluster hosts** | galahad/lancelot ping + SSH port | ⚠️ urgent |
+| **Logs stack** | Grafana + Loki HTTP 200 | ⚠️ haute |
+| **AdGuard sync** | Canary rewrite secondaire | ⚠️ haute |
+| **Restic freshness** | 4 repos R2 (3h vault, 30h autres) | ⚠️ urgent |
+| **PBS health** | LXC 103 API :8007 | ⚠️ urgent |
 
 ### Cascade suppression (depuis 2026-04-19)
 
@@ -86,7 +86,7 @@ Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi 
 
 ### Restic repos freshness (multi-repo)
 
-`check_restic_repos_freshness` queries B2 directement pour les 4 repos backup :
+`check_restic_repos_freshness` interroge directement le backend restic — Cloudflare R2 EU depuis le 2026-05-11 — pour les 4 repos backup :
 
 | Repo | Seuil | Source |
 |---|---|---|
@@ -95,7 +95,7 @@ Combinaison avec la notif HomePod d'Apple permet de diagnostiquer sans acces Pi 
 | `restic-dnsfailover` | 30h | LXC 100 AdGuard (`dnsfailover-backup.sh` @ 02:30) |
 | `restic-logs` | 30h | LXC 101 Grafana+Loki (`logs-backup.sh` @ 02:45) |
 
-Cache 1h par repo pour ne pas faire 4 round-trips B2 chaque minute. Alerte ntfy `restic-<repo>-stale` si depassement.
+Cache 1h par repo pour ne pas faire 4 round-trips R2 chaque minute. Alerte ntfy `restic-<repo>-stale` si depassement.
 
 ### Deduplication des alertes
 
@@ -136,8 +136,9 @@ Trois couches complementaires, chacune couvre des scénarios différents :
 | 2. Auto-repair | Autoheal | Container unhealthy | Restart container |
 | 3. Dernier recours | Watchdog hardware | Kernel freeze | Reboot complet |
 
-!!! info "Pas de chevauchement"
-    Le watchdog ne remplacé PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se déclenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.
+:::info[Pas de chevauchement]
+Le watchdog ne remplacé PAS le monitoring. Si le SSD se deconnecte, le kernel tourne toujours — le watchdog ne se déclenche pas. C'est `homelab_monitor.sh` qui alerte. Les trois couches sont complementaires.
+:::
 
 ## Dead-man-switch (negative space alerting)
 

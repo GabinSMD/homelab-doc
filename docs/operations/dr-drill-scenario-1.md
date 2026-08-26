@@ -4,22 +4,23 @@
 
 **Fréquence recommandée** : trimestrielle, ou après changement majeur (kernel, Docker, sops config).
 
-!!! info "Validation automatique entre deux drills complets"
-    Le restore complet ci-dessous est un exercice manuel lourd (~90 min, matériel vierge).
-    Entre deux exécutions, la chaîne de restore R2 est validée **automatiquement chaque
-    mois** par deux systemd timers `Persistent=true` sur penny (le 1er du mois ; un run
-    manqué pendant un downtime s'exécute au boot suivant — migration cron → timers
-    2026-06-11 après le drill du 01/06 sauté silencieusement pendant le downtime penny) :
+:::info[Validation automatique entre deux drills complets]
+Le restore complet ci-dessous est un exercice manuel lourd (~90 min, matériel vierge).
+Entre deux exécutions, la chaîne de restore R2 est validée **automatiquement chaque
+mois** par deux systemd timers `Persistent=true` sur penny (le 1er du mois ; un run
+manqué pendant un downtime s'exécute au boot suivant — migration cron → timers
+2026-06-11 après le drill du 01/06 sauté silencieusement pendant le downtime penny) :
 
-    - `restic-check-monthly` (04:00) — `restic check` structure + `--read-data-subset=10%`
-      sur les 4 repos. Sur 10 mois, couvre ~100% des données (bit rot detection).
-    - `restic-drill-monthly` (05:00) — restore d'un fichier réel du dernier snapshot de
-      chaque repo restic + **pbs-datastore** (`rclone check` one-way R2→local + restore
-      témoin md5). Détecte une corruption qui passerait `check`.
+- `restic-check-monthly` (04:00) — `restic check` structure + `--read-data-subset=10%`
+  sur les 4 repos. Sur 10 mois, couvre ~100% des données (bit rot detection).
+- `restic-drill-monthly` (05:00) — restore d'un fichier réel du dernier snapshot de
+  chaque repo restic + **pbs-datastore** (`rclone check` one-way R2→local + restore
+  témoin md5). Détecte une corruption qui passerait `check`.
 
-    Échec → alerte ntfy haute priorité. Dernière validation : **2026-06-11**, drill complet
-    via systemd, 4/4 repos restic + pbs-datastore OK (4784 fichiers matchés, 665s ;
-    spec : [fiabilisation drill](../projet/2026-06-11-fiabilisation-drill-restauration.md)).
+Échec → alerte ntfy haute priorité. Dernière validation : **2026-06-11**, drill complet
+via systemd, 4/4 repos restic + pbs-datastore OK (4784 fichiers matchés, 665s ;
+spec : [fiabilisation drill](../projet/journal/2026-06-11-fiabilisation-drill-restauration.md)).
+:::
 
 **Materiel** :
 - Raspberry Pi 4 (ou VM arm64) vierge, carte SD DietPi neuve
@@ -86,10 +87,11 @@ La clé age est la racine de confiance. Sans elle, rien ne déchiffré.
 **Scénario 3** (futur) : R2 inaccessible (panne Cloudflare, creds révoqués), restore depuis
 la copie PBS la plus récente (LXC 103) ou un dump local.
 
-!!! note "B2 décommissionné le 2026-05-29"
-    L'ancien backend Backblaze B2 a été supprimé après migration vers R2 (mai 2026).
-    R2 est désormais l'unique backend cloud. Le PBS reste le second chemin de restore
-    (full-LXC, indépendant de R2).
+:::note[B2 décommissionné le 2026-05-29]
+L'ancien backend Backblaze B2 a été supprimé après migration vers R2 (mai 2026).
+R2 est désormais l'unique backend cloud. Le PBS reste le second chemin de restore
+(full-LXC, indépendant de R2).
+:::
 
 ## Critères de succès
 

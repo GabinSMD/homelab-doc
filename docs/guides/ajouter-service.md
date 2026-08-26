@@ -50,11 +50,12 @@ Ajouter le service dans `/mnt/ssd/config/docker-compose.yml` :
       - "traefik.http.routers.monservice.tls.certresolver=letencrypt"
 ```
 
-!!! warning "Points importants"
-    - Le service **doit** être sur le réseau `proxy` pour que Traefik le voie
-    - Le `server.port` est le port **interne** du container, pas le port exposé
-    - Pas besoin de `ports:` si l'acces se fait uniquement via Traefik
-    - Remplacer `monservice` partout par le vrai nom du service
+:::warning[Points importants]
+- Le service **doit** être sur le réseau `proxy` pour que Traefik le voie
+- Le `server.port` est le port **interne** du container, pas le port exposé
+- Pas besoin de `ports:` si l'acces se fait uniquement via Traefik
+- Remplacer `monservice` partout par le vrai nom du service
+:::
 
 Si le service a besoin d'un volume, l'ajouter dans la section `volumes:` en bas du compose :
 
@@ -86,8 +87,9 @@ Ou dans la config (`user_rules` dans `AdGuardHome.yaml`) :
 ||monservice.home.gabin-simond.fr^$dnsrewrite=100.97.239.90,client=100.64.0.0/10
 ```
 
-!!! info "Pourquoi deux règles ?"
-    AdGuard tourne en `network_mode: host` et voit les vraies IPs clients. LAN recoit l'IP locale, Tailscale recoit l'IP Tailscale. Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le détail.
+:::info[Pourquoi deux règles ?]
+AdGuard tourne en `network_mode: host` et voit les vraies IPs clients. LAN recoit l'IP locale, Tailscale recoit l'IP Tailscale. Voir [Comment fonctionne le DNS](../architecture/reseau.mdx#les-dns-rewrites-la-pièce-clé) pour le détail.
+:::
 
 ## Étape 3 — Déployer
 
@@ -110,8 +112,9 @@ curl -I https://monservice.home.gabin-simond.fr
 
 3. **Traefik dashboard** — le router apparaît dans `http://IP:8080`
 
-!!! tip "Premier acces"
-    Le certificat Let's Encrypt peut prendre 30 secondes a être généré la première fois (DNS challenge Cloudflare). Si tu vois une erreur TLS, attends un peu et reessaie.
+:::tip[Premier acces]
+Le certificat Let's Encrypt peut prendre 30 secondes a être généré la première fois (DNS challenge Cloudflare). Si tu vois une erreur TLS, attends un peu et reessaie.
+:::
 
 ## Checklist rapide
 

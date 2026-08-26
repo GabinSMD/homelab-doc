@@ -16,6 +16,14 @@ concurrency:
 jobs:
   secret-scan:
     name: secret scan (gitleaks)
+    # `gitleaks-action` interroge l'API GitHub (type de depot, licence,
+    # GITHUB_TOKEN) : elle ne peut pas aboutir sur Forgejo, ou elle echouait
+    # systematiquement depuis l'activation d'Actions. Le meme scan passe sur
+    # GitHub avec le meme contenu, ce qui ecarte un vrai secret.
+    # Couverture cote Forgejo : le job `secret-scan-maison` ci-dessous, qui
+    # utilise le meme scanner que le hook pre-commit et tourne sur les DEUX
+    # serveurs.
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +37,33 @@ jobs:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
           GITLEAKS_ENABLE_SUMMARY: true
 
+  secret-scan-maison:
+    name: secret scan (scanner homelab)
+    # Volontairement SANS garde de serveur : contrairement a gitleaks-action,
+    # ce scanner n'appelle aucune API et tourne donc aussi bien sur Forgejo —
+    # qui est desormais la source de verite — que sur GitHub.
+    # C'est exactement le scanner du hook pre-commit, pour que la CI refuse ce
+    # que le hook aurait refuse. Copie depuis homelab-config/scripts/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scanner le diff
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          # Le scanner lit `git diff --cached` : on met le diff en zone d'index.
+          git diff "$base" "$head" --name-only -z 2>/dev/null | xargs -0 -r git add -- 2>/dev/null || true
+          chmod +x scripts/pre-commit-secret-scan.sh
+          ./scripts/pre-commit-secret-scan.sh
+
   markdown-lint:
     name: markdown lint (advisory)
     runs-on: ubuntu-latest
@@ -39,22 +74,64 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@v17
         continue-on-error: true
         with:
-          globs: "docs/**/*.md"
+          # .mdx inclus depuis le 2026-08-26 : sans ca, les fichiers passes en
+          # .mdx pendant la migration sortaient silencieusement de la couverture.
+          globs: "docs/**/*.{md,mdx}"
           config: .markdownlint.json
 
-  mkdocs-build:
-    name: mkdocs build (strict)
+  doc-fraicheur:
+    name: fraicheur de la doc (termes retires)
+    # Volontairement SANS garde de serveur : Python 3 pur, aucun appel reseau,
+    # tourne donc aussi bien sur Forgejo que sur GitHub.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # Interdit les termes retires dans les pages qu'on SUIT en situation
+      # (operations/, guides/, services/, architecture/). Le reste de docs/ a le
+      # droit de parler du passe. Voir scripts/check-doc-fraicheur.py pour le
+      # pourquoi : break-glass a restaure depuis B2 pendant 3 mois et demi apres
+      # la migration R2, parce qu'aucun chemin de code n'execute un runbook.
+      - name: Termes retires dans les pages operationnelles
+        run: python3 scripts/check-doc-fraicheur.py
+
+  docusaurus-build:
+    name: docusaurus build
+    # Volontairement SANS garde de serveur, comme l'ancien job mkdocs : Forgejo
+    # est la source de verite, son runner (LXC 108, aarch64) doit valider le
+    # build lui aussi. Bun publie un binaire linux-arm64.
+    #
+    # POURQUOI BUN ET PAS `npm ci` : le seul lockfile du depot est `bun.lock`,
+    # et c'est lui qui a produit le build verifie en local. Il n'y a pas de Node
+    # sur penny pour generer un `package-lock.json`, donc `npm ci` echouerait
+    # faute de lockfile et `npm install` ne serait pas reproductible. Passer a
+    # Node + npm ci reste souhaitable (Docusaurus vise officiellement Node) mais
+    # demande de generer le lockfile sur une machine qui a Node : suivi separe,
+    # pas un prealable a la bascule.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
+          bun-version: "1.3.12"
 
-      - name: Install mkdocs + plugins
-        run: pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin pymdown-extensions
+      # Sans ce cache, chaque build reinstalle plusieurs centaines de Mo — le
+      # piege n°7 du plan de migration, sensible sur le runner arm64.
+      - name: Cache des dependances
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Build (strict — fails on warnings/broken refs)
-        run: mkdocs build --strict
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # `onBrokenLinks` et `onBrokenAnchors` sont sur `throw` dans
+      # docusaurus.config.js : un lien ou une ancre morte fait echouer ce job,
+      # ce qui remplace le `--strict` de mkdocs.
+      - name: Build
+        run: bun run build

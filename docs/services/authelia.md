@@ -34,8 +34,9 @@ graph LR
 
 `consent_mode: pre-configured` évite le consent screen a chaque login (1 acceptation = 1 an de validite).
 
-!!! warning "Beszel OIDC — pre-requis"
-    L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS spécifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [dépannage](../operations/depannage.md#beszel-oidc-failed-to-fetch-oauth2-token).
+:::warning[Beszel OIDC — pre-requis]
+L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS spécifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [dépannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
+:::
 
 ## ForwardAuth middleware
 
@@ -145,8 +146,9 @@ L'authentification par mot de passe est désactivée via la variable d'environne
 
 Les secrets Authelia sont scellés via sops (`authelia/secrets/*` dans le repo), déscellés au boot par `homelab-unseal.service` vers le tmpfs `/run/homelab/authelia-secrets`, puis montés **read-only dans le container sur `/secrets`** (pas `/config/secrets`). Les variables `AUTHELIA_*_FILE` et `configuration.yml` pointent vers `/secrets/...`.
 
-!!! warning "Pourquoi `/secrets` et pas `/config/secrets`"
-    L'entrypoint de l'image Authelia fait `chown -R /config` au démarrage. Quand les secrets étaient montés en RO sous `/config/secrets`, ce chown échouait et crachait **~13 000 lignes `chown: ... Read-only file system`** par démarrage (et alimentait un replay-storm Loki). Monter hors de `/config` supprime le problème (fix 2026-06-25). Voir `projet/decisions.md`.
+:::warning[Pourquoi `/secrets` et pas `/config/secrets`]
+L'entrypoint de l'image Authelia fait `chown -R /config` au démarrage. Quand les secrets étaient montés en RO sous `/config/secrets`, ce chown échouait et crachait **~13 000 lignes `chown: ... Read-only file system`** par démarrage (et alimentait un replay-storm Loki). Monter hors de `/config` supprime le problème (fix 2026-06-25). Voir `projet/decisions.md`.
+:::
 
 ## Regenerer les secrets
 

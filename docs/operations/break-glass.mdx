@@ -1,9 +1,13 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Procédure Break-Glass
 
 Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre, defaillance materielle, corruption).
 
-!!! danger "Ce document doit être imprime et stocké avec la YubiKey hors-domicile (YK2)"
-    En cas de destruction totale, l'acces a ce site sera perdu. Garder une copie papier ou PDF a jour.
+:::danger[Ce document doit être imprime et stocké avec la YubiKey hors-domicile (YK2)]
+En cas de destruction totale, l'acces a ce site sera perdu. Garder une copie papier ou PDF a jour.
+:::
 
 ---
 
@@ -62,8 +66,9 @@ graph TB
 5. Tout le reste → depend de 1-4
 ```
 
-!!! info "Vaultwarden est volontairement isolé du SSO"
-    Il n'utilisé PAS Authelia pour éviter une dépendance circulaire. Il reste accessible même si Authelia est en panne.
+:::info[Vaultwarden est volontairement isolé du SSO]
+Il n'utilisé PAS Authelia pour éviter une dépendance circulaire. Il reste accessible même si Authelia est en panne.
+:::
 
 ---
 
@@ -110,6 +115,38 @@ rm /tmp/yk-id.txt
 - [ ] Master password Vaultwarden (memorise ou papier scelle)
 - [ ] Codes de récupération TOTP
 - [ ] Ce document en PDF
+- [ ] **Un moyen de s'authentifier à GitHub** — voir l'encadré ci-dessous
+
+:::danger[Dépendance circulaire — vérifié le 2026-08-26, non résolu]
+`homelab-config` est un dépôt **privé**. Un `git clone` anonyme échoue :
+
+```console
+$ git ls-remote https://github.com/GabinSMD/homelab-config.git
+fatal: could not read Username for 'https://github.com'
+```
+
+Or c'est la **toute première commande de la phase 3**, et c'est elle qui va
+chercher les configurations *et* les secrets chiffrés. La chaîne se referme sur
+elle-même :
+
+- pour cloner, il faut un identifiant GitHub ;
+- l'identifiant est dans `.env.enc`… qui est **dans le dépôt** ;
+- ou dans Vaultwarden… qui tourne sur le cluster, donc absent en perte totale.
+
+La YubiKey déchiffre `restic-env.enc`, mais **seulement si on a le fichier**. En
+perte totale, la procédure s'arrête à sa première ligne.
+
+Deux façons de fermer la boucle, à trancher :
+
+1. **Un PAT GitHub en lecture seule dans le coffre**, portée `repo` sur ces deux
+   dépôts. Le plus simple, à faire tourner comme n'importe quel jeton.
+2. **Une copie hors-ligne chiffrée du dépôt** sur la clé USB du coffre. Mesuré :
+   **285 Mo** de contenu plus 22 Mo d'historique — ça tient partout. Avantage :
+   aucune dépendance à un tiers pendant la reprise.
+
+Tant que ce n'est pas fait, le scénario « perte totale » n'est pas exécutable,
+même avec les deux YubiKeys.
+:::
 
 ### Comptes externes (doivent rester actifs)
 
@@ -130,67 +167,74 @@ rm /tmp/yk-id.txt
 
 **Durée estimee** : 15-30 min | **Impact** : service concerne uniquement
 
-=== "LXC 100 — dns-failover (AdGuard secondaire)"
+<Tabs>
+<TabItem value="lxc-100-dns-failover-adguard-secondaire" label="LXC 100 — dns-failover (AdGuard secondaire)">
 
-    **Impact** : DNS secondaire indisponible. Le primaire (penny) prend tout le trafic. Aucune interruption visible.
+**Impact** : DNS secondaire indisponible. Le primaire (penny) prend tout le trafic. Aucune interruption visible.
 
-    ```bash
-    # Depuis galahad
-    ssh gabins@pve1
-    # Verifier l'etat
-    pct status 100
-    # Tenter un restart
-    pct start 100
-    # Si le LXC est corrompu : recreer depuis le template
-    pct destroy 100
-    pct create 100 local:vztmpl/debian-12-standard_*.tar.zst \
-        --hostname dns-failover --memory 256 --cores 1 \
-        --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
-        --unprivileged 1 --start 1
-    # Installer AdGuard Home + Tailscale + restaurer config depuis git
-    pct exec 100 -- bash -c "curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v"
-    # Copier la config AdGuard depuis homelab-config
-    ```
+```bash
+# Depuis galahad
+ssh gabins@pve1
+# Verifier l'etat
+pct status 100
+# Tenter un restart
+pct start 100
+# Si le LXC est corrompu : recreer depuis le template
+pct destroy 100
+pct create 100 local:vztmpl/debian-12-standard_*.tar.zst \
+    --hostname dns-failover --memory 256 --cores 1 \
+    --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
+    --unprivileged 1 --start 1
+# Installer AdGuard Home + Tailscale + restaurer config depuis git
+pct exec 100 -- bash -c "curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v"
+# Copier la config AdGuard depuis homelab-config
+```
 
-=== "LXC 102 — vault (Vaultwarden)"
+</TabItem>
+<TabItem value="lxc-102-vault-vaultwarden" label="LXC 102 — vault (Vaultwarden)">
 
-    !!! danger "Impact critique : acces aux mots de passe perdu"
-        S'assurer que l'app mobile Bitwarden est synchro avec les données recentes AVANT de detruire le LXC.
+:::danger[Impact critique : acces aux mots de passe perdu]
+S'assurer que l'app mobile Bitwarden est synchro avec les données recentes AVANT de detruire le LXC.
+:::
 
-    ```bash
-    ssh gabins@pve1
-    pct status 102
-    pct start 102
-    # Si corrompu : verifier les backups d'abord
-    source /root/.restic-env && restic snapshots  # verifier les backups disponibles
-    # Recreer le LXC
-    pct destroy 102
-    pct create 102 local:vztmpl/debian-12-standard_*.tar.zst \
-        --hostname vault --memory 256 --cores 1 \
-        --net0 name=eth0,bridge=vmbr0,ip=192.168.1.32/24,gw=192.168.1.254 \
-        --unprivileged 1 --start 1
-    # Installer Docker + Vaultwarden, restaurer le volume
-    ```
+```bash
+ssh gabins@pve1
+pct status 102
+pct start 102
+# Si corrompu : verifier les backups d'abord
+source /root/.restic-env && restic snapshots  # verifier les backups disponibles
+# Recreer le LXC
+pct destroy 102
+pct create 102 local:vztmpl/debian-12-standard_*.tar.zst \
+    --hostname vault --memory 256 --cores 1 \
+    --net0 name=eth0,bridge=vmbr0,ip=192.168.1.32/24,gw=192.168.1.254 \
+    --unprivileged 1 --start 1
+# Installer Docker + Vaultwarden, restaurer le volume
+```
 
-=== "LXC 101 — logs (Loki + Grafana)"
+</TabItem>
+<TabItem value="lxc-101-logs-loki-grafana" label="LXC 101 — logs (Loki + Grafana)">
 
-    **Impact** : pas de logs centralises ni dashboards. Aucun impact sur les autres services.
+**Impact** : pas de logs centralises ni dashboards. Aucun impact sur les autres services.
 
-    ```bash
-    ssh gabins@pve2
-    pct status 101
-    pct start 101
-    # Si besoin : recreer et reconfigurer Grafana OIDC depuis Authelia
-    ```
+```bash
+ssh gabins@pve2
+pct status 101
+pct start 101
+# Si besoin : recreer et reconfigurer Grafana OIDC depuis Authelia
+```
 
+</TabItem>
+</Tabs>
 ---
 
 ### Scénario 1 : penny mort, cluster Proxmox OK
 
 **Durée estimee** : 1-2h | **Impact** : DNS primaire, Traefik, Authelia, Homepage — mais Vaultwarden reste UP
 
-!!! tip "Bonne nouvelle"
-    Vaultwarden (LXC 102) et AdGuard secondaire (LXC 100) restent operationnels. Les mots de passe et la resolution DNS de base continuent de fonctionner.
+:::tip[Bonne nouvelle]
+Vaultwarden (LXC 102) et AdGuard secondaire (LXC 100) restent operationnels. Les mots de passe et la resolution DNS de base continuent de fonctionner.
+:::
 
 #### Phase 1 — Materiel (T+0 a T+15min)
 
@@ -242,6 +286,28 @@ sysctl --system
 
 #### Phase 4 — Docker + services (T+45min a T+1h30)
 
+:::danger[Corrigé le 2026-08-26 — les commandes de restauration ne pouvaient pas s'authentifier]
+Jusqu'à cette date, les blocs de restauration de cette page exportaient
+`B2_ACCOUNT_ID B2_ACCOUNT_KEY`. Or `/root/.restic-env` ne contient plus ces
+variables depuis la migration vers Cloudflare R2 du **2026-05-11** : il porte
+`AWS_ACCESS_KEY_ID` et `AWS_SECRET_ACCESS_KEY`.
+
+Et comme ce fichier utilise des **assignations simples, sans `export`**, un
+`source` seul ne les transmet pas à `restic`, qui est un processus enfant. La
+procédure échouait donc sur une erreur d'authentification — pendant une reprise
+après sinistre, c'est-à-dire au pire moment.
+
+Cassé pendant trois mois et demi sans que rien ne le signale : **aucun chemin de
+code n'exécute cette page.** Un runbook n'est vérifié que par un exercice de
+reprise qui le suit à la lettre.
+
+Le correctif n'est pas de mettre à jour la liste des variables — ce serait le même
+piège, reporté au prochain changement de backend. C'est `set -a`, qui auto-exporte
+tout ce que le fichier assigne, sans rien coder en dur. C'est déjà ce que fait
+`vault-lxc-backup.sh` en production depuis le début ; la page, elle, ne l'avait
+jamais repris.
+:::
+
 ```bash
 # Installer les paquets essentiels
 dietpi-software install 162  # Docker
@@ -269,9 +335,8 @@ rm /tmp/yk-id.txt
 # Copier le docker-compose
 cp docker/docker-compose.yml /mnt/ssd/config/docker-compose.yml
 
-# Restaurer les volumes Docker depuis restic (B2, chiffre AES-256)
-source /root/.restic-env
-export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+# Restaurer les volumes Docker depuis restic (Cloudflare R2 EU, chiffre AES-256)
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 
 # Lister les snapshots disponibles
 restic snapshots
@@ -297,7 +362,7 @@ rm -rf /tmp/restore
 ```bash
 # Restaurer la config Authelia depuis restic ou regenerer les secrets
 # (les configs bind-mount sont deja restaurees par restic dans /mnt/ssd/config/)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 if [ -d /tmp/restore/mnt/ssd/config/authelia ]; then
     cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
@@ -338,7 +403,7 @@ cd /mnt/ssd/config
 docker compose up -d
 
 # Verifier que restic fonctionne
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic snapshots  # doit lister les snapshots existants
 ```
 
@@ -362,8 +427,9 @@ restic snapshots  # doit lister les snapshots existants
 
 **Durée estimee** : 2-3h | **Impact** : Vaultwarden, DNS secondaire, Grafana, Proxmox UI
 
-!!! warning "Vaultwarden est sur le cluster"
-    Vérifier l'acces a l'app mobile Bitwarden (sync offline) avant de commencer. Les tokens critiques doivent aussi être sur la clé USB.
+:::warning[Vaultwarden est sur le cluster]
+Vérifier l'acces a l'app mobile Bitwarden (sync offline) avant de commencer. Les tokens critiques doivent aussi être sur la clé USB.
+:::
 
 #### Phase 1 — Reinstaller Proxmox VE (T+0 a T+45min)
 
@@ -374,7 +440,7 @@ restic snapshots  # doit lister les snapshots existants
 # (voir proxmox-fix-emmc.sh dans homelab-config/scripts/)
 
 # Apres installation et reboot, appliquer le post-install depuis penny :
-cd /mnt/ssd/homelab-config/scripts && python3 -m http.server 8888
+cd /mnt/ssd/config/scripts && python3 -m http.server 8888
 
 # Sur galahad (192.168.1.18) :
 wget -O- http://192.168.1.28:8888/proxmox-post-install.sh | bash
@@ -399,74 +465,79 @@ pvecm status
 
 #### Phase 3 — Recreer les LXC (T+1h a T+2h)
 
-=== "LXC 100 — dns-failover (galahad)"
+<Tabs>
+<TabItem value="lxc-100-dns-failover-galahad" label="LXC 100 — dns-failover (galahad)">
 
-    ```bash
-    # Telecharger le template Debian 12
-    pveam update
-    pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+```bash
+# Telecharger le template Debian 12
+pveam update
+pveam download local debian-12-standard_12.7-1_amd64.tar.zst
 
-    # Creer le conteneur
-    pct create 100 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-        --hostname dns-failover --memory 256 --cores 1 \
-        --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
-        --unprivileged 1 --start 1
+# Creer le conteneur
+pct create 100 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+    --hostname dns-failover --memory 256 --cores 1 \
+    --net0 name=eth0,bridge=vmbr0,ip=192.168.1.30/24,gw=192.168.1.254 \
+    --unprivileged 1 --start 1
 
-    # Configurer
-    pct exec 100 -- bash -c "
-        apt update && apt install -y curl
-        # Installer AdGuard Home
-        curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
-        # Installer Tailscale
-        curl -fsSL https://tailscale.com/install.sh | sh
-        tailscale up
-    "
+# Configurer
+pct exec 100 -- bash -c "
+    apt update && apt install -y curl
+    # Installer AdGuard Home
+    curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+    # Installer Tailscale
+    curl -fsSL https://tailscale.com/install.sh | sh
+    tailscale up
+"
 
-    # Restaurer la config AdGuard depuis le repo
-    pct push 100 /mnt/ssd/homelab-config/adguard/AdGuardHome.yaml \
-        /opt/AdGuardHome/AdGuardHome.yaml
-    pct exec 100 -- systemctl restart AdGuardHome
+# Restaurer la config AdGuard depuis le repo
+pct push 100 /mnt/ssd/config/adguard/AdGuardHome.yaml \
+    /opt/AdGuardHome/AdGuardHome.yaml
+pct exec 100 -- systemctl restart AdGuardHome
 
-    # Deployer le script health check (rpi_watchdog.sh)
-    ```
+# Deployer le script health check (rpi_watchdog.sh)
+```
 
-=== "LXC 102 — vault (galahad)"
+</TabItem>
+<TabItem value="lxc-102-vault-galahad" label="LXC 102 — vault (galahad)">
 
-    ```bash
-    pct create 102 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-        --hostname vault --memory 256 --cores 1 \
-        --net0 name=eth0,bridge=vmbr0,ip=192.168.1.32/24,gw=192.168.1.254 \
-        --unprivileged 1 --start 1
+```bash
+pct create 102 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+    --hostname vault --memory 256 --cores 1 \
+    --net0 name=eth0,bridge=vmbr0,ip=192.168.1.32/24,gw=192.168.1.254 \
+    --unprivileged 1 --start 1
 
-    pct exec 102 -- bash -c "
-        apt update && apt install -y curl docker.io docker-compose
-        # Deployer Vaultwarden
-        mkdir -p /opt/vaultwarden
-    "
+pct exec 102 -- bash -c "
+    apt update && apt install -y curl docker.io docker-compose
+    # Deployer Vaultwarden
+    mkdir -p /opt/vaultwarden
+"
 
-    # Restaurer le volume Vaultwarden depuis B2
-    source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
-    restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/vaultwarden"
-    # Copier les donnees restaurees vers le LXC
-    pct push 102 /tmp/restore/mnt/ssd/.restic-staging/vaultwarden/ /opt/vaultwarden/data/ --recursive
-    rm -rf /tmp/restore
-    # Configurer le docker-compose pour Vaultwarden et demarrer
-    ```
+# Restaurer le volume Vaultwarden depuis R2
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
+restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/vaultwarden"
+# Copier les donnees restaurees vers le LXC
+pct push 102 /tmp/restore/mnt/ssd/.restic-staging/vaultwarden/ /opt/vaultwarden/data/ --recursive
+rm -rf /tmp/restore
+# Configurer le docker-compose pour Vaultwarden et demarrer
+```
 
-=== "LXC 101 — logs (lancelot)"
+</TabItem>
+<TabItem value="lxc-101-logs-lancelot" label="LXC 101 — logs (lancelot)">
 
-    ```bash
-    # Sur lancelot
-    pct create 101 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-        --hostname logs --memory 512 --cores 2 \
-        --net0 name=eth0,bridge=vmbr0,ip=192.168.1.31/24,gw=192.168.1.254 \
-        --unprivileged 1 --start 1
+```bash
+# Sur lancelot
+pct create 101 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+    --hostname logs --memory 512 --cores 2 \
+    --net0 name=eth0,bridge=vmbr0,ip=192.168.1.31/24,gw=192.168.1.254 \
+    --unprivileged 1 --start 1
 
-    # Installer Loki + Grafana
-    # Reconfigurer OIDC Grafana avec Authelia (client_id: grafana)
-    # Les dashboards devront etre recrees (pas de backup des dashboards)
-    ```
+# Installer Loki + Grafana
+# Reconfigurer OIDC Grafana avec Authelia (client_id: grafana)
+# Les dashboards devront etre recrees (pas de backup des dashboards)
+```
 
+</TabItem>
+</Tabs>
 #### Phase 4 — Reconfigurer le SSO et les integrations (T+2h a T+2h30)
 
 ```bash
@@ -509,12 +580,13 @@ tailscale up
 
 **Durée estimee** : 4h + délai d'achat materiel
 
-!!! danger "Prerequis absolus"
-    - **YK1 ou YK2** avec son PIN (remplacé la clé USB)
-    - `age-plugin-yubikey` installe sur la machine de travail (`brew install age-plugin-yubikey`)
-    - Acces au master password Vaultwarden (mémoire ou coffre papier)
-    - Acces au compte GitHub (pour cloner `homelab-config`) — ou clone local
-    - Clés SSH pour acceder aux machines (clé FIDO2 sur la YubiKey, ou clé Ed25519 backup)
+:::danger[Prerequis absolus]
+- **YK1 ou YK2** avec son PIN (remplacé la clé USB)
+- `age-plugin-yubikey` installe sur la machine de travail (`brew install age-plugin-yubikey`)
+- Acces au master password Vaultwarden (mémoire ou coffre papier)
+- Acces au compte GitHub (pour cloner `homelab-config`) — ou clone local
+- Clés SSH pour acceder aux machines (clé FIDO2 sur la YubiKey, ou clé Ed25519 backup)
+:::
 
 #### Strategie : paralleliser les restaurations
 
@@ -547,9 +619,9 @@ gantt
 |-------|-------|------------------------------|
 | **T+0** | Achat/récupération du matériel — Flasher DietPi sur la SD card | — |
 | **T+0.5h** | OS, configs, SSD (Phase 2-3 du Scénario 1) | Proxmox installer boot USB |
-| **T+1h** | Docker up, restauration volumes depuis B2 | galahad : post-install.sh, création cluster |
+| **T+1h** | Docker up, restauration volumes depuis R2 | galahad : post-install.sh, création cluster |
 | **T+1.5h** | Authelia restaurée, Traefik + DNS UP | lancelot : rejoint le cluster |
-| **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis B2 |
+| **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis R2 |
 | **T+2.5h** | — | LXC 101 (logs) Grafana + Loki, SSO reconfiguré (OIDC Proxmox/Portainer/Grafana) |
 | **T+3h** | Tests end-to-end (voir checklist ci-dessous) | — |
 | **T+3.5h** | Agents Beszel + Tailscale, vérification backup (restic snapshots) | — |
@@ -573,8 +645,9 @@ gantt
 
 **Durée estimee** : 15-30 min | **Impact** : SSO indisponible, les services a ForwardAuth sont bloques
 
-!!! note "Vaultwarden et AdGuard restent accessibles"
-    Vaultwarden n'utilisé pas Authelia. AdGuard utilisé ForwardAuth mais reste fonctionnel en acces direct (`192.168.1.28:3000`).
+:::note[Vaultwarden et AdGuard restent accessibles]
+Vaultwarden n'utilisé pas Authelia. AdGuard utilisé ForwardAuth mais reste fonctionnel en acces direct (`192.168.1.28:3000`).
+:::
 
 ```bash
 # Verifier les logs
@@ -582,7 +655,7 @@ docker logs authelia --tail 50
 
 # Option A : Restaurer depuis le dernier backup
 docker compose stop authelia
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 cp -a /tmp/restore/mnt/ssd/config/authelia/. /mnt/ssd/config/authelia/
 rm -rf /tmp/restore
@@ -590,7 +663,7 @@ docker compose up -d authelia
 
 # Option B : Regenerer les secrets (si backup corrompu aussi)
 # ATTENTION : cela invalide TOUS les clients OIDC existants
-cd /mnt/ssd/homelab-config
+cd /mnt/ssd/config
 cp authelia/configuration.yml.example /mnt/ssd/config/authelia/configuration.yml
 cp authelia/users_database.yml.example /mnt/ssd/config/authelia/users_database.yml
 
@@ -754,8 +827,9 @@ La procédure doit être testee **au moins une fois par an** sur un environnemen
 | — | Scénario 3 (tout detruit) | — | A faire | — |
 | — | Rotation secrets Authelia | — | A faire | — |
 
-!!! tip "Nouveau test = nouveau apprentissage"
-    Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a jour ce document après chaque test.
+:::tip[Nouveau test = nouveau apprentissage]
+Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a jour ce document après chaque test.
+:::
 
 ---
 
@@ -765,3 +839,59 @@ La procédure doit être testee **au moins une fois par an** sur un environnemen
 - **Mise a jour clé USB** : mensuelle (première semaine du mois)
 - **Test DR** : annuel minimum, trimestriel recommandé
 - **Responsable** : GabinSMD
+
+## Compte rendu du drill du 2026-08-26
+
+Premier exercice à suivre cette page. **Non destructif** : aucune LXC détruite,
+aucun service arrêté. Ce qui a été réellement exécuté est marqué comme tel.
+
+### Vérifié, et ça marche
+
+- **Les 15 fichiers que les phases 3 et 4 copient existent tous** dans
+  `homelab-config` — `boot/`, `udev/`, `system/`, `network/`, `docker/`,
+  `adguard/`, `traefik/`, `homepage/`, et les deux `.enc`.
+- **La commande de restauration corrigée fonctionne.** Exécutée telle qu'écrite :
+  les 4 variables attendues sont transmises, l'authentification à R2 passe,
+  `restic snapshots` renvoie les 12 snapshots. C'est la preuve que le correctif
+  `set -a` de ce matin est réel et pas théorique.
+- **Une restauration complète a été faite depuis R2** vers un répertoire jetable,
+  puis comparée aux fichiers vivants : **15 fichiers, aucun écart**. Les données
+  sont récupérables, pas seulement présentes.
+- **La rétention est saine** : mensuel, hebdomadaire, puis les sept derniers jours.
+  Dernier snapshot du jour même.
+- **`restic check` passe** : 12 snapshots vérifiés, `no errors were found`. Le dépôt
+  n'est pas seulement lisible, il est cohérent.
+
+### Trouvé, et pas résolu
+
+- **La dépendance circulaire GitHub** ci-dessus. C'est le seul point qui rend le
+  scénario de perte totale non exécutable.
+- **`restic` est en 0.14.0**, compilé en 2022. La série courante est bien plus
+  récente. Ça fonctionne, mais un outil de reprise après sinistre est le dernier
+  endroit où laisser vieillir une version.
+
+### Deux pièges rencontrés pendant l'exercice
+
+:::warning[Ne jamais piper `restic` dans `head` ou `tail`]
+Le SIGPIPE tue `restic` avant qu'il ne libère son verrou, et le dépôt reste
+verrouillé. C'est arrivé pendant ce drill même, et **c'est la mécanique exacte qui
+avait laissé la sauvegarde Vaultwarden muette pendant six jours.**
+
+Rediriger vers un fichier, puis lire le fichier. Et avant de retirer un verrou,
+vérifier que son PID est mort — `kill -0 <pid>` — plutôt que de dévérouiller par
+réflexe.
+:::
+
+:::note[`restic snapshots --latest 1` n'est pas « le plus récent »]
+L'option renvoie le dernier snapshot **par groupe** (hôte + chemins + tags), pas le
+sommet absolu. Lu trop vite pendant ce drill, ça donne l'impression que les
+sauvegardes sont arrêtées depuis dix-sept jours alors qu'elles tournent
+normalement. Pour l'âge réel : lister tout et trier.
+:::
+
+### Ce que ce drill n'a pas prouvé
+
+La partie destructive. Recréer une LXC, réinstaller un OS, reconstruire le
+cluster : rien de tout ça n'a été exécuté. Les temps annoncés dans les objectifs de
+reprise restent donc des estimations, et le parcours complet n'est toujours pas
+chronométré.

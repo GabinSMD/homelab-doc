@@ -73,8 +73,9 @@ Les deux nodes PVE (galahad + lancelot) envoient leurs LXC directement au PBS vi
 | 102 (vault) | Vaultwarden | galahad | **Critique** |
 | 103 (pbs) | PBS lui-même | lancelot | Moyenne (reconstructible) |
 
-!!! warning "vzdump hook temporaire"
-    Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
+:::warning[vzdump hook temporaire]
+Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
+:::
 
 ### vzdump-permfix-hook.sh
 
@@ -92,7 +93,7 @@ Le hook lance un watcher en arriere-plan a `backup-start` qui surveillé l'appar
 
 ## Restic-direct vers Cloudflare R2 (4 chaines parallel)
 
-Chaque LXC critique a un backup `restic` indépendant direct vers R2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne). Migration depuis Backblaze B2 effectuee 2026-05-11 ([r2-migration.md](r2-migration.md), [b2-cap-exceeded.md](b2-cap-exceeded.md)).
+Chaque LXC critique a un backup `restic` indépendant direct vers R2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne). Migration depuis Backblaze B2 effectuee 2026-05-11 ([r2-migration.md](../projet/journal/2026-05-11-migration-r2.md), [b2-cap-exceeded.md](../projet/journal/2026-05-10-b2-cap-exceeded.md)).
 
 ### Vue d'ensemble
 
@@ -129,16 +130,17 @@ Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts
 
 Systemd timer penny `1er de chaque mois 05:00` (`restic-drill-monthly.timer`) : restore réel d'un fichier du dernier snapshot de **chaque repo restic** (lisibilité vérifiée), puis **pbs-datastore** : `rclone check --one-way` R2→local (hash, ~11 min dominées par le hash local des ~10 GiB) + restore témoin d'un fichier avec comparaison md5. Détecte une corruption qui passerait `check`, et couvre le datastore PBS qui est hors restic (sync rclone direct).
 
-!!! warning "Pourquoi des timers systemd et plus des crons (2026-06-11)"
-    Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé
-    pendant le downtime penny du 31/05-03/06 et a sauté **silencieusement** — première
-    fenêtre depuis le fix du parsing R2, donc la chaîne de restore est restée non
-    validée tout le mois. Les 4 jobs hebdo/mensuels (`restic-check-monthly`,
-    `restic-drill-monthly`, `digest-drift-check`, `lynis-weekly`) sont migrés vers des
-    timers `Persistent=true` : un run manqué s'exécute au boot suivant. Les jobs
-    quotidiens restent en cron (un run manqué se rattrape le lendemain).
-    Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
-    `Environment=HOME=/root` (sans lui restic tourne sans cache).
+:::warning[Pourquoi des timers systemd et plus des crons (2026-06-11)]
+Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé
+pendant le downtime penny du 31/05-03/06 et a sauté **silencieusement** — première
+fenêtre depuis le fix du parsing R2, donc la chaîne de restore est restée non
+validée tout le mois. Les 4 jobs hebdo/mensuels (`restic-check-monthly`,
+`restic-drill-monthly`, `digest-drift-check`, `lynis-weekly`) sont migrés vers des
+timers `Persistent=true` : un run manqué s'exécute au boot suivant. Les jobs
+quotidiens restent en cron (un run manqué se rattrape le lendemain).
+Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
+`Environment=HOME=/root` (sans lui restic tourne sans cache).
+:::
 
 ### Freshness monitor
 
@@ -235,11 +237,11 @@ Systemd timer penny `1er de chaque mois 05:00` (`restic-drill-monthly.timer`) : 
 pvesh create /nodes/<node>/lxc -archive <PBS-backup-ID> -storage local
 ```
 
-### Restaurer Vaultwarden depuis restic B2
+### Restaurer Vaultwarden depuis restic R2 {#restaurer-vaultwarden-depuis-restic-b2}
 
 ```bash
 # Depuis LXC 102 (ou un nouveau LXC)
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --tag vault
 cp -a /tmp/restore/opt/vaultwarden/. /opt/vaultwarden/
 # Restaurer le snapshot SQLite propre
@@ -251,7 +253,7 @@ systemctl restart vaultwarden
 ### Restaurer un volume Docker (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/beszel"
 
 docker compose stop beszel
@@ -266,7 +268,7 @@ rm -rf /tmp/restore
 ### Restaurer une config (penny)
 
 ```bash
-source /root/.restic-env && export RESTIC_PASSWORD RESTIC_REPOSITORY B2_ACCOUNT_ID B2_ACCOUNT_KEY
+set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
 restic restore latest --target /tmp/restore --include "/mnt/ssd/config/authelia"
 
 docker compose stop authelia
@@ -277,13 +279,13 @@ rm -rf /tmp/restore
 
 ### Restauration complète (nouveau RPi)
 
-Voir [break-glass.md](break-glass.md) pour la procédure pas-a-pas.
+Voir [break-glass.md](break-glass.mdx) pour la procédure pas-a-pas.
 
 1. Installer DietPi
 2. Cloner `homelab-config` depuis GitHub
 3. Suivre le README (copier boot, udev, fstab, network, docker)
 4. Restaurer `.restic-env` depuis la clé USB chiffrée
-5. `restic restore latest` depuis B2
+5. `restic restore latest` depuis R2
 6. Restaurer les volumes et configs
 7. Regenerer les secrets Authelia si nécessaire (voir README)
 8. `docker compose up -d`
@@ -303,8 +305,9 @@ R2_BUCKET=homelab-backups
 R2_ENDPOINT=https://<account-id>.eu.r2.cloudflarestorage.com
 ```
 
-!!! danger "Ce fichier est scellé via sops + age + 2 YubiKeys (DR)"
-    Source de vérité : `system/secrets/restic-env.enc`. Live runtime : `/root/.restic-env` (chmod 600, déchiffré via age key locale OU YubiKey). Perte de tous les age keys + plaintext = perte des backups (`RESTIC_PASSWORD` est nécessaire pour décrypter les snapshots restic même si tu re-créais les keys API R2).
+:::danger[Ce fichier est scellé via sops + age + 2 YubiKeys (DR)]
+Source de vérité : `system/secrets/restic-env.enc`. Live runtime : `/root/.restic-env` (chmod 600, déchiffré via age key locale OU YubiKey). Perte de tous les age keys + plaintext = perte des backups (`RESTIC_PASSWORD` est nécessaire pour décrypter les snapshots restic même si tu re-créais les keys API R2).
+:::
 
 Bucket `homelab-backups` sur Cloudflare R2 EU jurisdiction.
 API token Cloudflare Object Read & Write scoped uniquement à ce bucket.
@@ -315,4 +318,4 @@ API token Cloudflare Object Read & Write scoped uniquement à ce bucket.
 
 - [Comptes PBS](../securite/comptes.md#proxmox-backup-server-lxc-103) — convention comptes et tokens
 - [Monitoring](monitoring.md) — checks backup freshness
-- [Break-glass](break-glass.md) — procédure reconstruction d'urgence
+- [Break-glass](break-glass.mdx) — procédure reconstruction d'urgence

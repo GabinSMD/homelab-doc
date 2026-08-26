@@ -78,8 +78,9 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 
 - **`security-headers`** : HSTS, X-Frame-Options `DENY`, X-Content-Type-Options `nosniff`, Referrer-Policy `strict-origin-when-cross-origin`, Permissions-Policy restrictive
 
-!!! warning "Pas de CSP global"
-    CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers-pas-de-csp-global-per-route-headers).
+:::warning[Pas de CSP global]
+CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers--pas-de-csp-global-per-route-headers).
+:::
 
 ### Spécifiques (par route)
 
@@ -88,8 +89,9 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 | `authelia` | ForwardAuth SSO | Traefik dashboard, Homepage, AdGuard |
 | `auth-rate-limit` | 100 req/s burst SPA | `auth.home.gabin-simond.fr` |
 
-!!! info "Routes PVE sans security headers"
-    Les routes Proxmox n'ont AUCUN security header Traefik — ExtJS et COOP sont incompatibles.
+:::info[Routes PVE sans security headers]
+Les routes Proxmox n'ont AUCUN security header Traefik — ExtJS et COOP sont incompatibles.
+:::
 
 ## TLS hardening
 

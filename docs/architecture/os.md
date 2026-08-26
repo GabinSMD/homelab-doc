@@ -4,8 +4,9 @@ DietPi sur Raspberry Pi 4 — toutes les optimisations appliquees pour la stabil
 
 ## Stabilité SSD (bridge USB-SATA ASMedia ASM1156)
 
-!!! danger "Problème"
-    Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **déconnexions aléatoires** sur RPi 4 a cause de la gestion d'énergie PCIe.
+:::danger[Problème]
+Le boitier Argon ONE M.2 utilisé un bridge ASMedia ASM1156 (USB-to-SATA) qui est sujet a des **déconnexions aléatoires** sur RPi 4 a cause de la gestion d'énergie PCIe.
+:::
 
 ### Paramètres kernel (`cmdline.txt`)
 
@@ -50,11 +51,12 @@ PARTUUID=503f5518-01 /boot/firmware   vfat noatime,lazytime,rw                  
 UUID=b32ed1bb-... /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
 ```
 
-!!! info "Points clés"
-    - `noatime,lazytime` sur toutes les partitions — réduit les ecritures
-    - `nofail` sur le SSD — le système boot même si le SSD n'est pas branche
-    - `errors=remount-ro` — protégé le filesystem en cas d'erreur I/O
-    - Pas de swap (swappiness=1)
+:::info[Points clés]
+- `noatime,lazytime` sur toutes les partitions — réduit les ecritures
+- `nofail` sur le SSD — le système boot même si le SSD n'est pas branche
+- `errors=remount-ro` — protégé le filesystem en cas d'erreur I/O
+- Pas de swap (swappiness=1)
+:::
 
 ## Headless / economie de ressources
 
@@ -82,7 +84,8 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 ```json
 {
     "data-root": "/mnt/ssd/docker",
-    "log-driver": "journald",
+    "log-driver": "json-file",
+    "log-opts": { "max-size": "10m", "max-file": "3" },
     "log-level": "warn",
     "debug": false,
     "icc": false,
@@ -91,12 +94,26 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 ```
 
 - `data-root` sur le SSD — images, volumes, et overlays sur le disque rapide
-- `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
+- `log-driver: json-file` avec `log-opts` — **30 Mo maximum par conteneur**
+  (3 fichiers de 10 Mo). Sans cette limite, un conteneur bavard remplit son hôte :
+  Pulse est resté mort 3 jours et demi derrière un `json.log` de 982 Mo. La limite
+  ne s'applique qu'aux conteneurs **recréés**, pas à ceux déjà en marche.
 - `log-level: warn` — limité le bruit dans les logs
 - `icc: false` — inter-container communication OFF sur bridge par defaut (sécurité)
 - `no-new-privileges: true` — empeche l'escalade de privileges dans les containers
 
 Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](../securite/hardening.md#docker-tous-containers).
+
+
+:::warning[Pourquoi plus journald]
+Le driver a longtemps ete `journald`, sur le raisonnement « les logs vont en
+tmpfs, donc pas d'usure SD ». Deux choses l'ont invalide. D'abord le
+`/var/log` en tmpfs de DietPi est **purge chaque heure** : les logs de conteneur
+n'y survivaient pas assez pour servir a un post-mortem. Ensuite, journald sur ARM
+a un bug recurrent de SIGBUS entre lecteur et ecrivain sur les fichiers mmap —
+il a tue `dockerd` lui-meme. Le correctif de classe a ete de sortir du chemin
+journald, et la limite de taille remplace la protection que tmpfs offrait.
+:::
 
 ## Watchdog hardware (BCM2835)
 
@@ -142,8 +159,9 @@ priority          = 1
 | Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
 | Temperature critique | **Non** | Couvert par homelab_monitor.sh |
 
-!!! warning "Le watchdog ne remplacé pas le monitoring"
-    Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **première ligne** (quelque chose va mal mais le système tourne encore). Les deux sont complementaires.
+:::warning[Le watchdog ne remplacé pas le monitoring]
+Le watchdog est le **dernier recours** (le kernel est mort). Le script `homelab_monitor.sh` est la **première ligne** (quelque chose va mal mais le système tourne encore). Les deux sont complementaires.
+:::
 
 ### Vérification
 
@@ -195,7 +213,8 @@ autoheal:
 | USB autosuspend off | Double protection SSD |
 | UAS désactivé | Force `usb-storage` (plus stable) |
 | SSD non-rotational | I/O scheduler optimise |
-| Logs en tmpfs | Pas d'usure SD |
+| Logs Docker plafonnes (30 Mo/conteneur) | Un conteneur bavard ne remplit plus l'hote |
+| Logs systeme en tmpfs | Pas d'usure SD |
 | Swap désactivé | Pas d'usure SSD/SD |
 | GPU 16 Mo | Plus de RAM pour les services |
 | Headless | Framebuffers a 0 |
@@ -207,7 +226,8 @@ autoheal:
 
 ## Limités connues
 
-!!! note "Limitations hardware du bridge ASMedia"
-    - **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
-    - **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
-    - **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
+:::note[Limitations hardware du bridge ASMedia]
+- **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
+- **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
+- **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
+:::

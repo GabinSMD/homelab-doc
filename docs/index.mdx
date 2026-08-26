@@ -1,24 +1,17 @@
 ---
-hide:
-  - navigation
-  - toc
+hide_table_of_contents: true
 ---
 
-<div class="hero" markdown>
-  <p class="hero__eyebrow">homelab · journal d'ingénierie</p>
-  <h1 class="hero__title">Un Raspberry Pi,<br>deux ZimaBoards,<br>une obsession du détail.</h1>
-  <p class="hero__lede">
-    Carnet de bord d'un homelab résidentiel : architecture, services auto-hébergés,
-    hardening, observabilité, runbooks. Tout ce que je remettrais en place si
-    la maison brûlait demain.
-  </p>
-  <div class="hero__meta">
-    <span><strong>3 hosts</strong> · penny + galahad + lancelot</span>
-    <span><strong>SSO Authelia</strong> · 12+ services derrière Traefik</span>
-    <span><strong>Backups</strong> · Restic → R2 EU + PBS</span>
-    <span><strong>Stack</strong> · DietPi · Proxmox · Docker · sops/age</span>
-  </div>
-</div>
+# Un Raspberry Pi, deux ZimaBoards, une obsession du détail
+
+Carnet de bord d'un homelab résidentiel : architecture, services auto-hébergés,
+hardening, observabilité, runbooks. Tout ce que je remettrais en place si la
+maison brûlait demain.
+
+- **3 hosts** — penny + galahad + lancelot
+- **SSO Authelia** — 12+ services derrière Traefik
+- **Backups** — Restic vers R2 EU + PBS
+- **Stack** — DietPi, Proxmox, Docker, sops/age
 
 ## Architecture actuelle
 
@@ -61,11 +54,11 @@ graph TB
 | Je veux... | Aller a |
 |---|---|
 | Voir la liste des services et leurs URLs | [Services — Vue d'ensemble](services/index.md) |
-| Comprendre le réseau et le DNS | [Réseau actuel](architecture/reseau.md) |
+| Comprendre le réseau et le DNS | [Réseau actuel](architecture/reseau.mdx) |
 | Voir le hardware et les IPs | [Machines](architecture/hardware.md) |
 | Comprendre la politique de sécurité | [Sécurité — Politique](securite/politique.md) |
 | Savoir ce qui est harden | [Sécurité — Hardening](securite/hardening.md) |
-| Restaurer après un crash | [Break-glass](operations/break-glass.md) |
+| Restaurer après un crash | [Break-glass](operations/break-glass.mdx) |
 | Vérifier les backups | [Backups](operations/backups.md) |
 | Diagnostiquer un problème | [Dépannage](operations/depannage.md) |
 | Ajouter un nouveau service | [Guide — Ajouter un service](guides/ajouter-service.md) |

@@ -9,9 +9,84 @@ Procédures de maintenance courante et resolution des problèmes rencontres.
 ### DietPi
 
 ```bash
-dietpi-update          # Met a jour DietPi + paquets
-apt update && apt upgrade  # Mises a jour manuelles
+# NE PAS lancer directement — voir l'avertissement ci-dessous
+systemd-run --unit=dietpi-maj --collect \
+  --setenv=DEBIAN_FRONTEND=noninteractive \
+  --setenv=APT_LISTBUGS_FRONTEND=none \
+  /boot/dietpi/dietpi-update 1
+journalctl -u dietpi-maj -f     # suivre
 ```
+
+:::danger[`dietpi-update` lance un `apt upgrade` COMPLET et peut tuer sa propre session]
+Vécu le 2026-08-20 en montant de v10.2.3 à v10.6.2.
+
+**Deux surprises qui se combinent.** D'abord, la phase de patch de
+`dietpi-update` lance un `apt upgrade` sur **tous** les dépôts, y compris les
+dépôts tiers — ici 254 Mo : `docker-ce`, `containerd.io`, `alloy`, `trivy`,
+`tailscale`. Le réglage `CONFIG_CHECK_APT_UPDATES` **ne protège pas** de ça :
+il ne gouverne que la branche « aucune mise à jour DietPi disponible ».
+
+Ensuite, le `postinst` de `tailscale` redémarre `tailscaled`. Comme l'accès à
+penny passe uniquement par Tailscale, la session tombe et emporte
+`dietpi-update` par SIGHUP — **en pleine phase `Setting up`**.
+
+D'où le `systemd-run` ci-dessus : il place la mise à jour hors du cgroup de
+la session, qui peut alors mourir sans rien interrompre.
+:::
+
+:::warning[Un système peut tourner parfaitement avec un dpkg incohérent]
+Après l'interruption : `docker --version` annonçait la nouvelle version, les
+22 conteneurs tournaient, `systemctl --failed` était vide. Et pourtant
+`docker-ce` et `trivy` étaient en `iU` (dépaquetés, `postinst` jamais joué) et
+`tailscale` en `iF`. Les binaires sont en place, ce sont les scripts de
+configuration qui manquent.
+
+**Aucun contrôle habituel ne voit ça.** Le seul qui le détecte :
+
+```bash
+dpkg -l | awk '$1 !~ /^(ii|hi|rc)/ && NR>5 {print $1, $2}'
+```
+
+`hi` = held (normal pour `rpi-eeprom`), `rc` = désinstallé avec configs
+résiduelles (normal aussi — ne pas le compter comme une anomalie).
+
+**Reprise**, toujours détachée :
+
+```bash
+systemd-run --unit=reprise --collect bash -c \
+  'dpkg --configure -a && apt-get -f install -y && /boot/dietpi/dietpi-update 1'
+```
+:::
+
+:::warning[L'autopurge supprime le noyau de repli]
+`dietpi-update` a purgé `linux-image-6.12.75` et son initrd, ne laissant
+qu'un seul noyau installé. Sur une machine au matériel marginal, c'est un
+filet en moins. Vérifier après coup, et réinstaller au besoin :
+
+```bash
+ls -d /usr/lib/modules/*/                     # doit en lister au moins deux
+apt-get install --no-install-recommends linux-image-<version>+rpt-rpi-v8
+```
+
+Réinstaller un **ancien** noyau ne touche pas au démarrage : le hook
+`/etc/kernel/postinst.d/z50-raspi-firmware` ne recopie vers
+`/boot/firmware/kernel8.img` que si le noyau configuré est le plus récent de
+`/boot`. Le vérifier quand même par le hash :
+
+```bash
+sha1sum /boot/firmware/kernel8.img /boot/vmlinuz-*
+```
+:::
+
+#### Basculer sur le noyau de repli
+
+```bash
+cp /boot/vmlinuz-6.12.75+rpt-rpi-v8 /boot/firmware/kernel8.img && sync
+systemctl reboot
+```
+
+Pour revenir, même commande avec le noyau voulu. `/sbin/shutdown` échoue en
+« Failed to connect to bus » sur cette machine : utiliser `systemctl reboot`.
 
 ### Docker images
 
@@ -22,17 +97,19 @@ docker compose up -d   # Redeploy avec les nouvelles images
 docker image prune -f  # Supprime les anciennes images
 ```
 
-!!! warning "Les images sont épinglées : `pull` seul ne met rien à jour"
-    Depuis le retrait de Watchtower (2026-07-06), plus aucune mise à jour n'est
-    automatique et chaque image est épinglée par `@sha256` dans le compose. Un
-    `docker compose pull` ne ramène donc **pas** une nouvelle version : il
-    retélécharge le digest déjà épinglé. Pour mettre à jour, il faut changer le
-    `@sha256` dans `docker-compose.yml`, puis `pull` et `up -d`. Le timer mensuel
-    `digest-drift-check` signale quand l'amont a bougé.
+:::warning[Les images sont épinglées : `pull` seul ne met rien à jour]
+Depuis le retrait de Watchtower (2026-07-06), plus aucune mise à jour n'est
+automatique et chaque image est épinglée par `@sha256` dans le compose. Un
+`docker compose pull` ne ramène donc **pas** une nouvelle version : il
+retélécharge le digest déjà épinglé. Pour mettre à jour, il faut changer le
+`@sha256` dans `docker-compose.yml`, puis `pull` et `up -d`. Le timer mensuel
+`digest-drift-check` signale quand l'amont a bougé.
+:::
 
-!!! danger "`up -d` déploie l'état du fichier, pas l'état du dernier commit"
-    Vérifiez `git status` avant : des modifications de `docker-compose.yml` non
-    commitées partiraient en production avec cette commande.
+:::danger[`up -d` déploie l'état du fichier, pas l'état du dernier commit]
+Vérifiez `git status` avant : des modifications de `docker-compose.yml` non
+commitées partiraient en production avec cette commande.
+:::
 
 ### Firmware RPi
 
@@ -41,8 +118,9 @@ rpi-eeprom-update      # Verifie les mises a jour firmware
 rpi-update             # Met a jour le firmware (attention, peut casser)
 ```
 
-!!! danger "Attention"
-    `rpi-update` installe le firmware bleeding-edge. Préférer `apt upgrade` pour les mises a jour stables du kernel.
+:::danger[Attention]
+`rpi-update` installe le firmware bleeding-edge. Préférer `apt upgrade` pour les mises a jour stables du kernel.
+:::
 
 ---
 
@@ -129,8 +207,9 @@ Le script `homelab_monitor.sh` intégré une **recovery automatique** en cas de 
 7. Redémarre Docker, attend 10s pour les containers
 8. Notification ntfy "SSD RECOVERED" ou "RECOVERY FAILED"
 
-!!! info "Changement de device name (sda → sdb)"
-    Le bridge ASMedia re-enumere le SSD avec un nouveau nom après chaque déconnexion (`sda` → `sdb` → `sdc`). La recovery utilisé l'UUID (pas le nom de device) pour retrouver le SSD quel que soit son nouveau nom. Le fstab utilisé aussi l'UUID.
+:::info[Changement de device name (sda → sdb)]
+Le bridge ASMedia re-enumere le SSD avec un nouveau nom après chaque déconnexion (`sda` → `sdb` → `sdc`). La recovery utilisé l'UUID (pas le nom de device) pour retrouver le SSD quel que soit son nouveau nom. Le fstab utilisé aussi l'UUID.
+:::
 
 **Rate limit** : max 3 tentatives par heure. Si les 3 echouent, alerte "SSD Recovery EPUISE — intervention manuelle requise."
 
@@ -277,7 +356,7 @@ Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent le
 
 Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` géré déjà tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
 
-Voir [Comment fonctionne le DNS](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) pour le détail des règles.
+Voir [Comment fonctionne le DNS](../architecture/reseau.mdx#les-dns-rewrites-la-pièce-clé) pour le détail des règles.
 
 ---
 
@@ -357,8 +436,9 @@ Dans les paramètres du host Termius :
 
 C'est la méthode recommandée depuis mobile — aucune commande à retenir, actif à chaque connexion.
 
-!!! warning "Ne pas utiliser `exec bash -l`"
-    `exec` remplace le shell courant par le nouveau processus. Quand `bash -l` termine son initialisation sans commande interactive, la session se ferme immédiatement. Sourcer les fichiers directement (`. /etc/profile`) charge l'environnement sans remplacer le shell.
+:::warning[Ne pas utiliser `exec bash -l`]
+`exec` remplace le shell courant par le nouveau processus. Quand `bash -l` termine son initialisation sans commande interactive, la session se ferme immédiatement. Sourcer les fichiers directement (`. /etc/profile`) charge l'environnement sans remplacer le shell.
+:::
 
 **Option 2 : à la connexion (terminal classique)**
 
@@ -549,8 +629,9 @@ La restart policy du compose est `unless-stopped`. Docker **n'auto-redémarre pa
 
 C'est voulu (sécurité contre boucle de redémarrage), mais ca veut dire qu'un `down` oublie = stack morte jusqu'au prochain `up`.
 
-!!! tip "Auto-repair depuis 2026-04-19"
-    `check_docker_autorepair` dans `homelab_monitor.sh` détecté stack vide + daemon actif et lance `docker compose up -d` après 2 min. Circuit breaker 3 tentatives / 24h : au 3e échec ntfy urgent "autorepair-capped" et stop. Reset : `rm /var/lib/homelab_monitor/autorepair-docker-attempts`.
+:::tip[Auto-repair depuis 2026-04-19]
+`check_docker_autorepair` dans `homelab_monitor.sh` détecté stack vide + daemon actif et lance `docker compose up -d` après 2 min. Circuit breaker 3 tentatives / 24h : au 3e échec ntfy urgent "autorepair-capped" et stop. Reset : `rm /var/lib/homelab_monitor/autorepair-docker-attempts`.
+:::
 
 ### Fix
 
@@ -806,6 +887,105 @@ beszel-agent, chrony, fail2ban, postfix, ssh, systemd-logind. Tous fixes via dro
 
 ---
 
+## Réseau Docker — ETIMEDOUT entre conteneurs du même réseau (règles nft orphelines)
+
+### Symptôme
+
+Un conteneur n'atteint pas un autre conteneur **du même réseau Docker**, alors que
+la cible est déclarée `healthy` :
+
+```
+SequelizeConnectionError: connect ETIMEDOUT 172.20.0.4:5432
+```
+
+`ETIMEDOUT` et non `ECONNREFUSED` : les paquets sont **jetés en silence**, ce n'est
+pas un service absent. Le conteneur boucle en redémarrage et `autoheal` tourne à
+vide.
+
+### Cause racine
+
+Docker 28+ installe une protection anti-accès-direct sous forme de règles
+**nftables natives** dans `table ip raw`, chaîne `PREROUTING`. Un
+`docker network rm` **ne les nettoie pas**. Si un réseau est recréé sur le même
+sous-réseau, il reçoit un nouveau bridge (`br-<id>`) tandis que les règles de
+l'ancien subsistent :
+
+```
+iifname != "br-50afc5752635" ip daddr 172.20.0.4 counter packets 44 drop   # bridge DISPARU
+iifname != "br-4c9e0a9dabb3" ip daddr 172.20.0.4 counter packets 0  drop   # bridge actuel
+```
+
+Tout trafic arrivant par le bridge actuel satisfait `!= ancien bridge`, donc il est
+jeté. **Un compteur non nul sur une règle qui cite un bridge inexistant est la
+preuve.**
+
+:::danger[Rien de tout cela n'apparaît dans `iptables`]
+Ces règles agissent **avant conntrack et avant la table filter**. Les
+compteurs d'`iptables -L` restent à zéro et la politique `FORWARD` semble
+saine. Dès qu'un blocage réseau ne s'explique par aucun compteur iptables,
+passer à `nft list ruleset`.
+:::
+
+### Détection
+
+```bash
+# Tout bridge cité par nft mais absent du noyau est un fantôme
+EXIST=$(ip -br link show type bridge | awk '{print $1}' | tr '\n' '|')
+nft -a list ruleset | grep -oE 'br-[0-9a-f]{12}' | sort -u |
+  while read b; do echo "$EXIST" | grep -q "$b" || echo "FANTOME: $b"; done
+```
+
+### Fix — les deux étages, sinon il revient
+
+:::danger[Nettoyer le noyau ne suffit pas : les règles sont persistées]
+Corrigé une première fois le 2026-08-16 par `nft delete rule`. **Le 2026-08-20,
+au premier redémarrage, le même bridge fantôme et les mêmes six règles étaient
+de retour.** Elles vivaient aussi dans `/etc/iptables/rules.v4`, que
+`netfilter-persistent` réinjecte à chaque démarrage. Le correctif était en
+sursis, et le sursis a duré jusqu'au reboot suivant — quatre jours.
+:::
+
+```bash
+OLD=br-50afc5752635          # le bridge fantôme
+cp -a /etc/iptables/rules.v4 /etc/iptables/rules.v4.bak-$(date +%Y%m%d)
+
+# 1. noyau
+for ip in 2 3 4 5 6 7; do
+  iptables -t raw -D PREROUTING -d 172.20.0.$ip/32 ! -i $OLD -j DROP 2>/dev/null
+done
+iptables -t nat -D POSTROUTING -s 172.20.0.0/16 ! -o $OLD -j MASQUERADE 2>/dev/null
+
+# 2. fichier persisté — l'étape oubliée
+sed -i "/$OLD/d" /etc/iptables/rules.v4
+
+# 3. vérifier les deux
+iptables-save | grep -c "$OLD"                 # doit renvoyer 0
+grep -c "$OLD" /etc/iptables/rules.v4          # doit renvoyer 0
+```
+
+Vérifier ensuite que le bridge **vivant** a bien gardé ses règles, puis relancer le
+conteneur. Le retour à `healthy` prend une minute.
+
+### Prévention
+
+Après tout `docker network rm`, chercher les bridges fantômes — surtout si un réseau
+est recréé sur le même sous-réseau. Et considérer que toute suppression de règle
+netfilter se fait **aux deux étages**, noyau et fichier persisté :
+
+```bash
+grep <motif> /etc/iptables/rules.v4
+```
+
+:::note[Cause de fond]
+`rules.v4` contient des règles **générées par Docker**, capturées par un
+`netfilter-persistent save` à un instant donné. C'est fragile par
+construction : Docker régénère ses règles à chaque démarrage du daemon et ne
+connaît pas les bridges d'une capture antérieure. Le bon état serait que
+`rules.v4` ne porte que les règles maison (`EGRESS-PHASE2`). Chantier ouvert.
+:::
+
+---
+
 ## Commandes utiles
 
 ### Containers et services
@@ -902,12 +1082,13 @@ grep -aiE "BUG:|Oops:|RIP:|Call Trace|Hardware name" \
   /var/lib/systemd/pstore/<timestamp>/*/dmesg.txt
 ```
 
-!!! warning "Ne jamais purger `/var/lib/systemd/pstore/`"
-    C'est la seule preuve exploitable d'un crash, et la vider ne libère rien :
-    `systemd-pstore` fait déjà `Unlink=yes` sur `/sys/fs/pstore`, donc la NVRAM
-    EFI est purgée à chaque démarrage. Sur ZimaBoard, les dumps ressortent
-    parfois à 0 octet — garder les anciens est alors la seule façon d'avoir une
-    signature lisible.
+:::warning[Ne jamais purger `/var/lib/systemd/pstore/`]
+C'est la seule preuve exploitable d'un crash, et la vider ne libère rien :
+`systemd-pstore` fait déjà `Unlink=yes` sur `/sys/fs/pstore`, donc la NVRAM
+EFI est purgée à chaque démarrage. Sur ZimaBoard, les dumps ressortent
+parfois à 0 octet — garder les anciens est alors la seule façon d'avoir une
+signature lisible.
+:::
 
 ### Cause racine constatée (2026-07-10 et 2026-08-05)
 
@@ -966,4 +1147,4 @@ pvesm status                                    # storage PBS repassé active ?
 systemctl --failed
 ```
 
-Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-apres-recovery-node-cluster).
+Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-après-recovery-node-cluster).

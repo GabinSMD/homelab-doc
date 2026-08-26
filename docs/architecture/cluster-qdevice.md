@@ -62,8 +62,9 @@ Script PVE qui :
 3. Met a jour `/etc/corosync/corosync.conf` (config_version incremente)
 4. Démarre `corosync-qdevice.service` sur chaque node
 
-!!! warning "Pre-requis SSH root penny"
-    `pvecm qdevice setup` utilisé root@qnetd. Si penny a `PermitRootLogin no` (hardening), enable temporaire via drop-in `/etc/ssh/sshd_config.d/99-qdevice-setup.conf` avec `PermitRootLogin prohibit-password` + depose les pubkeys root galahad+lancelot dans `/root/.ssh/authorized_keys` penny. Revert immédiat après setup.
+:::warning[Pre-requis SSH root penny]
+`pvecm qdevice setup` utilisé root@qnetd. Si penny a `PermitRootLogin no` (hardening), enable temporaire via drop-in `/etc/ssh/sshd_config.d/99-qdevice-setup.conf` avec `PermitRootLogin prohibit-password` + depose les pubkeys root galahad+lancelot dans `/root/.ssh/authorized_keys` penny. Revert immédiat après setup.
+:::
 
 ## Vérification
 
@@ -119,5 +120,5 @@ pvecm qdevice setup 192.168.1.28 -f
 
 ## Voir aussi
 
-- [Dépannage : pmxcfs stuck RO](../operations/depannage.md#pmxcfs-stuck-read-only-apres-recovery-node-cluster)
-- [Réseau](reseau.md) — topologie 2-node cluster
+- [Dépannage : pmxcfs stuck RO](../operations/depannage.md#pmxcfs-stuck-read-only-après-recovery-node-cluster)
+- [Réseau](reseau.mdx) — topologie 2-node cluster

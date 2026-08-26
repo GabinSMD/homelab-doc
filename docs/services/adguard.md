@@ -70,8 +70,9 @@ Configuration Tailscale admin (login.tailscale.com > DNS) :
 - DNS 1 : `100.97.239.90` (RPi)
 - DNS 2 : `100.74.145.26` (dns-failover)
 
-!!! warning "Ne pas utiliser de DNS Rewrites statiques pour `*.home.*`"
-    Voir [DNS flow](../architecture/reseau.md#les-dns-rewrites-la-piece-cle) — uniquement les `user_rules` conditionnelles sur les deux instances.
+:::warning[Ne pas utiliser de DNS Rewrites statiques pour `*.home.*`]
+Voir [DNS flow](../architecture/reseau.mdx#les-dns-rewrites-la-pièce-clé) — uniquement les `user_rules` conditionnelles sur les deux instances.
+:::
 
 ### DNS Rewrites statiques (exceptions)
 
@@ -90,8 +91,21 @@ Le même LXC qui heberge AdGuard secondaire surveillé le RPi depuis l'extérieu
 | Check | Méthode | Seuil |
 |---|---|---|
 | Ping ICMP | `ping 192.168.1.28` | 3 min sans réponse |
-| Traefik HTTP | `curl http://192.168.1.28:8080/ping` | idem |
+| Traefik HTTPS | `curl -sfk --max-time 5 https://192.168.1.28` | idem |
 | DNS | `dig @192.168.1.28 google.com` | info supplémentaire |
+
+:::warning[Le `/ping` de Traefik n'est pas joignable de l'extérieur]
+Cette page annonçait `curl http://192.168.1.28:8080/ping`. Ça ne peut pas
+fonctionner : Traefik ne publie que **80 et 443**, son `/ping` sur 8080 reste
+interne au conteneur — c'est son propre healthcheck Docker qui l'utilise, en
+`localhost`.
+
+La sonde réelle du LXC 100 (`/root/rpi_watchdog.sh`, une fois par minute) est
+`curl -sfk --max-time 5 https://192.168.1.28`. Le `-k` est nécessaire : le
+certificat ne couvre pas une IP nue. Corrigé le 2026-08-26, après avoir lu le
+script plutôt que la page.
+:::
+
 
 Si le RPi ne répond plus après 3 min → alerte ntfy urgente.
 Si le RPi répond au ping mais Traefik est down → alerte ntfy haute.

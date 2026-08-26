@@ -1,6 +1,15 @@
 # Roadmap consolidee 2026-05
 
-> **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](roadmap.md) (phases hardware), [sécurité/roadmap.md](../securite/roadmap.md) (P1-P4 sec), [sucre.md roadmap](sucre.md#roadmap), prioritisee par impact/effort/blockers.
+:::warning[Instantané du 2026-05-11 — ce n'est pas la roadmap vivante]
+Arbitré le 2026-08-26 : la roadmap qui fait foi est
+**[projet/roadmap.md](../roadmap.md)** pour le matériel et les phases, et
+**[sécurité/roadmap.md](../../securite/roadmap.md)** pour la sécurité. Cette page-ci
+est une **synthèse figée** produite après la session du 2026-05-11 pour
+prioriser à un instant donné ; elle n'est pas tenue à jour et ne doit pas servir
+de référence.
+:::
+
+> **Vue unifiée post-session 2026-05-11** (migration R2 + SMTP submission + TFA + cleanup). Synthese de [projet/roadmap.md](../roadmap.md) (phases hardware), [sécurité/roadmap.md](../../securite/roadmap.md) (P1-P4 sec), [sucre.md roadmap](../sucre.md#roadmap), prioritisee par impact/effort/blockers.
 
 ## TL;DR
 
@@ -70,10 +79,10 @@ Le homelab est **production-grade**. 0 finding audit ouvert. Tous les items "vra
 
 ## Items hors-roadmap mais voir aussi
 
-- [Sucre v3 plans](sucre.md#roadmap) (multi-step reasoning, learning loop, dynamic args, pivot Hybrid) — decision post-soak semaine 8
-- [Egress firewall future itérations](../securite/egress-phase2-plan.md) — IP-set Cloudflare/R2 si threat model évolué (maintenance pesante)
-- [b2-cap-exceeded.md](../operations/b2-cap-exceeded.md) — incident 2026-05-11 (résolu via migration R2)
-- [r2-migration.md](../operations/r2-migration.md) — runbook migration R2 cloud backups
+- [Sucre v3 plans](../sucre.md#roadmap) (multi-step reasoning, learning loop, dynamic args, pivot Hybrid) — decision post-soak semaine 8
+- [Egress firewall future itérations](2026-04-19-egress-phase2.md) — IP-set Cloudflare/R2 si threat model évolué (maintenance pesante)
+- [b2-cap-exceeded.md](2026-05-10-b2-cap-exceeded.md) — incident 2026-05-11 (résolu via migration R2)
+- [r2-migration.md](2026-05-11-migration-r2.md) — runbook migration R2 cloud backups
 
 ## Cleanup post-migration R2 (à faire dans 1-2 semaines)
 

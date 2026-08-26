@@ -1,6 +1,13 @@
 # Sucre observability
 
-Cette page documenté comment sucre voit le homelab et où il bipe — pas le design sucre (voir [Projet Sucre](../projet/sucre.md)) mais l'architecture de l'observation et la delivery.
+Cette page documenté comment sucre voit le homelab et où il bipe — pas le design sucre (voir [Projet Sucre](sucre.md)) mais l'architecture de l'observation et la delivery.
+
+:::warning[sucre est arrêté depuis le 2026-08-25]
+Cette page décrit une architecture d'observation qui **ne tourne plus**. Elle est
+conservée parce que le LXC 105 et sa base sont intacts et qu'un retour en arrière
+tient en deux commandes — voir [Bilan et arrêt](sucre.md#bilan-et-arrêt).
+La détection est passée à Pulse Patrol.
+:::
 
 ## Surface d'observation de sucre
 

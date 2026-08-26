@@ -27,11 +27,12 @@ Le serveur est en `Public=false` + `Open=true` : les joueurs se connectent en **
 
 Adresse tailnet du conteneur : **`100.118.152.0`**, port `16261/UDP`.
 
-!!! warning "Ne pas activer `--accept-routes` sur ce conteneur"
-    Avec `--accept-routes`, le conteneur accepte la route `192.168.1.0/24` annoncée sur le tailnet et répond aux machines du LAN via `tailscale0` alors que les paquets arrivent par `eth0`. Ce routage asymétrique coupe l'accès SSH depuis penny (`ip route get 192.168.1.28` renvoie alors `dev tailscale0`). Le conteneur doit être **joignable** sur le tailnet, pas y router le LAN : `tailscale set --accept-routes=false`.
+:::warning[Ne pas activer `--accept-routes` sur ce conteneur]
+Avec `--accept-routes`, le conteneur accepte la route `192.168.1.0/24` annoncée sur le tailnet et répond aux machines du LAN via `tailscale0` alors que les paquets arrivent par `eth0`. Ce routage asymétrique coupe l'accès SSH depuis penny (`ip route get 192.168.1.28` renvoie alors `dev tailscale0`). Le conteneur doit être **joignable** sur le tailnet, pas y router le LAN : `tailscale set --accept-routes=false`.
 
-    Accès hors-bande si le réseau du conteneur est cassé :
-    `ssh galahad "sudo nsenter -t 1 -m -- pct exec 104 -- <commande>"` — le `nsenter` est nécessaire car `/etc/pve` est en lecture seule dans les sessions SSH des nœuds PVE.
+Accès hors-bande si le réseau du conteneur est cassé :
+`ssh galahad "sudo nsenter -t 1 -m -- pct exec 104 -- <commande>"` — le `nsenter` est nécessaire car `/etc/pve` est en lecture seule dans les sessions SSH des nœuds PVE.
+:::
 
 ## Composants
 
@@ -109,19 +110,20 @@ compte présent, aucune capacité. La tentative in-game du 2026-08-03 avait pour
 journalisé `admin granted user access level on admin` sans que la base change : ne
 pas se fier au message de la console, vérifier la table.
 
-!!! tip "Répondre au prompt au lieu de le subir"
-    Le stdin du serveur est un FIFO (`/run/pz/stdin`). Si le prompt apparaît,
-    y écrire le mot de passe **deux fois** (saisie puis confirmation) libère le
-    démarrage en quelques secondes :
+:::tip[Répondre au prompt au lieu de le subir]
+Le stdin du serveur est un FIFO (`/run/pz/stdin`). Si le prompt apparaît,
+y écrire le mot de passe **deux fois** (saisie puis confirmation) libère le
+démarrage en quelques secondes :
 
-    ```bash
-    printf '%s\n' "$PW" > /run/pz/stdin   # saisie
-    sleep 4
-    printf '%s\n' "$PW" > /run/pz/stdin   # confirmation
-    ```
+```bash
+printf '%s\n' "$PW" > /run/pz/stdin   # saisie
+sleep 4
+printf '%s\n' "$PW" > /run/pz/stdin   # confirmation
+```
 
-    Sans cela le démarrage reste bloqué — c'est ce qui avait coûté 4 minutes de
-    coupure le 2026-08-03.
+Sans cela le démarrage reste bloqué — c'est ce qui avait coûté 4 minutes de
+coupure le 2026-08-03.
+:::
 
 ### Sauvegarde
 
@@ -145,7 +147,7 @@ La surveillance est sur penny parce que **galahad n'a aucun chemin ntfy** — ni
 
 | Symptôme | Cause probable | Action |
 |---|---|---|
-| Le service ne démarre pas, log `Enter new administrator password` | compte `admin` absent de `whitelist` | écrire le mot de passe deux fois dans `/run/pz/stdin` (voir [Rôles et comptes](#le-compte-admin-ne-peut-pas-etre-supprime-mais-il-peut-etre-neutralise)) — méthode vérifiée le 2026-08-04. L'ancienne consigne `-adminusername admin -adminpassword <pass>` n'a **pas** pu être confirmée sur B42.20 et est à considérer comme non vérifiée |
+| Le service ne démarre pas, log `Enter new administrator password` | compte `admin` absent de `whitelist` | écrire le mot de passe deux fois dans `/run/pz/stdin` (voir [Rôles et comptes](#le-compte-admin-ne-peut-pas-être-supprimé-mais-il-peut-être-neutralisé)) — méthode vérifiée le 2026-08-04. L'ancienne consigne `-adminusername admin -adminpassword <pass>` n'a **pas** pu être confirmée sur B42.20 et est à considérer comme non vérifiée |
 | Un joueur arrive sur un personnage neuf | pseudo différent de l'original | les personnages sont indexés par nom d'utilisateur dans le monde : réutiliser le pseudo exact |
 | `Reckos` sans droits admin | colonne `world` divergente | `UPDATE whitelist SET world='servertest Gab' WHERE username='Reckos';` |
 | OOM de la JVM | `-Xmx` revenu à `8g` après un `app_update` | remettre `4g` dans `ProjectZomboid64.json` |

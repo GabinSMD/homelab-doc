@@ -1,0 +1,39 @@
+/* Feuille globale.
+ *
+ * VOLONTAIREMENT NUE. La personnalisation heritee du theme MkDocs (polices
+ * Instrument Serif / Inter Tight / JetBrains Mono chargees depuis Google Fonts,
+ * palette verte, titres en serif, bloc hero de l'accueil) a ete retiree le
+ * 2026-08-26 : elle avait ete portee telle quelle pendant la migration, sans
+ * etre retravaillee pour Docusaurus, et le resultat ne tenait pas.
+ *
+ * On repart donc du theme `classic` par defaut. Un habillage propre sera concu
+ * plus tard, a partir de zero plutot qu'en recyclant l'ancien.
+ *
+ * Ne pas remettre de chargement de polices distant sans y penser : c'etait deux
+ * `preconnect` plus une feuille Google Fonts sur chaque page du site public.
+ */
+
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

@@ -122,12 +122,13 @@ pas — a `z = 0.87` un liseré de 3 px fait 2.6 px rendus, plus fin qu'un trait
 bordure, invisible a un metre. C'est le fond teinte qui se voit en vision
 peripherique.
 
-!!! warning "Le style de statut et l'alarme sont lies"
-    Sans `statusStyle: "dot"` dans `settings.yaml`, Homepage rend un **texte**
-    colore par `text-rose-500` a la place de la pastille, et les regles CSS
-    d'alarme ne matchent plus rien : un service tombe ne produit alors AUCUN
-    signal visuel. C'est exactement ce qui arrivait lors de la panne decrite
-    plus bas.
+:::warning[Le style de statut et l'alarme sont lies]
+Sans `statusStyle: "dot"` dans `settings.yaml`, Homepage rend un **texte**
+colore par `text-rose-500` a la place de la pastille, et les regles CSS
+d'alarme ne matchent plus rien : un service tombe ne produit alors AUCUN
+signal visuel. C'est exactement ce qui arrivait lors de la panne decrite
+plus bas.
+:::
 
 ## Seuils
 
@@ -195,12 +196,13 @@ docker` de `dietpi-backup` a 01:25.
 `docker.service` (`WantedBy` + `PartOf`), appelle
 `/api/revalidate` depuis l'interieur du conteneur jusqu'a reponse.
 
-!!! note "Pourquoi pas seulement un hook `post_start:` du compose"
-    Il fonctionne pour `docker compose up/restart`, mais **pas** pour
-    `docker start` — le chemin emprunte quand le daemon remonte les conteneurs
-    via `restart: unless-stopped`, c'est-a-dire precisement le cas nocturne. Le
-    hook est conserve pour les operations manuelles, l'unite systemd couvre le
-    reste.
+:::note[Pourquoi pas seulement un hook `post_start:` du compose]
+Il fonctionne pour `docker compose up/restart`, mais **pas** pour
+`docker start` — le chemin emprunte quand le daemon remonte les conteneurs
+via `restart: unless-stopped`, c'est-a-dire precisement le cas nocturne. Le
+hook est conserve pour les operations manuelles, l'unite systemd couvre le
+reste.
+:::
 
 Piste ecartee : rendre `/app/.next` inscriptible via un volume nomme supprime
 bien les `EROFS` des logs, mais ne change **rien** au symptome.
