@@ -216,6 +216,46 @@ Ces points demandent une décision, pas une réécriture mécanique.
   passe manuelle. Un job qui échouerait sur une page dont l'état déclaré dépasse
   N jours, ou qui référencerait un service arrêté, remplacerait cet exercice.
 
+## Troisième passe : tester les adresses, pas les relire
+
+Les 17 paires `IP:port` affirmées dans la documentation ont été extraites et
+testées une par une. Trois ne répondaient pas ; **une seule était un faux positif
+de la sonde**.
+
+| Adresse | Verdict |
+|---|---|
+| `192.168.1.28:8888` | **Faux positif.** Le runbook démarre lui-même ce serveur HTTP juste avant — il n'existe que pendant la procédure. |
+| `192.168.1.28:8080/ping` | **Défaut.** Traefik ne publie que 80 et 443 ; son `/ping` reste interne au conteneur. La sonde réelle du LXC 100 est `curl -sfk --max-time 5 https://192.168.1.28`, lue dans `/root/rpi_watchdog.sh`. |
+| `192.168.1.183:8080` | **Correct.** C'est sucre, dans un artefact daté du journal. On ne réécrit pas un document daté. |
+
+Mais la ligne du faux positif portait un vrai défaut, et le plus lourd de la
+journée : **`cd /mnt/ssd/homelab-config/scripts`**. Ce chemin n'existe pas — le
+dépôt est `/mnt/ssd/config`. Quatre occurrences, dans `break-glass.mdx` et
+`guides/proxmox-zimaboard.md`, donc **la séquence de réinstallation d'un nœud
+échouait dès le `cd`**.
+
+C'est le **troisième** défaut trouvé dans `break-glass` le même jour, après les
+identifiants B2 et la liste d'export codée en dur. Trois défauts indépendants dans
+la seule page dont la correction ne peut pas attendre — et aucun n'était
+détectable en la relisant, parce qu'aucun n'est une faute de rédaction. Ce sont
+des affirmations qui étaient vraies quand elles ont été écrites.
+
+Le mauvais chemin a rejoint `scripts/check-doc-fraicheur.py`, avec son test
+négatif.
+
+:::note[Ce que cet audit n'a pas fait]
+Les 56 pages n'ont pas été relues ligne à ligne. `architecture/` l'a été
+intégralement, ainsi que les index et toute page corrigée. Pour le reste, seules
+les **affirmations testables** ont été vérifiées — inventaires, adresses, chemins,
+versions, noms d'unités.
+
+Les gros textes n'ont pas été relus en prose : `operations/depannage.md`
+(1151 lignes), `operations/break-glass.mdx` (789),
+`securite/hardening.md` (382). Ce qui s'y trouve de faux **et** de non-testable est
+encore là. Le prochain audit devrait s'y attaquer, et probablement par
+échantillonnage plutôt que par lecture intégrale.
+:::
+
 ## Ce qui est correct et ne doit pas être « corrigé »
 
 Consigné pour qu'un prochain audit ne les remonte pas une deuxième fois :
