@@ -147,6 +147,9 @@ Backblaze : supprimer la clé applicative dans leur console, puis l'entrée
 Vaultwarden. C'est la seule action de cette liste qui ne peut pas être faite
 depuis le dépôt.
 
+**Fait le 2026-08-26 :** le compte Backblaze a été **supprimé en entier**, pas
+seulement la clé applicative. L'exposition est close à la source.
+
 **Les specs sont figées à leur date.** Convention retenue : on ne réécrit pas une
 spec de `projet/`, on lui ajoute un encadré quand la réalité a bougé. Appliqué à
 [la spec Forgejo](2026-08-15-forgejo-source-de-verite.md), qui décrivait un

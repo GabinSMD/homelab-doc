@@ -232,14 +232,19 @@ Homelab/
 └── Externals/         → Cloudflare, Tailscale, ntfy
 ```
 
-:::danger[Révocation en attente — action manuelle]
-Backblaze B2 a été décommissionné le **2026-05-29** après la migration vers
-Cloudflare R2. L'inventaire ci-dessus ne le mentionne plus, mais **les
-identifiants eux-mêmes n'ont pas été révoqués** : il reste à supprimer la clé
-applicative dans la console Backblaze, puis l'entrée correspondante dans
-Vaultwarden. Vérifié le 2026-08-26 : plus aucune variable `B2_*` sur penny, ni
-dans `.restic-env`, ni dans la config rclone — l'exposition est côté fournisseur,
-pas côté homelab.
+:::note[Backblaze : compte supprimé le 2026-08-26]
+Le backend B2 était décommissionné depuis le **2026-05-29** après la migration
+vers Cloudflare R2, mais la clé applicative était restée active — trois mois
+d'exposition côté fournisseur sur un service plus utilisé.
+
+**Le compte Backblaze a été supprimé dans son intégralité le 2026-08-26.** Il n'y
+a donc plus ni clé à révoquer, ni entrée à retirer : l'exposition est close à la
+source plutôt que gérée. Vérifié côté homelab le même jour — plus aucune variable
+`B2_*` sur penny, ni dans `.restic-env`, ni dans la configuration rclone.
+
+La leçon vaut au-delà de ce cas : **décommissionner un backend et révoquer ses
+identifiants sont deux gestes distincts**, et le second est celui qu'on oublie
+parce que rien ne casse quand il manque.
 :::
 
 
