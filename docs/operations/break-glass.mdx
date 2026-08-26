@@ -892,9 +892,19 @@ aucun service arrêté. Ce qui a été réellement exécuté est marqué comme t
 - **La dépendance circulaire GitHub** — **fermée le soir même** par la copie
   hors-ligne chiffrée (voir l'encadré en tête de page). Reste un geste physique :
   copier l'archive sur la clé USB du coffre.
-- **`restic` est en 0.14.0**, compilé en 2022 — toujours ouvert. La série
-  courante est bien plus récente. Ça fonctionne, mais un outil de reprise après
-  sinistre est le dernier endroit où laisser vieillir une version.
+- **`restic` était en 0.14.0**, compilé en 2022 — **monté en 0.19.1 le 26/08**.
+  Le paquet Debian de bookworm est figé en 0.14.0 : l'installation passe donc
+  par le binaire officiel, posé via `dpkg-divert` pour qu'il occupe
+  `/usr/bin/restic` (et non `/usr/local/bin`, que le PATH de cron ne contient
+  pas) tout en survivant aux mises à jour du paquet. L'ancien binaire reste
+  accessible en `/usr/bin/restic.debian` — retour arrière par
+  `dpkg-divert --remove --rename /usr/bin/restic`.
+
+  Vérifié avant de conclure : les 5 dépôts R2 listables, `restic check` sans
+  erreur sur `restic-finance`, aucun verrou laissé, et les **deux** endroits où
+  les scripts lisent la sortie *texte* (et non `--json`) donnent toujours ce
+  qu'ils attendent — `restic stats … | grep "Total Size"` dans
+  `homelab_backup.sh` et le `restic ls --long` du drill mensuel.
 
 ### Deux pièges rencontrés pendant l'exercice
 
