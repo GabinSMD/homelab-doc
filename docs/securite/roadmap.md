@@ -92,7 +92,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 #### Hardening cosmetiques
 
 - Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique). Done partiellement : penny — a propager galahad+lancelot.
-- ~~SMTP migration port 25 → 587 auth submission~~ DONE 2026-05-11 (relay Proton submission, voir [operations/r2-migration.md](../operations/r2-migration.md) section connexes).
+- ~~SMTP migration port 25 → 587 auth submission~~ DONE 2026-05-11 (relay Proton submission, voir [operations/r2-migration.md](../projet/journal/2026-05-11-migration-r2.md) section connexes).
 - ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE.
 
 ### P4 — Defere / decision documentée

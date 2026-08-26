@@ -121,7 +121,7 @@ tail -50 /mnt/ssd/log-homelab/homelab_monitor.log | grep ALERT
 
 ## Pourquoi 2 topics ntfy
 
-Voir [Sucre observability](../architecture/sucre-observability.md) — c'est lié au callback flow Approve/Deny du drafter sucre. Topic 1 = boring critical, Topic 2 = sucre proposals avec callbacks. Phone subscribe les 2 = un seul inbox unifié pour le user.
+Voir [Sucre observability](../projet/sucre-observability.md) — c'est lié au callback flow Approve/Deny du drafter sucre. Topic 1 = boring critical, Topic 2 = sucre proposals avec callbacks. Phone subscribe les 2 = un seul inbox unifié pour le user.
 
 ## Réactiver une notification
 

@@ -93,7 +93,7 @@ Le hook lance un watcher en arriere-plan a `backup-start` qui surveillé l'appar
 
 ## Restic-direct vers Cloudflare R2 (4 chaines parallel)
 
-Chaque LXC critique a un backup `restic` indépendant direct vers R2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne). Migration depuis Backblaze B2 effectuee 2026-05-11 ([r2-migration.md](r2-migration.md), [b2-cap-exceeded.md](b2-cap-exceeded.md)).
+Chaque LXC critique a un backup `restic` indépendant direct vers R2, complementaire de PBS. Même si PBS (LXC 103) tombe, ces chaines continuent — path de survie en cas de lancelot down prolonge (cas 2026-04-19 : lancelot offline, PBS KO, mais ces backups ont tourne). Migration depuis Backblaze B2 effectuee 2026-05-11 ([r2-migration.md](../projet/journal/2026-05-11-migration-r2.md), [b2-cap-exceeded.md](../projet/journal/2026-05-10-b2-cap-exceeded.md)).
 
 ### Vue d'ensemble
 

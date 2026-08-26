@@ -19,7 +19,7 @@ manqué pendant un downtime s'exécute au boot suivant — migration cron → ti
 
 Échec → alerte ntfy haute priorité. Dernière validation : **2026-06-11**, drill complet
 via systemd, 4/4 repos restic + pbs-datastore OK (4784 fichiers matchés, 665s ;
-spec : [fiabilisation drill](../projet/2026-06-11-fiabilisation-drill-restauration.md)).
+spec : [fiabilisation drill](../projet/journal/2026-06-11-fiabilisation-drill-restauration.md)).
 :::
 
 **Materiel** :

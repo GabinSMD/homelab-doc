@@ -22,7 +22,6 @@ const sidebars = {
         { type: 'doc', id: 'architecture/acces-reseau', label: 'Acces aux services' },
         { type: 'doc', id: 'architecture/reseau-cible', label: 'Reseau cible' },
         { type: 'doc', id: 'architecture/cluster-qdevice', label: 'Cluster qdevice' },
-        { type: 'doc', id: 'architecture/sucre-observability', label: 'Sucre observability' },
       ],
     },
     {
@@ -52,7 +51,6 @@ const sidebars = {
         { type: 'doc', id: 'securite/hardening', label: 'Hardening' },
         { type: 'doc', id: 'securite/roadmap', label: 'Roadmap' },
         { type: 'doc', id: 'securite/yubikey-age-setup', label: 'YubiKey age setup' },
-        { type: 'doc', id: 'securite/egress-phase2-plan', label: 'Egress phase 2 plan' },
       ],
     },
     {
@@ -95,16 +93,30 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'projet/decisions', label: 'Decisions techniques' },
         { type: 'doc', id: 'projet/roadmap', label: 'Roadmap (4 phases hardware)' },
-        { type: 'doc', id: 'projet/roadmap-2026-05', label: 'Roadmap consolidee 2026-05' },
-        { type: 'doc', id: 'projet/sucre', label: 'sucre (SRE perso)' },
-        { type: 'doc', id: 'projet/2026-06-11-fiabilisation-drill-restauration', label: 'Spec fiabilisation drill restauration' },
-        { type: 'doc', id: 'projet/2026-08-03-homepage-refonte-design', label: 'Spec refonte dashboard Homepage' },
-        { type: 'doc', id: 'projet/2026-08-04-homepage-themes-fonds-design', label: 'Spec themes et fonds Homepage' },
-        { type: 'doc', id: 'projet/2026-08-15-boite-a-outils-technique', label: 'Spec boite a outils technique' },
-        { type: 'doc', id: 'projet/2026-08-15-forgejo-source-de-verite', label: 'Spec Forgejo source de verite' },
-        { type: 'doc', id: 'projet/2026-08-25-migration-docusaurus', label: 'Migration MkDocs -> Docusaurus' },
-        { type: 'doc', id: 'projet/2026-08-26-audit-fraicheur-doc', label: 'Audit de fraicheur de la doc' },
+        { type: 'doc', id: 'projet/sucre', label: 'sucre (SRE perso, arrete)' },
+        { type: 'doc', id: 'projet/sucre-observability', label: 'sucre — observabilite' },
         { type: 'doc', id: 'projet/about', label: 'A propos' },
+        {
+          // Artefacts DATES : specs, plans, rapports, instantanes, post-mortems.
+          // On ne les reecrit pas, on les date. Ordre chronologique inverse : le
+          // plus recent en premier, c'est ce qu'on relit.
+          type: 'category',
+          label: 'Journal',
+          collapsed: true,
+          items: [
+            { type: 'doc', id: 'projet/journal/2026-08-26-audit-fraicheur-doc', label: '2026-08-26 — Audit de fraicheur de la doc' },
+            { type: 'doc', id: 'projet/journal/2026-08-25-migration-docusaurus', label: '2026-08-25 — Migration MkDocs vers Docusaurus' },
+            { type: 'doc', id: 'projet/journal/2026-08-15-forgejo-source-de-verite', label: '2026-08-15 — Forgejo source de verite' },
+            { type: 'doc', id: 'projet/journal/2026-08-15-boite-a-outils-technique', label: '2026-08-15 — Boite a outils technique' },
+            { type: 'doc', id: 'projet/journal/2026-08-04-homepage-themes-fonds-design', label: '2026-08-04 — Homepage : themes et fonds' },
+            { type: 'doc', id: 'projet/journal/2026-08-03-homepage-refonte-design', label: '2026-08-03 — Homepage : refonte' },
+            { type: 'doc', id: 'projet/journal/2026-06-11-fiabilisation-drill-restauration', label: '2026-06-11 — Fiabilisation du drill' },
+            { type: 'doc', id: 'projet/journal/2026-05-11-migration-r2', label: '2026-05-11 — Migration vers Cloudflare R2' },
+            { type: 'doc', id: 'projet/journal/2026-05-11-roadmap-consolidee', label: '2026-05-11 — Roadmap consolidee (instantane)' },
+            { type: 'doc', id: 'projet/journal/2026-05-10-b2-cap-exceeded', label: '2026-05-10 — Quota B2 depasse' },
+            { type: 'doc', id: 'projet/journal/2026-04-19-egress-phase2', label: '2026-04-19 — Egress firewall phase 2 (plan)' },
+          ],
+        },
       ],
     },
   ],

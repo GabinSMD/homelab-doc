@@ -71,7 +71,7 @@ la liste `RESTIC_PASSWORD RESTIC_REPOSITORY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_
 :::danger[Pourquoi ça a tenu trois mois et demi]
 **Aucun chemin de code n'exécute cette page.** Un runbook n'est vérifié que par un
 exercice de reprise qui le suit à la lettre — et l'exercice mensuel
-([`dr-drill-scenario-1`](../operations/dr-drill-scenario-1.md)) porte sur
+([`dr-drill-scenario-1`](../../operations/dr-drill-scenario-1.md)) porte sur
 Vaultwarden, pas sur le parcours complet de `break-glass`. Le même mécanisme avait
 déjà laissé quatre fiches de remède de sucre pointer vers des scripts inexistants
 pendant quatre mois : un chemin jamais emprunté se dégrade en silence.
@@ -81,7 +81,7 @@ pendant quatre mois : un chemin jamais emprunté se dégrade en silence.
 
 | Page | Ce qui était faux | Correction |
 |---|---|---|
-| `projet/sucre.md` | « MVP livré et prouvé en production », état du 2026-04-20 | Bandeau d'arrêt + [Bilan et arrêt](sucre.md#bilan-et-arrêt) chiffré |
+| `projet/sucre.md` | « MVP livré et prouvé en production », état du 2026-04-20 | Bandeau d'arrêt + [Bilan et arrêt](../sucre.md#bilan-et-arrêt) chiffré |
 | `operations/incidents-recurrents.md` | Compteurs de fréquence présentés comme vivants | Marqués figés au 2026-08-25 (sucre les alimentait) |
 | `operations/monitoring.md` | « `check_restic_repos_freshness` queries B2 » | Décrit R2, le backend réel |
 | `architecture/sucre-observability.md` | Architecture d'observation au présent | Bandeau d'arrêt |
@@ -140,7 +140,7 @@ LXC, la topologie des trois chemins d'accès, et tout `architecture/acces-reseau
 Les points ouverts par ce rapport ont été tranchés le jour même.
 
 **Les identifiants B2 restent à révoquer côté fournisseur.** L'inventaire de
-[`securite/comptes.md`](../securite/comptes.md) ne les mentionne plus, et
+[`securite/comptes.md`](../../securite/comptes.md) ne les mentionne plus, et
 vérification faite il n'existe plus aucune variable `B2_*` sur penny — ni dans
 `.restic-env`, ni dans la config rclone. L'exposition est donc entièrement côté
 Backblaze : supprimer la clé applicative dans leur console, puis l'entrée
@@ -152,15 +152,15 @@ spec de `projet/`, on lui ajoute un encadré quand la réalité a bougé. Appliq
 [la spec Forgejo](2026-08-15-forgejo-source-de-verite.md), qui décrivait un
 `deploy.yml` construisant MkDocs.
 
-**Une seule roadmap fait foi.** [`projet/roadmap.md`](roadmap.md) pour le matériel
-et les phases, [`securite/roadmap.md`](../securite/roadmap.md) pour la sécurité.
-[`roadmap-2026-05.md`](roadmap-2026-05.md) est une synthèse figée du 11 mai et
+**Une seule roadmap fait foi.** [`projet/roadmap.md`](../roadmap.md) pour le matériel
+et les phases, [`securite/roadmap.md`](../../securite/roadmap.md) pour la sécurité.
+[`roadmap-2026-05.md`](2026-05-11-roadmap-consolidee.md) est une synthèse figée du 11 mai et
 porte désormais un bandeau qui le dit.
 
 **Les index minces sont un choix, pas un oubli.** Ce sont des aiguillages avec une
 colonne « quand l'utiliser », et la barre latérale porte la liste exhaustive. Un
 seul manque réel corrigé : `operations/index.md` n'orientait pas vers
-[le catalogue d'incidents](../operations/incidents-recurrents.md), qu'on veut
+[le catalogue d'incidents](../../operations/incidents-recurrents.md), qu'on veut
 justement ouvrir en premier.
 
 **Le contrôle de fraîcheur est automatisé.** `scripts/check-doc-fraicheur.py`

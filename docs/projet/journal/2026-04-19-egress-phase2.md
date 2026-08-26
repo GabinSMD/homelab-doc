@@ -5,7 +5,7 @@
 :::note[Depuis : déployé]
 Ce document est le plan d'activation, figé à sa date. La **phase 2 a été déployée
 le 2026-05-05 sur les trois hôtes** et revérifiée le 2026-08-20 — voir
-[Roadmap sécurité → Egress firewall](roadmap.md#egress-firewall-penny--galahad--lancelot--done-2026-05-05).
+[Roadmap sécurité → Egress firewall](../../securite/roadmap.md#egress-firewall-penny--galahad--lancelot--done-2026-05-05).
 Les chiffres de couverture ci-dessous décrivent l'état de préparation, pas la
 production.
 :::
