@@ -15,20 +15,20 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
 | Service | Image | URL | Host | Réseau Docker |
 |---|---|---|---|---|
-| **Traefik** | `traefik:latest` | `traefik.home…` | penny | proxy, socket |
-| **Authelia** | `authelia/authelia:latest` | `auth.home…` | penny | proxy |
-| **AdGuard Home** | `adguard/adguardhome:latest` | `dns.home…` | penny (host net) | host |
+| **[Traefik](traefik.md)** | `traefik:latest` | `traefik.home…` | penny | proxy, socket |
+| **[Authelia](authelia.md)** | `authelia/authelia:latest` | `auth.home…` | penny | proxy |
+| **[AdGuard Home](adguard.md)** | `adguard/adguardhome:latest` | `dns.home…` | penny (host net) | host |
 | **[Homepage](homepage.md)** | `ghcr.io/gethomepage/homepage:latest` | `home.gabin-simond.fr` | penny | proxy, socket |
-| **Portainer EE** | `portainer/portainer-ee:latest` | `portainer.home…` | penny | proxy |
-| **Beszel** | `henrygd/beszel:latest` | `monitor.home…` | penny | proxy |
-| **Forgejo** | `codeberg.org/forgejo/forgejo:13-rootless` | `git.home…` | penny | proxy |
-| **Outline** | `outlinewiki/outline:latest` | `wiki.home…` | penny | outline, proxy |
-| **ntfy** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
-| **Dozzle** | `amir20/dozzle:latest` | `dozzle.home…` | penny | proxy, socket |
-| **Homelable** | `ghcr.io/pouzor/homelable-frontend:latest` | `homelable.home…` | penny | homelable, proxy |
-| **Kroki** | `yuzutech/kroki:latest` | `kroki.home…` | penny | proxy |
-| **CyberChef** | `ghcr.io/gchq/cyberchef:latest` | `cyberchef.home…` | penny | proxy |
-| **Stirling PDF** | `ghcr.io/stirling-tools/s-pdf:latest-ultra-lite` | `pdf.home…` | penny | proxy |
+| **[Portainer EE](portainer.md)** | `portainer/portainer-ee:latest` | `portainer.home…` | penny | proxy |
+| **[Beszel](beszel.md)** | `henrygd/beszel:latest` | `monitor.home…` | penny | proxy |
+| **[Forgejo](forgejo.md)** | `codeberg.org/forgejo/forgejo:13-rootless` | `git.home…` | penny | proxy |
+| **[Outline](outline.md)** | `outlinewiki/outline:latest` | `wiki.home…` | penny | outline, proxy |
+| **[ntfy](ntfy.md)** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
+| **[Dozzle](boite-a-outils.md)** | `amir20/dozzle:latest` | `dozzle.home…` | penny | proxy, socket |
+| **[Homelable](homelable.md)** | `ghcr.io/pouzor/homelable-frontend:latest` | `homelable.home…` | penny | homelable, proxy |
+| **[Kroki](boite-a-outils.md)** | `yuzutech/kroki:latest` | `kroki.home…` | penny | proxy |
+| **[CyberChef](boite-a-outils.md)** | `ghcr.io/gchq/cyberchef:latest` | `cyberchef.home…` | penny | proxy |
+| **[Stirling PDF](boite-a-outils.md)** | `ghcr.io/stirling-tools/s-pdf:latest-ultra-lite` | `pdf.home…` | penny | proxy |
 
 ### Sans URL — internes ou agents
 
@@ -36,10 +36,10 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 |---|---|---|
 | **socket-proxy** | `lscr.io/linuxserver/socket-proxy:3.4.2-r0-ls88` | Filtre l'API Docker pour Traefik, Homepage, Dozzle, autoheal |
 | **autoheal** | `willfarrell/autoheal:latest` | Redémarre les conteneurs `unhealthy` |
-| **CrowdSec** | `crowdsecurity/crowdsec:latest` | Détection + bouncer Traefik |
+| **[CrowdSec](crowdsec.md)** | `crowdsecurity/crowdsec:latest` | Détection + bouncer Traefik |
 | **beszel-agent** | `henrygd/beszel-agent:latest` | Agent de métriques (réseau host) |
-| **loki-replica** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
-| **status** | `busybox:1.38` | Page d'état statique |
+| **[loki-replica](logs-stack.md)** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
+| **[status](boite-a-outils.md)** | `busybox:1.38` | Page d'état statique |
 | **outline-db** / **outline-redis** | `postgres:16-alpine` / `redis:7-alpine` | Base et cache d'Outline |
 | **kroki-mermaid** | `yuzutech/kroki-mermaid:latest` | Moteur Mermaid de Kroki |
 | **homelable-backend** | `ghcr.io/pouzor/homelable-backend:latest` | API de Homelable |
@@ -48,12 +48,12 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
 | Service | URL | Où |
 |---|---|---|
-| **Grafana (logs)** | `logs.home…` | LXC 101 `logs` / lancelot |
-| **Vaultwarden** | `vault.home…` | LXC 102 `vault` / galahad |
-| **PBS** | `backup.home…` | LXC 103 `pbs` / lancelot |
-| **Pulse** | `pulse.home…` | LXC 106 `pulse` / galahad |
+| **[Grafana](grafana.md)** | `logs.home…` | LXC 101 `logs` / lancelot |
+| **[Vaultwarden](vaultwarden.md)** | `vault.home…` | LXC 102 `vault` / galahad |
+| **[PBS](pbs.md)** | `backup.home…` | LXC 103 `pbs` / lancelot |
+| **[Pulse](pulse.md)** | `pulse.home…` | LXC 106 `pulse` / galahad |
 | **[Firefly III](firefly.md)** + [importeur](firefly.md#importeur-de-donnees) | `finance.home…` / `import.home…` | LXC 109 `finance` / galahad |
-| **AdGuard secondaire** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
+| **[AdGuard secondaire](dns-failover.md)** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
 | **Docs** | `homelab.gabin-simond.fr` | GitHub Pages, hors infra — seul service public sans Authelia |
 
@@ -126,16 +126,16 @@ Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surfac
 
 | ID | Nom | Host | IP LAN | Rôle |
 |---|---|---|---|---|
-| 100 | `dns-failover` | galahad | `192.168.1.30` | AdGuard secondaire + sonde penny — Tailscale `guardian` |
-| 101 | `logs` | lancelot | `192.168.1.31` | Loki + Grafana + Prometheus + relais ntfy |
+| 100 | [`dns-failover`](dns-failover.md) | galahad | `192.168.1.30` | AdGuard secondaire + sonde penny — Tailscale `guardian` |
+| 101 | [`logs`](logs-stack.md) | lancelot | `192.168.1.31` | Loki + Grafana + Prometheus + relais ntfy |
 | 102 | `vault` | galahad | `192.168.1.32` | Vaultwarden |
-| 103 | `pbs` | lancelot | `192.168.1.33` | Proxmox Backup Server |
-| 104 | `zomboid` | galahad | DHCP | Serveur Project Zomboid |
+| 103 | [`pbs`](pbs.md) | lancelot | `192.168.1.33` | Proxmox Backup Server |
+| 104 | [`zomboid`](zomboid.md) | galahad | DHCP | Serveur Project Zomboid |
 | 105 | `sucre` | lancelot | DHCP | **Arrêté** depuis le 2026-08-25 — voir [Bilan et arrêt](../projet/sucre.md#bilan-et-arrêt) |
-| 106 | `pulse` | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
-| 107 | `waterline` | galahad | DHCP | Serveur de test du mod Waterline |
-| 108 | `ci-runner` | lancelot | DHCP | Runner Forgejo Actions (aarch64) |
-| 109 | `finance` | galahad | `192.168.1.37` | Firefly III + importeur |
+| 106 | [`pulse`](pulse.md) | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
+| 107 | [`waterline`](waterline.md) | galahad | DHCP | Serveur de test du mod Waterline |
+| 108 | [`ci-runner`](ci-runner.md) | lancelot | DHCP | Runner Forgejo Actions (aarch64) |
+| 109 | [`finance`](firefly.md) | galahad | `192.168.1.37` | Firefly III + importeur |
 
 Note d'isolement : `vault` et `logs` sont sur des hosts différents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 
