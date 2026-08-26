@@ -20,7 +20,9 @@ restent valables quel que soit l'outil qui leve l'alerte.
 ## Par frequence reellement observee
 
 Les compteurs viennent de la table `proposals` de sucre, sur 4 mois de
-fonctionnement continu.
+fonctionnement continu. **Ils sont figes depuis le 2026-08-25** : sucre est
+arrete (voir [Bilan et arret](../projet/sucre.md#bilan-et-arrêt)), plus rien ne
+les alimente. Les entrees ajoutees apres cette date portent `—`.
 
 | Incident | Matches en 4 mois | Risque du remede |
 |---|---|---|
@@ -34,6 +36,7 @@ fonctionnement continu.
 | [Mises a jour de securite en attente](#mises-a-jour-de-securite-en-attente) | 0 | Moyen |
 | [WAN coupe cote operateur](#wan-coupe-cote-operateur) | 0 | Aucun (diagnostic) |
 | [Bruit auditd EXECVE sur galahad](#bruit-auditd-execve-sur-galahad) | 0 | Aucun (diagnostic) |
+| [Regle Grafana orpheline apres retrait d'un service](#regle-grafana-orpheline-apres-retrait-dun-service) | — | Faible |
 
 ---
 
@@ -354,3 +357,41 @@ est juste.
 correspondante : 27,88 EUR des 29,70 EUR depenses. Le filtrage par
 catalogue devait passer **avant** l'appel au modele, pas apres.
 :::
+
+---
+
+## Regle Grafana orpheline apres retrait d'un service
+
+**Symptome.** Un flot de notifications ntfy sur un service qu'on vient d'arreter
+volontairement, en `FIRING`/`RESOLVED` alternes. Observe le 2026-08-26 : 38
+notifications en 24 heures, **60 % du trafic du topic**, pour la regle
+« Sucre — silence Loki » alors que sucre etait arrete depuis la veille.
+
+**Cause.** Le provisioning Grafana ne **supprime jamais** une regle absente de
+`rules.yml` : il ne fait que creer et mettre a jour ce qu'il y trouve. La regle
+survit dans `grafana.db` avec `is_paused=0` et continue de s'evaluer, a travers
+les redemarrages.
+
+Le battement, lui, vient d'ailleurs : Alloy tournait encore dans le LXC du service
+arrete, donc des logs sporadiques frolaient le seuil dans les deux sens. **Un
+dead-man-switch sur une machine allumee mais videe de son service ne reste pas
+allume, il clignote** — et chaque transition est une notification.
+
+**Detection.** Comparer les `uid` du fichier a ceux de la base. Un ecart = une
+orpheline.
+
+```bash
+tailscale ssh root@lancelot \
+  "pct exec 101 -- sqlite3 /opt/logs/grafana/grafana.db \
+   'SELECT uid, title FROM alert_rule'"
+```
+
+Depuis le 2026-08-26, `logs/deploy-to-lxc101.sh` fait ce controle a chaque
+deploiement et echoue en affichant le bloc a coller.
+
+**Remede.** Nommer les `uid` dans un bloc `deleteRules` de `rules.yml`, puis
+redeployer. Recette detaillee et pieges dans
+[Grafana → retirer une regle d'alerte](../services/grafana.md#retirer-une-règle-dalerte).
+
+Un `DELETE` SQL direct dans `grafana.db` ne tient pas : le provisioning est
+reapplique a chaque demarrage et la regle reviendrait.

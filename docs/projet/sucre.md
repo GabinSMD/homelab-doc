@@ -10,7 +10,18 @@ Anciennement **fish**. Renommé **sucre** le 2026-07-06 — le nom « Fish » es
 reconnait les incidents connus, propose un fix par notification, et exécuté
 après approbation humaine. Nomme d'après Scofield (Prison Break).
 
-## État (2026-04-20)
+:::danger[Arrêté et désactivé depuis le 2026-08-25]
+`sucre.service` ne tourne plus. La détection est passée à **Pulse Patrol**
+(LXC 106 sur galahad). Le LXC 105 et sa base `audit.db` sont conservés, rien
+n'a été supprimé : `systemctl enable --now sucre` et décommenter la ligne
+`check_sucre_service` de `homelab_monitor.sh` suffisent à revenir en arrière.
+
+Tout ce qui suit décrit l'architecture telle qu'elle a été livrée. Le bilan
+chiffré et les raisons de l'arrêt sont dans la section
+[Bilan et arrêt](#bilan-et-arrêt) en fin de page.
+:::
+
+## État à la livraison (2026-04-20)
 
 **MVP livre et prouvé en production.** Premier cycle end-to-end valide :
 
@@ -203,3 +214,87 @@ C'est le **compound mechanism** : chaque incident novel ajoute un pattern. Catal
 - Code : `homelab-config/sucre/` (prive)
 - Design doc complet : `~/.gstack/projects/GabinSMD-homelab-doc/root-main-design-sucre-*.md`
 - Deploy artifacts : `homelab-config/sucre/deploy/` (systemd units, wrapper, sudoers template)
+
+## Bilan et arrêt
+
+Mesuré sur `audit.db`, du 2026-04-30 au 2026-08-25 — quatre mois de production.
+
+| Ce qui a été mesuré | Valeur |
+|---|---|
+| Incidents observés | 4 795 |
+| Appels au modèle | 4 936 |
+| Coût | **29,70 €** |
+| Exécutions réelles | **0** |
+| Propositions sans fiche (`no_match` / `UNKNOWN_INCIDENT`) | 4 768 sur 4 881 |
+| Part du budget dépensée sur ces propositions | **94 %**, soit 27,88 € |
+
+Les 113 vrais appariements — 84 `docker-compose-stopped-post-reboot`, 23
+`traefik-docker-provider-eof`, 5 `adguard-desync`, 1 `pmxcfs-ro-post-recovery` —
+sont tous restés en `dry_run`.
+
+### Pourquoi c'est arrêté
+
+Deux défauts séparables, aucun des deux lié à l'idée elle-même.
+
+Le **coût** est un mauvais ordre d'opérations : le filtrage par catalogue devait
+précéder l'appel au modèle, pas le suivre. La **valeur nulle** est un frein qu'on
+n'a jamais relâché — le `dry_run` n'a jamais été levé.
+
+Mais ce qui tranche n'est ni l'un ni l'autre. C'est que les pannes qui ont
+réellement coûté cher dans ce homelab sont des **sauvegardes muettes, des
+défauts de fraîcheur et des dérives de configuration** — et que sucre, déclenché
+par les logs, ne pouvait structurellement pas les voir. Un observateur de logs ne
+détecte pas une absence.
+
+### Ce que l'arrêt a laissé derrière lui
+
+Trois témoins surveillaient sucre. Les couper fait partie de l'arrêt, et l'un des
+trois a résisté.
+
+La sonde `check_sucre_service` de `homelab_monitor.sh` avait déjà envoyé un
+« sucre DOWN » sur un arrêt volontaire avant d'être neutralisée le jour même.
+
+Les deux règles Grafana `alert-sucre-llm-unavailable` et `alert-host-sucre-silent`
+ont été retirées de `rules.yml`… sans disparaître. **Le provisioning Grafana ne
+supprime jamais une règle absente du fichier** : il faut la nommer dans un bloc
+`deleteRules`. Elles ont donc continué de s'évaluer, et
+`alert-host-sucre-silent` — un dead-man-switch sur un service volontairement mort
+— a envoyé **38 notifications en 24 heures, 60 % du trafic du topic ntfy**, avant
+d'être vraiment supprimée le 2026-08-26. La recette est dans
+[Grafana → retirer une règle d'alerte](../services/grafana.md#retirer-une-règle-dalerte).
+
+Détail qui explique le battement : Alloy tournait encore dans le LXC 105, donc des
+logs sporadiques frôlaient le seuil dans les deux sens. Un dead-man-switch sur une
+machine allumée mais vidée de son service ne reste pas allumé, **il clignote** —
+et chaque transition est une notification.
+
+### Le remplaçant coûte plus cher que l'original
+
+Mesuré sur `/opt/pulse/data/ai_usage_history.json`, sur les 17 heures qui ont
+suivi l'activation de l'IA de Pulse le 2026-08-25 à 15h43.
+
+| Usage | Appels | Coût |
+|---|---|---|
+| `discovery` | 147 | 4,38 $ |
+| `patrol` | 5 | 1,92 $ |
+| **Total** | **152** | **6,30 $** |
+
+475 000 tokens d'entrée et 157 000 de sortie, intégralement en `claude-opus-5`
+(5 $ / 25 $ le million). Au rythme observé : **~8,80 $/jour, ~265 $/mois**.
+
+sucre a été arrêté pour 29,70 € sur quatre mois, soit ~7,40 €/mois. Patrol tourne
+à environ **trente-cinq fois ce montant, par mois**, et 70 % part dans
+`discovery` — un scan récurrent toutes les six heures — et non dans la détection
+de pannes. Le remplaçant reproduit le défaut exact de l'original, appeler le
+modèle avant tout filtrage, à plus grande échelle.
+
+:::warning[BYOK ne veut pas dire gratuit]
+Patrol en « Watch only » est présenté comme sans frais parce qu'il utilise ta
+propre clé Anthropic. C'est ta facture, pas celle de l'éditeur. Le premier levier
+est de couper ou d'espacer `discovery` (`discoveryEnabled` dans
+`/opt/pulse/data/system.json`), pas de toucher à `patrol`.
+:::
+
+Une réserve sur ces chiffres : ils couvrent la première journée après activation
+et n'ont pas été recoupés avec la facturation Anthropic. À revérifier avant toute
+décision.
