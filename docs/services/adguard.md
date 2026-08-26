@@ -71,7 +71,7 @@ Configuration Tailscale admin (login.tailscale.com > DNS) :
 - DNS 2 : `100.74.145.26` (dns-failover)
 
 :::warning[Ne pas utiliser de DNS Rewrites statiques pour `*.home.*`]
-Voir [DNS flow](../architecture/reseau.mdx#les-dns-rewrites-la-piece-cle) — uniquement les `user_rules` conditionnelles sur les deux instances.
+Voir [DNS flow](../architecture/reseau.mdx#les-dns-rewrites-la-pièce-clé) — uniquement les `user_rules` conditionnelles sur les deux instances.
 :::
 
 ### DNS Rewrites statiques (exceptions)

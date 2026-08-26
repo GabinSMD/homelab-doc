@@ -1,4 +1,4 @@
-name: Deploy MkDocs to GitHub Pages
+name: Deploy Docusaurus to GitHub Pages
 
 on:
   push:
@@ -24,19 +24,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
+          bun-version: "1.3.12"
 
-      - name: Install dependencies
-        run: pip install mkdocs-material mkdocs-mermaid2-plugin
-  
+      # Voir le commentaire du job `docusaurus-build` de ci.yml : bun.lock est le
+      # seul lockfile du depot, donc `npm ci` n'est pas une option aujourd'hui.
+      - name: Cache des dependances
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
       - name: Build site
-        run: mkdocs build
-      
+        run: bun run build
+
+      # Docusaurus ecrit dans build/, mkdocs ecrivait dans site/.
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: build
 
   deploy:
     # GitHub Pages n'existe pas sur Forgejo : ce workflow n'a de sens que sur GitHub.

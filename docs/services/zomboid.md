@@ -147,7 +147,7 @@ La surveillance est sur penny parce que **galahad n'a aucun chemin ntfy** — ni
 
 | Symptôme | Cause probable | Action |
 |---|---|---|
-| Le service ne démarre pas, log `Enter new administrator password` | compte `admin` absent de `whitelist` | écrire le mot de passe deux fois dans `/run/pz/stdin` (voir [Rôles et comptes](#le-compte-admin-ne-peut-pas-etre-supprime-mais-il-peut-etre-neutralise)) — méthode vérifiée le 2026-08-04. L'ancienne consigne `-adminusername admin -adminpassword <pass>` n'a **pas** pu être confirmée sur B42.20 et est à considérer comme non vérifiée |
+| Le service ne démarre pas, log `Enter new administrator password` | compte `admin` absent de `whitelist` | écrire le mot de passe deux fois dans `/run/pz/stdin` (voir [Rôles et comptes](#le-compte-admin-ne-peut-pas-être-supprimé-mais-il-peut-être-neutralisé)) — méthode vérifiée le 2026-08-04. L'ancienne consigne `-adminusername admin -adminpassword <pass>` n'a **pas** pu être confirmée sur B42.20 et est à considérer comme non vérifiée |
 | Un joueur arrive sur un personnage neuf | pseudo différent de l'original | les personnages sont indexés par nom d'utilisateur dans le monde : réutiliser le pseudo exact |
 | `Reckos` sans droits admin | colonne `world` divergente | `UPDATE whitelist SET world='servertest Gab' WHERE username='Reckos';` |
 | OOM de la JVM | `-Xmx` revenu à `8g` après un `app_update` | remettre `4g` dans `ProjectZomboid64.json` |

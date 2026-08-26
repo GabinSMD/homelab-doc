@@ -1,10 +1,62 @@
 # Migration MkDocs → Docusaurus — plan
 
 **Date** : 2026-08-25
-**Statut** : phases 0 et 1 faites — le squelette build, les 56 URLs sont identiques
+**Statut** : phases 0 a 4 faites (2026-08-26). Reste la phase 5 : diff d'URLs vide, fusion, verification a l'oeil.
 **Worktree** : `/mnt/ssd/homelab-docusaurus` (branche `migration-docusaurus`)
 **Portée** : le dépôt `homelab-doc`, le site `homelab.gabin-simond.fr`, les workflows CI/CD
 **Suite prévue** : pipeline Outline → Docusaurus (chantier séparé, à ne lancer qu'après bascule)
+
+## Corrections apportees au plan le 2026-08-26
+
+Cinq affirmations de ce plan se sont averees fausses a l'execution. Elles sont
+corrigees ci-dessous plutot que reecrites en silence, parce que **c'est
+l'inventaire qui etait faux, pas la mesure** : les chiffres venaient de `grep`
+lances sans exclure les blocs de code ni ce document lui-meme.
+
+1. **« 17 fichiers publies sans figurer dans la nav — tout `guides/` (4), tout
+   `projet/` (11) ».** Faux, et pas une derive du corpus : des le commit
+   `9c20a11` (phase 1), `mkdocs.yml` avait deja ces 15 entrees dans son bloc
+   `nav`. Seules **3** pages sont hors nav : `operations/b2-cap-exceeded`,
+   `operations/r2-migration`, et ce document. Consequence concrete :
+   `sidebars.js` n'en listait que 38 sur 53, donc la bascule aurait supprime
+   `guides/` et `projet/` du menu. **`compare-urls.sh` ne pouvait pas le voir** —
+   les pages repondent toujours, elles ne sont plus atteignables au clic. Une
+   comparaison d'URLs ne controle pas une navigation. Corrige en `a688a55`.
+
+2. **« Le script traite aussi `++touche++` (2) et `==surligne==` (6) ».** Aucune
+   de ces occurrences n'est du contenu. Les `==...==` sont **toutes** dans des
+   blocs de code : regles udev de `architecture/os.md`
+   (`ATTR{idProduct}=="1156"`), separateurs de sortie shell de `break-glass` et
+   `hardening` (`== FIN ==`). Le reste vient des exemples de syntaxe de ce
+   document. Les convertir aurait corrompu la configuration udev du SSD.
+
+3. **« 7 emoji `:xxx:` a remplacer ».** Le grep generique attrapait `:https:`,
+   `:bucket:`, `:gabin-homelab-backups:` — des fragments d'URL et de config
+   rclone dans des blocs de code. Les vraies icones MkDocs Material sont **32**
+   (`:material-check:` 9, `:material-close:` 4, `:octicons-alert-16:` 19) dans
+   2 fichiers. Traitees par liste blanche explicite, jamais par motif generique.
+
+4. **« Liens internes relatifs `.md` : 122 — neant, Docusaurus les resout
+   nativement ».** Il les resout **par nom de fichier**. Passer `index`,
+   `architecture/reseau` et `operations/break-glass` en `.mdx` a casse les 19
+   liens qui pointaient dessus. Corrige en `64d80e1`, par resolution de chemin et
+   non par recherche-remplacement — chaque section a son propre `index.md` non
+   renomme, un `sed` sur `index.md` les aurait tous casses.
+
+5. **« Docusaurus echoue deja sur un lien interne casse — c'est l'equivalent du
+   `--strict` » (phase 4).** Faux avec la configuration ecrite en phase 1 :
+   `onBrokenLinks` et `onBrokenAnchors` etaient sur `warn`. La CI n'aurait rien
+   arrete. Les trois reglages (`onBrokenLinks`, `onBrokenAnchors`,
+   `onBrokenMarkdownLinks`) sont passes sur `throw` en fin de phase 3.
+
+**Et « 12 des 19 dangers MDX » dans `index.md` : il y en avait deux** —
+l'attribut `markdown` et les `<br>`. Les autres balises HTML du bloc sont
+valides en MDX des lors qu'elles sont fermees.
+
+Ce qui a tenu exactement comme annonce : `trailingSlash: true` (aucune
+redirection necessaire), `format: 'detect'` (aucune erreur MDX sur les 53
+fichiers restes en `.md`), la des-indentation comme piege principal, et
+`success` -> `tip`.
 
 ## Objectif
 
@@ -152,7 +204,7 @@ identiques ».** Aucune erreur MDX — `format: 'detect'` fait bien son travail.
 admonitions MkDocs non converties ne cassent rien : elles s'affichent en texte brut,
 ce qui est un échec visible et non un échec de build.
 
-### Phase 2 — conversion mécanique
+### Phase 2 — conversion mécanique — FAITE
 
 Un script Python unique, idempotent, qui traite les 30 fichiers à admonitions.
 
@@ -187,7 +239,7 @@ Corps, avec une ligne vide de chaque côté pour rester du Markdown.
 Le script traite aussi, dans la même passe : `++touche++` (2 occurrences) et
 `==surligné==` (6). Les 7 emoji `:xxx:` sont à remplacer par le caractère littéral.
 
-### Phase 3 — les quatre fichiers manuels
+### Phase 3 — les quatre fichiers manuels — FAITE
 
 1. **`index.md` → `index.mdx`.** Le bloc `<div class="hero" markdown>` (12 des 19
    dangers MDX) dépend de `md_in_html` et de `extra.css`, tous deux abandonnés.
@@ -198,7 +250,7 @@ Le script traite aussi, dans la même passe : `++touche++` (2 occurrences) et
 4. **`operations/b2-cap-exceeded.md`** — l'autolien `<https://…>` en plein texte est
    sauvé par `format: 'detect'`, mais c'est le fichier témoin idéal pour le vérifier.
 
-### Phase 4 — CI/CD
+### Phase 4 — CI/CD — FAITE
 
 Dans `.github/workflows/` :
 
@@ -210,7 +262,7 @@ Dans `.github/workflows/` :
   Outline arrivera, puisque c'est lui qui verra le contenu rédigé hors du dépôt.
 - Conserver les gardes `if: github.server_url == 'https://github.com'`.
 
-### Phase 5 — bascule et vérification
+### Phase 5 — bascule et vérification — RESTE À FAIRE
 
 Comparer `/tmp/urls-avant.txt` au build Docusaurus. **Diff vide obligatoire avant
 de fusionner.** Puis fusionner, laisser Pages déployer, et vérifier à la main la

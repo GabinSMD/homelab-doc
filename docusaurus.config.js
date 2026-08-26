@@ -18,8 +18,14 @@ const config = {
   organizationName: 'GabinSMD',
   projectName: 'homelab-doc',
 
-  onBrokenLinks: 'warn',
-  onBrokenAnchors: 'warn',
+  // `throw` depuis la fin de la phase 3 : c'est ce qui remplace le `--strict` de
+  // mkdocs. Etait sur `warn` pendant la migration, le temps de corriger les 7
+  // ancres cassees — toutes des liens ecrits sans accents alors que l'ancre
+  // reelle les conserve (`...la-piece-cle` au lieu de `...la-pièce-clé`). Elles
+  // etaient mortes en production depuis toujours : mkdocs ne valide pas les
+  // ancres sans `validation.anchors`, jamais configure ici.
+  onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
 
   i18n: {
     defaultLocale: 'fr',
@@ -33,7 +39,7 @@ const config = {
     format: 'detect',
     mermaid: true,
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: 'throw',
     },
   },
 

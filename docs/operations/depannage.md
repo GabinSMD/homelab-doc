@@ -356,7 +356,7 @@ Des **DNS Rewrites statiques** dans AdGuard (Filters > DNS Rewrites) ecrasent le
 
 Supprimer toutes les entrees dans **Filters > DNS Rewrites** pour les domaines `*.home.gabin-simond.fr`. Le wildcard dans `user_rules` géré déjà tous les sous-domaines avec le bon routage conditionnel (LAN vs Tailscale).
 
-Voir [Comment fonctionne le DNS](../architecture/reseau.mdx#les-dns-rewrites-la-piece-cle) pour le détail des règles.
+Voir [Comment fonctionne le DNS](../architecture/reseau.mdx#les-dns-rewrites-la-pièce-clé) pour le détail des règles.
 
 ---
 
@@ -1147,4 +1147,4 @@ pvesm status                                    # storage PBS repassé active ?
 systemctl --failed
 ```
 
-Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-apres-recovery-node-cluster).
+Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-après-recovery-node-cluster).

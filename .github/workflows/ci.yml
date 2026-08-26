@@ -77,19 +77,43 @@ jobs:
           globs: "docs/**/*.md"
           config: .markdownlint.json
 
-  mkdocs-build:
-    name: mkdocs build (strict)
+  docusaurus-build:
+    name: docusaurus build
+    # Volontairement SANS garde de serveur, comme l'ancien job mkdocs : Forgejo
+    # est la source de verite, son runner (LXC 108, aarch64) doit valider le
+    # build lui aussi. Bun publie un binaire linux-arm64.
+    #
+    # POURQUOI BUN ET PAS `npm ci` : le seul lockfile du depot est `bun.lock`,
+    # et c'est lui qui a produit le build verifie en local. Il n'y a pas de Node
+    # sur penny pour generer un `package-lock.json`, donc `npm ci` echouerait
+    # faute de lockfile et `npm install` ne serait pas reproductible. Passer a
+    # Node + npm ci reste souhaitable (Docusaurus vise officiellement Node) mais
+    # demande de generer le lockfile sur une machine qui a Node : suivi separe,
+    # pas un prealable a la bascule.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
+          bun-version: "1.3.12"
 
-      - name: Install mkdocs + plugins
-        run: pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin pymdown-extensions
+      # Sans ce cache, chaque build reinstalle plusieurs centaines de Mo — le
+      # piege n°7 du plan de migration, sensible sur le runner arm64.
+      - name: Cache des dependances
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Build (strict — fails on warnings/broken refs)
-        run: mkdocs build --strict
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # `onBrokenLinks` et `onBrokenAnchors` sont sur `throw` dans
+      # docusaurus.config.js : un lien ou une ancre morte fait echouer ce job,
+      # ce qui remplace le `--strict` de mkdocs.
+      - name: Build
+        run: bun run build

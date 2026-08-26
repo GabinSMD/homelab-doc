@@ -77,7 +77,7 @@ Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour 
 | `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, autoheal) |
 | `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
 
-Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#reseaux-docker-isolation-et-icc).
+Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#réseaux-docker-isolation-et-icc).
 
 ## Socket proxy — isolation Docker API
 
