@@ -38,3 +38,30 @@ Un build Docusaurus réinstalle plusieurs centaines de mégaoctets de dépendanc
 chaque exécution sans cache. Le workflow met donc en cache
 `~/.bun/install/cache`, avec une clé sur l'empreinte de `bun.lock` — c'est
 sensible ici, la machine étant un LXC sur un ZimaBoard et non un runner hébergé.
+
+## Pourquoi 4 Go et pas 2
+
+:::warning[Ne pas redescendre à 2 Go]
+Le LXC a été passé de **2 à 4 Go le 2026-08-26**, à chaud
+(`pct set 108 -memory 4096`, appliqué sans redémarrage).
+
+Motif : un build Docusaurus fait un pic mémoire mesuré à **91,6 % de 2048 Mo**,
+soit ~1875 Mo. Avec un seuil d'alerte Pulse à 85 %, **chaque build produisait une
+notification et un appel Patrol** — alors que le conteneur est à 3 % le reste du
+temps. Le pic n'était pas un problème, l'alerte l'était : un seuil franchi par le
+fonctionnement normal n'informe plus.
+
+Sur 4 Go le même pic tombe à 46 %, donc sous le seuil sans avoir à le relever.
+Relever le seuil aurait masqué le symptôme ; agrandir le conteneur supprime la
+cause et accélère les builds au passage.
+
+Marge côté hôte : lancelot a 16 Go, dont 13 disponibles au moment du changement,
+pour 5 Go alloués aux LXC en marche. Il y a de la place.
+:::
+
+:::note[Ce réglage n'est pas versionné]
+La mémoire d'un LXC vit dans `/etc/pve/lxc/108.conf` sur lancelot, qui n'est pas
+dans `homelab-config`. Une reconstruction du conteneur repartira donc du défaut du
+template — c'est cette page qui porte l'information, pas un fichier de
+configuration.
+:::
