@@ -45,14 +45,12 @@ RETIRES = [
         "retire": "2026-05-11 (migration vers Cloudflare R2)",
         "a_la_place": "set -a; . /root/.restic-env; set +a  (n'ecris jamais la liste des variables en dur)",
         "autorise": {
-            # Documente la migration : la comparaison B2 -> R2 est son sujet.
-            "docs/operations/r2-migration.md",
-            # Post-mortem du depassement de quota B2, anterieur a la migration.
-            "docs/operations/b2-cap-exceeded.md",
             # Porte deja la note « B2 decommissionne le 2026-05-29 ».
             "docs/operations/dr-drill-scenario-1.md",
             # L'encadre de correction cite l'ancienne commande pour l'expliquer.
             "docs/operations/break-glass.mdx",
+            # Les 2 post-mortems B2/R2 ont rejoint projet/journal/ le 2026-08-26 :
+            # ils sont hors du perimetre surveille, plus besoin de les blanchir.
         },
     },
     {
@@ -67,6 +65,13 @@ RETIRES = [
         "quoi": "l'agent SRE sous son ancien nom « fish »",
         "retire": "2026-07-06 (renomme sucre)",
         "a_la_place": "sucre — et note qu'il est lui-meme arrete depuis le 2026-08-25",
+        "autorise": set(),
+    },
+    {
+        "motif": r"/mnt/ssd/homelab-config",
+        "quoi": "un chemin de depot qui n'existe pas",
+        "retire": "toujours — le depot est en /mnt/ssd/config",
+        "a_la_place": "/mnt/ssd/config",
         "autorise": set(),
     },
 ]

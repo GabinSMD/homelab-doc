@@ -29,7 +29,7 @@ Depuis le RPi (ou un autre poste), servir le script :
 
 ```bash
 # Sur le RPi
-cd /mnt/ssd/homelab-config/scripts
+cd /mnt/ssd/config/scripts
 python3 -m http.server 8888
 ```
 

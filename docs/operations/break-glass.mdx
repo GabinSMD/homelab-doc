@@ -408,7 +408,7 @@ Vérifier l'acces a l'app mobile Bitwarden (sync offline) avant de commencer. Le
 # (voir proxmox-fix-emmc.sh dans homelab-config/scripts/)
 
 # Apres installation et reboot, appliquer le post-install depuis penny :
-cd /mnt/ssd/homelab-config/scripts && python3 -m http.server 8888
+cd /mnt/ssd/config/scripts && python3 -m http.server 8888
 
 # Sur galahad (192.168.1.18) :
 wget -O- http://192.168.1.28:8888/proxmox-post-install.sh | bash
@@ -458,7 +458,7 @@ pct exec 100 -- bash -c "
 "
 
 # Restaurer la config AdGuard depuis le repo
-pct push 100 /mnt/ssd/homelab-config/adguard/AdGuardHome.yaml \
+pct push 100 /mnt/ssd/config/adguard/AdGuardHome.yaml \
     /opt/AdGuardHome/AdGuardHome.yaml
 pct exec 100 -- systemctl restart AdGuardHome
 
@@ -631,7 +631,7 @@ docker compose up -d authelia
 
 # Option B : Regenerer les secrets (si backup corrompu aussi)
 # ATTENTION : cela invalide TOUS les clients OIDC existants
-cd /mnt/ssd/homelab-config
+cd /mnt/ssd/config
 cp authelia/configuration.yml.example /mnt/ssd/config/authelia/configuration.yml
 cp authelia/users_database.yml.example /mnt/ssd/config/authelia/users_database.yml
 
