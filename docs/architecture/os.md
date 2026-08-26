@@ -84,7 +84,8 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 ```json
 {
     "data-root": "/mnt/ssd/docker",
-    "log-driver": "journald",
+    "log-driver": "json-file",
+    "log-opts": { "max-size": "10m", "max-file": "3" },
     "log-level": "warn",
     "debug": false,
     "icc": false,
@@ -93,12 +94,26 @@ dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
 ```
 
 - `data-root` sur le SSD — images, volumes, et overlays sur le disque rapide
-- `log-driver: journald` — logs dans journald (en tmpfs via DietPi), pas sur disque
+- `log-driver: json-file` avec `log-opts` — **30 Mo maximum par conteneur**
+  (3 fichiers de 10 Mo). Sans cette limite, un conteneur bavard remplit son hôte :
+  Pulse est resté mort 3 jours et demi derrière un `json.log` de 982 Mo. La limite
+  ne s'applique qu'aux conteneurs **recréés**, pas à ceux déjà en marche.
 - `log-level: warn` — limité le bruit dans les logs
 - `icc: false` — inter-container communication OFF sur bridge par defaut (sécurité)
 - `no-new-privileges: true` — empeche l'escalade de privileges dans les containers
 
 Pour les mesures de hardening Docker detaillees (cap_drop, read_only, socket-proxy), voir [hardening.md](../securite/hardening.md#docker-tous-containers).
+
+
+:::warning[Pourquoi plus journald]
+Le driver a longtemps ete `journald`, sur le raisonnement « les logs vont en
+tmpfs, donc pas d'usure SD ». Deux choses l'ont invalide. D'abord le
+`/var/log` en tmpfs de DietPi est **purge chaque heure** : les logs de conteneur
+n'y survivaient pas assez pour servir a un post-mortem. Ensuite, journald sur ARM
+a un bug recurrent de SIGBUS entre lecteur et ecrivain sur les fichiers mmap —
+il a tue `dockerd` lui-meme. Le correctif de classe a ete de sortir du chemin
+journald, et la limite de taille remplace la protection que tmpfs offrait.
+:::
 
 ## Watchdog hardware (BCM2835)
 
@@ -198,7 +213,8 @@ autoheal:
 | USB autosuspend off | Double protection SSD |
 | UAS désactivé | Force `usb-storage` (plus stable) |
 | SSD non-rotational | I/O scheduler optimise |
-| Logs en tmpfs | Pas d'usure SD |
+| Logs Docker plafonnes (30 Mo/conteneur) | Un conteneur bavard ne remplit plus l'hote |
+| Logs systeme en tmpfs | Pas d'usure SD |
 | Swap désactivé | Pas d'usure SSD/SD |
 | GPU 16 Mo | Plus de RAM pour les services |
 | Headless | Framebuffers a 0 |

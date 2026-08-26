@@ -92,6 +92,49 @@ Une seule ancre publiée était touchée
 (`#restaurer-vaultwarden-depuis-restic-b2`) : elle est **préservée** par un id
 explicite, le titre seul change. Une ancre est une URL.
 
+## La couverture, mesurée — le vrai problème n'est pas la prose
+
+Deuxième passe, le 2026-08-26 : plutôt que de relire les pages, on a confronté
+leurs affirmations vérifiables à l'état des machines. C'est là que l'écart se voit.
+
+| Mesure | Réalité | Ce que la doc disait |
+|---|---|---|
+| Conteneurs sur penny | **24** | `services/index.md` en listait 16 |
+| LXC | **10** | la même page en listait 3 |
+| Réseaux Docker | **5** (`proxy`, `socket`, `host`, `outline`, `homelable`) | 3 |
+| Pages dans `services/` | **10** | pour 24 conteneurs |
+| Pages aiguillées par `services/index.md` | **5** | sur ses 10 propres pages |
+
+Onze conteneurs en marche étaient absents de l'inventaire, dont `ntfy` (cité 98
+fois ailleurs dans la doc), `portainer` (70), `forgejo` (40), `crowdsec` (34) et
+`outline` (15). Et sept LXC, dont `logs` — cité **182 fois**. `ci-runner` et
+`homelable-backend` tournent en production sans être mentionnés une seule fois.
+
+**Le diagnostic n'est pas « des pages sont périmées ».** C'est que cette
+documentation est organisée par **récit** — specs, roadmaps, post-mortems,
+incidents — et non par **système**. Du coup l'information sur un service existe,
+souvent en détail, mais éparpillée sur cinq pages, et aucune ne lui sert de
+domicile. `logs` est cité 182 fois et n'a pas de page ; c'est cohérent avec un
+dépôt où on écrit ce qu'on vient de vivre, pas ce qu'on exploite.
+
+Trois erreurs de fond corrigées dans la même passe, toutes du type « la doc décrit
+la configuration d'avant » :
+
+- **`architecture/os.md`** annonçait `"log-driver": "journald"`. La machine est en
+  `json-file` avec un plafond de 30 Mo par conteneur. Le raisonnement de la page
+  était même inversé : elle vantait journald pour éviter l'usure disque, alors que
+  le driver a justement été abandonné parce que le `/var/log` en tmpfs de DietPi
+  est purgé chaque heure et que journald sur ARM a tué `dockerd`.
+- **`services/index.md`** décrivait un `/mnt/ssd/config/.env` en clair. C'est un
+  lien symbolique vers `/run/homelab/.env` : la source est `.env.enc` scellé par
+  sops, matérialisé au démarrage sur un tmpfs.
+- **`architecture/hardware.md`** donnait `ssh root@homelab`, un nœud qui n'existe
+  pas — c'est `penny` — et classait en « matériel prévu » un switch déjà acheté et
+  branché.
+
+Ce qui a résisté au contrôle : les trois ports SSH (2806/2807/2808), les IP des
+LXC, la topologie des trois chemins d'accès, et tout `architecture/acces-reseau.md`.
+
 ## Arbitré le 2026-08-26
 
 Les points ouverts par ce rapport ont été tranchés le jour même.

@@ -13,7 +13,7 @@
 | OS | DietPi v10.2 (Debian 12 Bookworm), kernel 6.12.x aarch64 |
 | IP LAN | 192.168.1.28 |
 | IP Tailscale | 100.97.239.90 |
-| SSH | `ssh root@homelab` (Tailscale SSH) |
+| SSH | `ssh root@penny` (Tailscale SSH) — port 2806 en direct sur le LAN |
 
 ### ZimaBoard x2 (cluster Proxmox)
 
@@ -32,12 +32,19 @@ Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe n
 
 | Machine | Specs | Rôle | Budget |
 |---|---|---|---|
-| Switch 2.5GbE | keepLINK 9XHML-X 8p managed | Switch pour tests Phase 1 | ~62€ |
+
 | Appliance firewall | 4x 2.5GbE, fanless (Topton/CWWK N100) | OPNsense dedie | 100-180€ |
 | Minisforum N5 Max | Intel N100/N150, 16+ Go RAM | Proxmox VE (compute + storage / NAS) | 250-400€ |
 | Switch 2.5GbE 16+ ports | 802.1Q managed | Switch coeur (Phase 2) | 150-300€ |
 | AP WiFi x2-3 | VLAN par SSID (Ubiquiti U6+ / TP-Link EAP) | WiFi segmente | 80-120€/AP |
 | UPS / Onduleur | Protection coupure secteur | Switch + firewall + NAS | 60-100€ |
+
+:::note[Deja achete]
+Le **switch 2.5GbE keepLINK 9XHML-X 8 ports** (~62 €) est acquis et branche — il
+ne fait plus partie du materiel prevu. Sa configuration reste a faire (VLANs,
+~30 min dans l'UI). Il ne repond pas en SNMP, donc sa table MAC est inaccessible
+et le cablage reste deduit dans la cartographie.
+:::
 
 ## Cablage
 
