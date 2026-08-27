@@ -146,7 +146,33 @@ max-load-1        = 24
 interface         = eth0
 realtime          = yes
 priority          = 1
+verbose           = yes    # 2026-08-27 : dire POURQUOI il reset
+logtick           = 60
 ```
+
+### Rendre la raison du reset lisible
+
+Le watchdog a un défaut structurel : il **convertit n'importe quel figeage en
+reset**, et le reset efface la preuve de ce qui figeait. Sans précaution, on
+récupère une machine saine et aucune explication — c'est ce qui a laissé le
+reset du 2026-08-26 sans cause.
+
+Deux dispositifs y répondent, et ils sont complémentaires :
+
+| Dispositif | Ce qu'il apporte | Limite |
+|---|---|---|
+| `verbose` + `logtick` | la raison invoquée par le daemon, expédiée par syslog → journald → Alloy → **Loki**, qui vit hors de penny | suppose que la chaîne d'expédition tourne encore |
+| `dtoverlay=ramoops-pi4` | le tampon `dmesg` en RAM réservée, **survit au reset** et est archivé au boot suivant | ne dit rien si le kernel n'a rien écrit |
+
+```ini
+# /boot/firmware/config.txt — console-size par défaut vaut 0,
+# sans lui ramoops ne capture QUE les panics
+dtoverlay=ramoops-pi4,total-size=131072,console-size=65536
+```
+
+La méthode complète de diagnostic après un reset — dont le piège `fake-hwclock`
+qui fausse tous les horodatages de boot — est dans
+[penny reset en dur, sans rien dans le journal](../operations/depannage.md#penny-reset-en-dur-sans-rien-dans-le-journal).
 
 ### Ce que le watchdog couvre et ne couvre PAS
 
@@ -155,6 +181,7 @@ priority          = 1
 | Kernel freeze / panic | Oui | Le daemon ne peut plus alimenter le timer |
 | Load moyenne > 24 | Oui | Le daemon détecté et reboot |
 | Interface eth0 down | Oui | Le daemon détecté et reboot |
+| Épuisement mémoire | **Indirectement** | Il reset la machine figée, mais sans dire pourquoi — bornes cgroup et enregistreur de vol depuis le 2026-08-27 |
 | Déconnexion SSD | **Non** | Le kernel tourne toujours, seul Docker est impacte |
 | Container crash | **Non** | Couvert par autoheal + homelab_monitor.sh |
 | Temperature critique | **Non** | Couvert par homelab_monitor.sh |

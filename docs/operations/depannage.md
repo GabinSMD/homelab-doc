@@ -1148,3 +1148,182 @@ systemctl --failed
 ```
 
 Voir aussi [pmxcfs stuck read-only après recovery node cluster](#pmxcfs-stuck-read-only-après-recovery-node-cluster).
+
+---
+
+## penny reset en dur, sans rien dans le journal
+
+Le symptôme se présente rarement comme un redémarrage. Il ressemble d'abord à
+une panne de tout autre chose : « Impossible d'accéder à votre ordinateur »
+dans l'app Claude, le DNS du LAN qui ne répond plus, Traefik, Firefly et PBS
+injoignables d'un coup. C'est penny qui a disparu, et le watchdog BCM2835 qui
+l'a redémarrée après 15 secondes de silence kernel.
+
+Le piège de cette panne n'est pas de la réparer, c'est de **savoir ce qui l'a
+causée** : le reset efface sa propre preuve. Trois obstacles se combinent, et
+ils font mentir le diagnostic dans cet ordre.
+
+### 1. Dater le boot — `journalctl` est faux pendant ~46 min
+
+**Le RPi 4 n'a pas d'horloge temps réel.** Au démarrage, `fake-hwclock`
+restaure la dernière heure sauvegardée, puis `systemd-timesyncd` corrige d'un
+coup quelques dizaines de secondes plus tard.
+
+Or cette sauvegarde se fait à deux moments seulement :
+
+| Moment | Mécanisme | Conséquence |
+|---|---|---|
+| Arrêt propre | `ExecStop=/sbin/fake-hwclock save` | l'heure au boot est juste |
+| Toutes les heures, à **:17** | `run-parts /etc/cron.hourly` (défaut Debian) | l'heure au boot a **jusqu'à 1 h de retard** |
+
+Après un reset brutal, seul le second a joué. Le 2026-08-27, penny a redémarré
+à **10:03:38** et journald a horodaté le boot **09:17:03** — comme
+`ExecMainStartTimestamp` de tous les services. `tailscaled` l'a dit tout seul :
+`time jump detected (slept 46m47s)`.
+
+:::danger[Tous les « HH:17 » sont un artefact, pas un horaire]
+Une session d'analyse antérieure a conclu « 13 h sans redémarrage, systemd voit
+la machine saine » alors que penny venait de rebooter. `systemctl show` a menti
+sans le savoir. Un redémarrage **propre** ne produit pas ce décalage, ce qui
+rend l'artefact d'autant plus traître : il n'apparaît que sur les boots qu'on
+cherche justement à dater.
+:::
+
+```bash
+# LA méthode fiable, la seule
+date -d "-$(awk '{print int($1)}' /proc/uptime) seconds" '+%Y-%m-%d %H:%M:%S'
+
+# À ne PAS croire dans les ~46 min qui suivent un reset brutal
+journalctl --list-boots
+systemctl show <unit> -p ExecMainStartTimestamp
+who -b
+```
+
+### 2. Le journal local ne peut pas répondre — deux couches indépendantes
+
+Réparer l'une ne suffit pas, il faut savoir que les deux existent :
+
+- `/var/log` est un **tmpfs de 50 MiB purgé chaque heure** par `dietpi-ramlog` ;
+- `journald.conf` déclare `Storage=persistent`, mais le drop-in
+  `10-fish-alloy-sigbus-volatile.conf` le **remplace par `Storage=volatile`**.
+  C'est un contournement voulu des SIGBUS ARM sur `journald`
+  (voir [Docker daemon crash loop](#docker-daemon-crash-loop-sigbus-journald)) —
+  ne pas le retirer sans arbitrage.
+
+**Les seuls témoins qui survivent vivent hors de penny**, et c'est ce qui a
+tranché les incidents d'août :
+
+| Témoin | Où | Rétention | Ce qu'il donne |
+|---|---|---|---|
+| Prometheus | LXC 101 (lancelot) | 30 j | `node_memory_MemAvailable_bytes{host="penny"}` au pas de 30 s |
+| Loki | LXC 101 + réplica sur penny | 720 h | `{job="journald", host="penny"}` |
+
+Le label est `host=`, **pas** `instance=~".*penny.*"`. Et sur une coupure
+franche, commencer par Loki : Alloy a souvent expédié plus loin que ce que le
+journal local a eu le temps d'écrire.
+
+### 3. ramoops — le seul témoin qui n'a besoin de rien de vivant
+
+Une zone de RAM réservée garde le tampon `dmesg` glissant et **survit au reset
+du SoC** ; `systemd-pstore` l'archive au démarrage suivant. Armé le 2026-08-27
+dans `/boot/firmware/config.txt` :
+
+```ini
+dtoverlay=ramoops-pi4,total-size=131072,console-size=65536
+```
+
+`console-size` est l'essentiel : **son défaut est 0**, et sans lui ramoops ne
+capture que les panics — donc rien du tout sur un simple figeage, qui est
+justement le cas fréquent ici.
+
+Sa vraie valeur est d'être **discriminant**, là où tout le reste est muet :
+
+| Après un reset brutal | Verdict |
+|---|---|
+| `dmesg-*` / `pmsg-*` présent | watchdog ou hang kernel — la DRAM a gardé son contenu |
+| aucun dump | **coupure secteur** — la DRAM a tout perdu |
+
+C'est exactement la question restée ouverte sur le reset du 2026-08-26.
+
+```bash
+ls -1 /var/lib/systemd/pstore/           # dumps archivés
+ls -1 /sys/fs/pstore/                    # non encore archivés (vide en régime normal)
+```
+
+Deux familles de fichiers, à ne pas confondre : `dmesg-*`/`pmsg-*` sont une
+**preuve de crash** ; `console-*` est un tampon glissant présent après
+**n'importe quel** redémarrage, propre inclus. `check_pstore` dans
+`homelab_monitor.sh` n'alerte que sur les premiers, et seulement sur les dumps
+**jamais vus** (identité = chemin + `mtime`) : l'archive persistant
+indéfiniment, alerter sur « archive non vide » réarmerait toutes les 30 minutes
+pour un événement unique.
+
+### Arbre de décision
+
+Une fois le boot correctement daté, trois mesures suffisent à trancher :
+
+| Dump pstore | `MemAvailable` avant le trou | `throttled` | Verdict |
+|---|---|---|---|
+| présent | — | — | Oops ou hang kernel : lire le dump |
+| absent | s'effondre | `0x0` | **épuisement mémoire** (cas des 25/08 et 27/08) |
+| absent | plat et sain | `0x0` | figeage non expliqué — voir SSD, charge, eth0 |
+| absent | plat | ≠ `0x0` | sous-tension : alimentation ou câble |
+| absent | pas de donnée du tout | — | coupure secteur probable (Prometheus s'arrête net) |
+
+Une ligne de plus, valable pour les trois machines : **un `uptime` identique
+sur penny, galahad et lancelot désigne un événement électrique**, pas trois
+pannes indépendantes.
+
+### La cause déjà rencontrée deux fois : l'épuisement mémoire
+
+penny tourne **sans swap** ; `claude-remote.service` tournait en
+`MemoryMax=infinity`. Une session emballée n'avait donc aucun garde-fou :
+
+| Date | `MemAvailable` | Durée |
+|---|---|---|
+| 2026-08-25 18:18 | 3829 → 1017 MiB | 12 min |
+| 2026-08-27 10:03 | 4152 → 1440 MiB | 90 s |
+
+La machine se fige, le watchdog la reset, et le reset emporte la preuve. Trois
+correctifs déployés le 2026-08-27 :
+
+1. **Bornes cgroup** sur `claude-remote.service` (`MemoryHigh=3500M`,
+   `MemoryMax=4500M`) : à la limite dure, le noyau tue le plus gros
+   **processus** du groupe — la session fautive — au lieu de laisser mourir la
+   machine. Appliquer par `daemon-reload` **seul** : un `restart` tuerait
+   toutes les sessions vivantes.
+2. **zram 2 GiB** (`/boot/dietpi/func/dietpi-set_swapfile 2048 zram`). Effet de
+   bord à défaire : la fonction recalcule le tmpfs `/tmp` à la hausse parce que
+   le swap entre dans sa formule — remettre la valeur de `system/fstab`.
+3. **Enregistreur de vol** dans `check_ram` : TOP-5 RSS, `MemAvailable`, charge
+   et swap écrits à **chaque** passage dans
+   `/mnt/ssd/log-homelab/ram-flight-recorder.log`.
+
+:::tip[Pourquoi l'alerte porte sur la vitesse et non sur un niveau]
+`RAM_WATCH=75 %` est un seuil de **niveau**, et un niveau ne voit pas une
+rampe. Le 27/08 à 10:01, penny était à **73 %** — un point sous le seuil —
+donc le TOP-5 n'a jamais été écrit et le coupable de ce matin-là reste inconnu.
+
+L'alerte `ram-collapse` combine désormais deux conditions : plus de
+**1000 MiB/min** perdus **et** moins de **3000 MiB** restants. La vitesse seule
+crierait sur toute grosse allocation bénigne d'une machine reposée ; le niveau
+seul arrive trop tard. Rejouée sur les chiffres du 27/08 (~1800 MiB/min,
+2355 MiB restants), elle serait partie **~90 s avant le figeage** — la seule
+alerte de cette famille qui laisse une fenêtre d'action.
+:::
+
+### Vérifier après le retour de penny
+
+```bash
+date -d "-$(awk '{print int($1)}' /proc/uptime) seconds"   # dater le boot, d'abord
+ls -1 /var/lib/systemd/pstore/                             # le kernel a-t-il parlé ?
+vcgencmd get_throttled                                     # 0x0 attendu
+systemctl --failed
+docker ps --format '{{.Names}}\t{{.Status}}' | grep -v Up  # cf. stack down après reboot
+tail -50 /mnt/ssd/log-homelab/ram-flight-recorder.log      # que montait-il avant ?
+systemctl show claude-remote -p MemoryMax -p MemoryHigh    # bornes toujours actives ?
+```
+
+Voir aussi [Watchdog hardware (BCM2835)](../architecture/os.md#watchdog-hardware-bcm2835)
+pour la configuration, et [Nœud PVE mort sans laisser de trace](#nœud-pve-mort-sans-laisser-de-trace--oops-kernel)
+pour l'équivalent sur les ZimaBoard (pstore EFI, mécanisme différent).
