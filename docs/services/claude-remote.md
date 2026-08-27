@@ -13,7 +13,7 @@ L'incident du 2026-08-03 a montré le trou : le SSD Argon a décroché à 01:25,
 ```mermaid
 flowchart LR
     S[Smartphone<br/>app Claude]
-    A[Bridge Anthropic<br/>environment env_017uqn…]
+    A[Bridge Anthropic<br/>environment env_016efv…]
     T[penny · tmux -L claude<br/>claude remote-control<br/>cwd /root]
     S1[session 1]
     S2[session 2]
@@ -31,7 +31,51 @@ flowchart LR
 
 Le lien est **sortant en HTTPS** : aucun port entrant, aucune règle NAT sur la box. Cohérent avec la posture « zéro WAN forward » de penny.
 
-Le serveur enregistre un **environment** côté Anthropic — c'est cette entité qui apparaît comme appareil dans l'app, avec une icône d'ordinateur et un point vert quand elle est en ligne. Son identifiant est persisté par répertoire de travail dans `~/.claude/projects/-root/bridge-pointer.json`, donc **l'appareil reste le même d'un reboot à l'autre** tant que le `WorkingDirectory` du service ne change pas.
+Le serveur enregistre un **environment** côté Anthropic — c'est cette entité qui apparaît comme appareil dans l'app, avec une icône d'ordinateur et un point vert quand elle est en ligne. Son identifiant est persisté par répertoire de travail dans `~/.claude/projects/-root/bridge-pointer.json`.
+
+### Le pointeur est l'ancre d'identité, et il est fragile {#pointeur-ancre-identite}
+
+L'appareil reste le même d'un reboot à l'autre, mais pas gratuitement. Au démarrage, le serveur **relit** l'`environmentId` dans le pointeur et demande explicitement sa réutilisation :
+
+```
+[bridge:init] Found prior environment env_016efv… in pointer (ageMs=0);
+              requesting reuse on registration
+POST /v1/environments/bridge -> 200 environment_id=env_016efv…
+```
+
+Trois conditions, toutes vérifiées le 2026-08-27 :
+
+- **Le fichier doit être valide en bloc.** Il porte cinq clés (`sessionId`, `environmentId`, `source`, `pid`, `procStart`). En retirer une le rend invalide, et le serveur ne récupère pas les survivantes : il jette le fichier **entier**, `environmentId` compris.
+- **Le mtime doit être récent.** Un pointeur de plus de 4 h est jeté pour la même raison, avec la même conséquence.
+- **`bridgeId` n'est pas l'identité.** Il est tiré au hasard à chaque démarrage (`be3eedc5` le 26/08, `645bc7ac` le 27/08). Sans `environmentId` à réutiliser, l'API crée un environnement neuf.
+
+Le rejet est explicite dans `server-debug.log` :
+
+```
+[bridge:pointer] invalid schema, clearing: /root/.claude/projects/-root/bridge-pointer.json
+[bridge:pointer] cleared  /root/.claude/projects/-root/bridge-pointer.json
+[bridge:init] bridgeId=645bc7ac-…          <- plus de reuseEnvironmentId
+POST /v1/environments/bridge -> 200 environment_id=env_016efv…   <- environnement NEUF
+```
+
+Le résultat visible est **un « penny » de plus dans l'app**, l'ancien restant en place, mort. Rien n'est perdu au passage : les conversations vivent dans `~/.claude/projects/-root/*.jsonl` et ne dépendent pas du pointeur.
+
+:::danger[Ne jamais éditer le pointeur en supprimant une clé]
+C'est exactement ce qu'a fait `penny-arm-reset-forensics.sh` le 2026-08-27 pour tuer une session zombie, en croyant « préserver `environmentId` ». La clé était bien encore dans le fichier, et sans effet : le serveur avait jeté le fichier avant de la lire. `env_017uqn…` est devenu `env_016efv…`.
+
+La seule édition sûre est de changer une **valeur** en gardant les cinq clés. Pour se débarrasser d'une session morte sans perdre l'identité, remplacer la valeur de `sessionId` par un identifiant inexistant : le `bridge/reconnect` échoue alors en `400 Session not found`, chemin que le serveur traite proprement, et il repart sur une session neuve en conservant l'environnement. Raisonné à partir des logs du 26/08, pas encore exécuté.
+:::
+
+Tant que le service tourne, le pointeur ne vieillit pas : le serveur le réécrit **toutes les heures**, à l'ancre du `created_at` de la session. Vérifié sur deux démarrages indépendants.
+
+| Démarrage | Ancre (session) | Écritures du pointeur | Écart |
+|---|---|---|---|
+| 26/08 | 18:26:02.303 | 19:26:02.465, 20:26:02.465, 21:26:02.472, 22:26:02.473, 23:26:02.499 | +1 h à 200 ms près |
+| 27/08 | 08:57:00.591 | 09:57:00.550 | +1 h à 40 ms près |
+
+Le battement est **inconditionnel** : celui du 27/08 est tombé pendant qu'une session travaillait activement sur la machine. Une session occupée ne le suspend pas, et il réécrit le pointeur sans toucher à l'`environmentId`.
+
+Conséquence pratique : la règle des 4 h ne peut mordre que si le **service** est resté à l'arrêt plus de 4 h. Une penny simplement inactive ne risque rien, et il n'y a donc pas lieu de neutraliser la péremption par un `touch` au démarrage — ce serait désarmer une protection contre les sessions mortes pour couvrir un cas qui ne se produit pas.
 
 ## Composants
 
@@ -108,6 +152,7 @@ Le superviseur ne surveille que le **serveur**. Or une session peut mourir alors
 | Une relance sans cause apparente | coupure réseau > ~10 min : le serveur sort de lui-même | rien à faire, la boucle relance |
 | Impossible d'ouvrir une session de plus | capacité 4 atteinte | fermer une session depuis l'app, ou relever `CLAUDE_REMOTE_CAPACITY` |
 | **Je reviens sur une session, elle ne répond plus** | voir « Les deux modes » ci-dessous | la notif ntfy tranche entre amont et local |
+| **Un « penny » de plus apparaît dans l'app** | le pointeur a été jeté au démarrage | `grep -a 'invalid schema, clearing' /var/lib/claude-remote/server-debug.log` ; puis supprimer l'appareil mort dans l'app |
 
 #### Les deux modes de « session KO »
 

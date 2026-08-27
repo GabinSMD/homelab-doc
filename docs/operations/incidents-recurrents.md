@@ -37,6 +37,7 @@ les alimente. Les entrees ajoutees apres cette date portent `—`.
 | [WAN coupe cote operateur](#wan-coupe-cote-operateur) | 0 | Aucun (diagnostic) |
 | [Bruit auditd EXECVE sur galahad](#bruit-auditd-execve-sur-galahad) | 0 | Aucun (diagnostic) |
 | [Regle Grafana orpheline apres retrait d'un service](#regle-grafana-orpheline-apres-retrait-dun-service) | — | Faible |
+| [Un « penny » de plus dans l'app Claude](#penny-en-double) | — | Faible |
 
 ---
 
@@ -395,3 +396,55 @@ redeployer. Recette detaillee et pieges dans
 
 Un `DELETE` SQL direct dans `grafana.db` ne tient pas : le provisioning est
 reapplique a chaque demarrage et la regle reviendrait.
+
+---
+
+## Un « penny » de plus dans l'app Claude {#penny-en-double}
+
+**Symptome.** Deux appareils « penny » cote a cote dans l'app Claude, l'ancien
+mort, le nouveau vivant. Aucune conversation perdue, mais l'historique de
+l'appareil repart de zero.
+
+**Cause.** Le serveur `claude-remote` relit son identite dans
+`~/.claude/projects/-root/bridge-pointer.json` au demarrage. Il valide ce
+fichier **en bloc** : si une seule de ses cinq cles manque, ou si son mtime
+depasse 4 h, il jette le fichier entier — `environmentId` compris — et
+enregistre un environnement neuf. Detail du mecanisme dans
+[Claude Remote → le pointeur est l'ancre d'identite](../services/claude-remote.md#pointeur-ancre-identite).
+
+**Detection.** Le verdict est explicite dans le log du serveur. Le filtre
+`bridge:ws` retire l'echo : le bridge journalise le texte de chaque commande
+lancee en session, donc chercher ce motif l'ecrit dans le fichier qu'on lit.
+
+```bash
+grep -a 'invalid schema, clearing' /var/lib/claude-remote/server-debug.log \
+  | grep -av 'bridge:ws'
+```
+
+Une ligne = l'identite a ete perdue a ce demarrage. Le demarrage precedent est
+dans `server-debug.log.1`, ce qui permet de comparer avec un cas sain, ou la
+ligne attendue est `Found prior environment … requesting reuse`.
+
+**Remede.** Il n'y en a pas de propre une fois le fait accompli : l'ancien
+environnement ne se recupere pas depuis penny. Adopter le nouvel identifiant
+et supprimer l'appareil mort dans l'app.
+
+**Prevention.** Ne jamais editer le pointeur en supprimant une cle. Changer une
+valeur en gardant les cinq est la seule edition sure.
+
+:::warning[Un garde-fou qui relit le fichier qu'il vient d'ecrire ne verifie rien]
+Le controle `--verify` de `penny-arm-reset-forensics.sh` lisait
+`bridge-pointer.json` et annoncait « environmentId preservee ». Il confirmait
+sa propre ecriture. Le serveur, lui, avait deja decide de jeter le fichier :
+le premier `--verify` lance ~20 s apres le boot est sorti **tout vert** alors
+que l'identite etait deja perdue.
+
+La source de verite est le verdict du **consommateur**, pas le fichier qu'on
+vient de produire. Et l'absence de verdict ne veut pas dire « tout va bien »,
+elle veut dire « trop tot pour conclure » — le controle corrige echoue
+desormais dans ce cas au lieu d'afficher un vert.
+
+Meme famille que la
+[regle Grafana orpheline](#regle-grafana-orpheline-apres-retrait-dun-service) :
+le garde-fou surveillait le mauvais artefact.
+:::
