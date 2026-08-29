@@ -1,6 +1,6 @@
 # CLAUDE.md — homelab-doc
 
-Repo **public** : documentation MkDocs du homelab, publiee sur https://homelab.gabin-simond.fr (deploy via GitHub Actions vers Cloudflare Pages).
+Repo **public** : documentation Docusaurus du homelab (migre de MkDocs le 26/08/2026 ; build `bun run build`), publiee sur https://homelab.gabin-simond.fr via GitHub Actions -> GitHub Pages (CNAME). Aucun Cloudflare Pages dans le circuit.
 
 ## Contenu
 
@@ -31,7 +31,7 @@ cd /mnt/ssd/homelab-doc
 # editer docs/...
 git add docs/
 git commit -m "docs(scope): ..."
-git push  # declenche GitHub Actions deploy vers Cloudflare Pages
+git push origin main && git push github main  # seul `github` declenche le deploy GitHub Pages
 ```
 
 ## Commits
