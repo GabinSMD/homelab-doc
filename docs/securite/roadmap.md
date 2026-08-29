@@ -82,8 +82,10 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 - ~~**CI/CD GitHub Actions**~~ DONE — homelab-config : sucre lint+tests, scripts bash+shellcheck, yaml+compose, secret scan ; gate avant merge (PR workflow).
 - ~~**AIDE (file integrity monitoring)**~~ DONE 2026-07-07 — `aide-check.timer` quotidien à 04:30 sur penny (~20 min de run), baseline `/var/lib/aide/aide.db`, notification ntfy uniquement sur écart et dédupliquée par empreinte du constat. Debian 12 n'a pas `aide.wrapper` et masque `dailyaidecheck` : le timer est maison. Exclusions `/mnt` et `/var/log` dans `aide.conf.d/99_homelab_exclusions`, sinon le run dépasse 3 h.
 
-  :::warning[Le rebaseline est manuel, pas automatique]
-  `aide-check.sh` et `aide-refresh.sh` annoncent tous deux un hook apt `99aide-refresh-baseline` qui rafraîchirait la baseline après chaque `unattended-upgrade`. **Ce hook n'existe pas** dans `/etc/apt/apt.conf.d/` (vérifié le 2026-08-29). En pratique, toute mise à jour de paquets fait sonner AIDE au run suivant, et c'est `aide-refresh.sh` lancé à la main qui rétablit la baseline. À traiter : soit poser le hook, soit corriger les deux en-têtes de script.
+  :::note[Le rebaseline passe par `security-updates.sh`, pas par un hook apt]
+  `aide-check.sh` et `aide-refresh.sh` annoncent tous deux un hook `/etc/apt/apt.conf.d/99aide-refresh-baseline`. **Ce hook n'existe pas** — et c'est voulu : `Unattended-Upgrade::Post-Invoke` n'est pas implémenté par unattended-upgrades 2.9.1+nmu3 (`apt-config` le parse, u-u ne le lit jamais), ce qui avait gelé la baseline au 2026-07-07 et fait alerter AIDE chaque jour sur quatre semaines cumulées de paquets.
+
+  Le déclencheur réel depuis le 2026-08-05 est un appel direct à `aide-refresh.sh` en fin de `security-updates.sh`, conditionné à un upgrade effectif. Les deux en-têtes de script n'ont simplement jamais été mis à jour et **désignent un mécanisme mort** : les lire au pied de la lettre fait conclure à tort que le rebaseline est manuel. Seul le rebaseline après une modification de conf **faite à la main** demande de lancer `aide-refresh.sh` soi-même.
   :::
 - ~~**Trivy schedule**~~ DONE 2026-06-25 — `trivy-scan.sh` + timer hebdo (dim 06:00), ntfy si CRITICAL. 1er run : 27 CRITICAL / 641 HIGH sur 15 images → images tierces à bumper (traefik-crowdsec-bouncer, docker-socket-proxy).
 
