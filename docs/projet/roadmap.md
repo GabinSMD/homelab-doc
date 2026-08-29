@@ -1,6 +1,8 @@
 # Roadmap
 
-> **Mise a jour 2026-06-25** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Sucre roadmap](sucre.md#roadmap).
+> **Mise a jour 2026-08-29** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Sucre roadmap](sucre.md#roadmap).
+>
+> La coupure secteur du 2026-08-29 (11:18 → retour 13:23) a redémarré les trois machines sans dégât — recovery EXT4 propre, compteurs SMART inchangés. C'est le gap **UPS** ci-dessous qui se manifeste, et il reste ouvert.
 
 ## Phase 1 — Foundation (preparation domicile actuel)
 
@@ -26,12 +28,12 @@
 
 ### Backups + DR
 
-- [x] Backups quotidiens restic → B2 chiffré AES-256 (4 chaines : penny, vault hourly, logs, dns-failover)
+- [x] Backups quotidiens restic → Cloudflare R2 EU, chiffré AES-256 (4 chaines : penny, vault hourly, logs, dns-failover) — migré depuis B2 le 2026-05-11
 - [x] PBS daily backup LXCs (galahad 02:00, lancelot 02:30)
 - [x] restic check mensuel (structure + 10% data subset)
 - [x] DR drill mensuel automatique (restore + verify echantillon)
 - [x] Sops + age + 2 YubiKeys DR (break-glass)
-- [ ] **DR drill from cold** — restore B2 + sops sur Pi neuf, chronometrage. Seule preuve reelle que la chain DR fonctionne end-to-end (1/2 journee user)
+- [ ] **DR drill from cold** — restore R2 + sops sur Pi neuf, chronometrage. Seule preuve reelle que la chain DR fonctionne end-to-end (1/2 journee user)
 
 ### Résilience
 
@@ -47,8 +49,8 @@
 
 - [x] Notif hygiene mode "uniquement quand ne va pas" (silence success, only failures bipe)
 - [x] Logs persistents SSD (`/mnt/ssd/log-homelab/`, post-DietPi RAMlog fix)
-- [x] [Sucre SRE engine](sucre.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter)
-- [x] Sucre-down canary Tailscale (homelab_monitor.check_sucre_service)
+- [x] [Sucre SRE engine](sucre.md) v1+v1.5+W5 déployé en prod (catalog-gated incident response + auto-pattern drafter) — **arrêté le 2026-08-25**, voir [Bilan et arrêt](sucre.md#bilan-et-arrêt)
+- [x] Sucre-down canary Tailscale (homelab_monitor.check_sucre_service) — retiré avec sucre
 - [x] Monitor → Loki shipping (alertes monitor pushed dans Loki, sucre observé)
 
 ### Sécurité (voir [sécurité/roadmap.md](../securite/roadmap.md))
@@ -81,8 +83,8 @@
 - [ ] Ajouter comme 3eme nœud Proxmox (compute + storage) → quorum natif sans qdevice
 - [ ] Configurer ZFS mirror pour le stockage (debloque vzdump --mode snapshot, fin des PBS backup window whitelists)
 - [ ] PBS sur ZimaBoard → NAS Minisforum
-- [ ] [Ollama local](sucre.md#roadmap) sur luther = backup LLM pour sucre quand budget Claude API serre
-- [ ] Replicate sucre Option B sur galahad+lancelot = couverture cluster complète
+- [ ] [Ollama local](sucre.md#roadmap) sur luther = backup LLM pour sucre — *sans objet tant que sucre reste arrêté*
+- [ ] Replicate sucre Option B sur galahad+lancelot — *sans objet tant que sucre reste arrêté*
 
 ## Items hors-phases (process / value-add)
 
@@ -101,7 +103,7 @@
 ### Sécurité hardening (paranoia level)
 
 - [x] [Trivy](https://github.com/aquasecurity/trivy) schedule — vuln scan images Docker hebdo (ntfy si CRITICAL) — 2026-06-25
-- [ ] AIDE/Tripwire — file integrity monitoring `/etc /usr`
+- [x] **AIDE** — file integrity monitoring, timer quotidien 04:30 sur penny — 2026-07-07
 - [x] SMTP migration port 25 → 587 auth submission (PVE postfix relay Proton) — 2026-05-11
 - [ ] HIDS (Wazuh / CrowdSec extension)
 

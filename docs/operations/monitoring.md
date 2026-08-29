@@ -126,6 +126,47 @@ TEMP_CRIT=80                      # Seuil critique °C
 | **SSD auto-recovery** | Remount + fsck + restart Docker après déconnexion USB | Script (monitor) |
 | **dns-failover health check** | Surveillé penny depuis galahad (ping + Traefik + DNS) | LXC 100 / ntfy |
 
+## Contrôles planifiés (timers penny)
+
+Inventaire relevé sur la machine le **2026-08-29** (`systemctl list-timers`). Tout ce qui
+tourne en planifié sur penny est ici ; les entrées sans lien n'ont pas de page dédiée et
+le tableau fait référence.
+
+| Timer | Cadence | Ce qu'il fait |
+|---|---|---|
+| `homelab-backup` | 03:00 | Sauvegarde restic vers R2 — voir [backups](backups.md) |
+| `pbs-datastore-sync` | 03:30 | Sync du datastore PBS vers R2 via rclone — voir [backups](backups.md) |
+| `aide-check` | 04:30 | Intégrité des fichiers système (AIDE) — voir [roadmap sécurité](../securite/roadmap.md) |
+| `security-updates` | 05:40 | Applique les mises à jour de sécurité (politique unattended-upgrades) |
+| `firefly-echeances` | 06:15 | Échéances de prêt Firefly III (capital / intérêts / assurance) — voir [Firefly III](../services/firefly.md) |
+| `firefly-post-import` | 06:30 | Post-traitement des imports Firefly III (virements internes, mensualités) |
+| `backup-coverage-check` | 06:45 | Quels invités Proxmox n'ont **pas** de sauvegarde récente |
+| `repo-drift-check` | 07:10 | Vérifie que le déployé dans la LXC 101 correspond encore au dépôt |
+| `backup-freshness-check` | 09:30 | Dead-man-switch sur la fraîcheur des dépôts restic |
+| `control-drift-check` | toutes les 6 h (00:09) | Vérifie que les contrôles homelab sont réellement en place sur les 3 hôtes |
+| `guardrail-liveness` | toutes les 6 h (00:34) | Vérifie que chaque garde-fou a parlé récemment (un garde-fou muet ne se distingue pas d'un garde-fou content) |
+| `lxc-disk-check` | toutes les 6 h (02:06) | Remplissage des rootfs LXC sur les deux nœuds PVE |
+| `pz-backup` | toutes les 6 h | Sauvegarde de la save Project Zomboid — voir [zomboid](../services/zomboid.md) |
+| `ci-health-check` | toutes les 30 min | Témoin sur l'état de la CI des dépôts homelab — voir [ci-runner](../services/ci-runner.md) |
+| `outillage-health-check` | toutes les 30 min | Disponibilité de l'outillage (Pulse, Grafana, PBS, Portainer…) |
+| `pz-disk-check` | horaire | Espace disque du serveur Project Zomboid |
+| `apt-listbugs` | horaire | Nettoie les préférences apt-listbugs qui bloquaient unattended-upgrades |
+| `lynis-notify` | dimanche 05:00 | Audit lynis de penny + notification ntfy zéro-bruit |
+| `lynis-remote-audit` | dimanche 06:00 | Audit lynis des nœuds PVE, en pull depuis penny |
+| `trivy-scan` | dimanche 06:00 | Scan de vulnérabilités des images Docker qui tournent |
+| `restic-check-monthly` | le 1er, 04:00 | Contrôle d'intégrité des dépôts restic (multi-repo R2) |
+| `digest-drift-check` | le 1er, 05:00 | Écart entre `:latest` amont et le digest épinglé — voir [décisions](../projet/decisions.md) |
+| `restic-drill-monthly` | le 1er, 05:00 | Drill de restauration (4 dépôts + datastore PBS) — voir [DR drill](dr-drill-scenario-1.md) |
+
+`homelab_monitor.sh` n'est pas dans ce tableau : il tourne en **cron chaque minute**, pas en
+timer. Les timers ci-dessus sont les contrôles qui coûtent trop cher pour tourner à la minute.
+
+:::note[Pourquoi des timers et pas du cron]
+`Persistent=true` rattrape un passage manqué après une coupure ou un redémarrage. Le drill
+du 2026-06-01 avait été **sauté en silence** parce qu'il était en cron : la machine dormait
+à l'heure dite et personne ne l'a su. Voir [fiabilisation du drill](../projet/journal/2026-06-11-fiabilisation-drill-restauration.md).
+:::
+
 ## Architecture de résilience
 
 Trois couches complementaires, chacune couvre des scénarios différents :

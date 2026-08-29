@@ -1,6 +1,6 @@
 # Roadmap sécurité
 
-État au **2026-05-11** (post-session migration R2 + SMTP submission + TFA root@pam). Priorité : `impact / effort`.
+État au **2026-08-29**. Priorité : `impact / effort`.
 
 > Pour la doctrine (threat model, politique credentials) : [politique.md](politique.md).
 > Pour les implémentations (sysctl, firewall, SSH) : [hardening.md](hardening.md).
@@ -15,11 +15,11 @@
 #### DR drill from cold — jamais teste
 
 Tu as :
-- 22 daily snapshots B2 ✓
+- 22 daily snapshots sur Cloudflare R2 ✓
 - restic check + drill mensuels ✓
 - Sops + age + 2 YubiKeys DR ✓
 
-**Mais jamais reconstruit penny depuis zero**. Le drill mensuel vérifie intégrité données, pas full restore. Scénario reel : SSD meurt → Pi neuf → restore B2 + sops → est-ce que ca reboot dans un état exploitable en X heures ?
+**Mais jamais reconstruit penny depuis zero**. Le drill mensuel vérifie intégrité données, pas full restore. Scénario reel : SSD meurt → Pi neuf → restore R2 + sops → est-ce que ca reboot dans un état exploitable en X heures ?
 
 **Effort** : 1/2 journee. Pi 4 spare ou VM x86. Suivre [break-glass](../operations/break-glass.mdx) + [dr-drill-scénario-1](../operations/dr-drill-scenario-1.md), chronometrer, noter les surprises.
 
@@ -80,13 +80,17 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 - ~~**Renovate**~~ DONE — actif sur homelab-config (auto-PR deps, Dependency Dashboard issue #19).
 - ~~**CI/CD GitHub Actions**~~ DONE — homelab-config : sucre lint+tests, scripts bash+shellcheck, yaml+compose, secret scan ; gate avant merge (PR workflow).
+- ~~**AIDE (file integrity monitoring)**~~ DONE 2026-07-07 — `aide-check.timer` quotidien à 04:30 sur penny (~20 min de run), baseline `/var/lib/aide/aide.db`, notification ntfy uniquement sur écart et dédupliquée par empreinte du constat. Debian 12 n'a pas `aide.wrapper` et masque `dailyaidecheck` : le timer est maison. Exclusions `/mnt` et `/var/log` dans `aide.conf.d/99_homelab_exclusions`, sinon le run dépasse 3 h.
+
+  :::warning[Le rebaseline est manuel, pas automatique]
+  `aide-check.sh` et `aide-refresh.sh` annoncent tous deux un hook apt `99aide-refresh-baseline` qui rafraîchirait la baseline après chaque `unattended-upgrade`. **Ce hook n'existe pas** dans `/etc/apt/apt.conf.d/` (vérifié le 2026-08-29). En pratique, toute mise à jour de paquets fait sonner AIDE au run suivant, et c'est `aide-refresh.sh` lancé à la main qui rétablit la baseline. À traiter : soit poser le hook, soit corriger les deux en-têtes de script.
+  :::
 - ~~**Trivy schedule**~~ DONE 2026-06-25 — `trivy-scan.sh` + timer hebdo (dim 06:00), ntfy si CRITICAL. 1er run : 27 CRITICAL / 641 HIGH sur 15 images → images tierces à bumper (traefik-crowdsec-bouncer, docker-socket-proxy).
 
 #### Network / détection
 
 - HIDS (Wazuh / CrowdSec extension fonctionne déjà sur Trixie).
 - IDS réseau (Suricata / Zeek) — a considerer une fois OPNsense stable.
-- AIDE/Tripwire — file integrity monitoring `/etc /usr`. Vrai paranoia level. Effort : 1h baseline + cron diff.
 - Bastion SSH LXC — Tailscale SSH couvre déjà 80%, faible valeur ajoutee.
 
 #### Hardening cosmetiques
@@ -132,7 +136,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 - Retention 7d/4w/6m + prune automatique
 - **restic check mensuel** (1er du mois 4h, structure + 10% data subset)
 - RPO uniforme 24h sur tout le homelab (Vaultwarden inclus)
-- **Monitor B2 cap probe** (`check_b2_cap` dans homelab_monitor.sh, 2026-05-11) — détecte 80%/95% usage avant fail ; skip silencieux si B2_ACCOUNT_ID absent (post-migration R2)
+- ~~**Monitor B2 cap probe**~~ (`check_b2_cap`, 2026-05-11) — **retirée**. R2 n'a pas de cap journalier, donc la sonde n'avait plus d'objet ; ni `check_b2_cap` ni `B2_ACCOUNT_ID` n'existent encore dans `homelab_monitor.sh` (vérifié le 2026-08-29).
 
 </details>
 
