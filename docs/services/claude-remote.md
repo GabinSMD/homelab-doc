@@ -138,6 +138,7 @@ L'état `active` de systemd **ne reflète pas** la santé du serveur : `RemainAf
 | Abandon après 5 échecs | notification ntfy priorité haute |
 | Appareil hors ligne | le point vert disparaît dans l'app |
 | **Échec d'une session** | `/var/lib/claude-remote/server-events.log` + notification ntfy |
+| **Échec d'authentification** | `server-debug.log` + notification ntfy (voir [Authentification](#auth-token-longue-duree)) |
 | Détail d'un échec | `/var/lib/claude-remote/server-debug.log` (le `.1` = run précédent) |
 
 Le superviseur ne surveille que le **serveur**. Or une session peut mourir alors que le serveur reste parfaitement sain : c'est le cas le plus fréquent, et il ne produisait aucun signal avant le 2026-08-05. `claude-remote-watch` comble exactement ce trou.
@@ -153,6 +154,57 @@ Le superviseur ne surveille que le **serveur**. Or une session peut mourir alors
 | Impossible d'ouvrir une session de plus | capacité 4 atteinte | fermer une session depuis l'app, ou relever `CLAUDE_REMOTE_CAPACITY` |
 | **Je reviens sur une session, elle ne répond plus** | voir « Les deux modes » ci-dessous | la notif ntfy tranche entre amont et local |
 | **Un « penny » de plus apparaît dans l'app** | le pointeur a été jeté au démarrage | `grep -a 'invalid schema, clearing' /var/lib/claude-remote/server-debug.log` ; puis supprimer l'appareil mort dans l'app |
+| **`Failed to authenticate: OAuth session expired and could not be refreshed`** | renouvellement du jeton non effectué, **pas** une vraie expiration | voir [Authentification](#auth-token-longue-duree) |
+
+#### Authentification {#auth-token-longue-duree}
+
+:::danger Un jeton longue durée fait **tomber** le service
+`claude setup-token` et `CLAUDE_CODE_OAUTH_TOKEN` produisent un jeton *inference-only*. Remote Control le refuse et sort en `rc=1` — le superviseur abandonne après 5 échecs rapides et **le service s'arrête**. Vérifié le 2026-08-31, deux fois.
+
+```
+Remote Control requires a full-scope login token. Long-lived tokens (from
+`claude setup-token` or CLAUDE_CODE_OAUTH_TOKEN) are limited to inference-only
+for security reasons. Run `claude auth login` to use Remote Control.
+```
+
+Le diagnostic du binaire est explicite : `oauthScopes=user:inference`, `hasProfileScope=false`. Seule une session complète obtenue par `claude auth login` convient.
+
+Corollaire systemd : `EnvironmentFile=-` tolère un fichier **absent**, jamais une valeur **invalide**. Un mauvais collage suffit donc à mettre le service par terre.
+:::
+
+##### Pourquoi « expired » ne veut pas dire expiré
+
+Le pont programme le renouvellement du jeton de chaque session **13 h** à l'avance :
+
+```
+[bridge:token] Scheduled token refresh in 774m 59s (expires=…, buffer=300s)
+```
+
+Or le jeton d'accès OAuth de `~/.claude/.credentials.json` ne vit que **8 h**. À l'échéance, le pont n'a plus rien à pousser :
+
+```
+[ERROR] [bridge:token] No OAuth token available for refresh (failure 1/3)
+```
+
+et la session rend `Failed to authenticate: OAuth session expired and could not be refreshed`.
+
+Le `refresh_token`, lui, reste valide **30 jours**. Ce n'est donc pas une expiration : c'est un rafraîchissement qui n'a pas eu lieu. Re-logger à la main soulage le symptôme et ne corrige rien.
+
+Vérifier l'échéance réelle avant toute action :
+
+```bash
+jq -r '.claudeAiOauth.refreshTokenExpiresAt' ~/.claude/.credentials.json  # → epoch ms
+```
+
+Les 2026-08-30 et 31, **9 occurrences** n'ont produit aucune notification : `claude-remote-watch` ne classait que les échecs de session scrapés sur le pane tmux, où les erreurs d'auth n'apparaissent jamais. La sonde et le signal ne lisaient pas la même source. Elle lit désormais aussi le `--debug-file`, ancrée sur `^<horodatage>Z [ERROR] [bridge:token]` — un motif large se matcherait lui-même, puisque le serveur journalise les messages utilisateur en clair sous `[bridge:ws]`.
+
+:::note Un service `RemainAfterExit=yes` ne se recharge jamais
+Le serveur tournait encore en 2.1.221 alors que 2.1.251 était installée depuis un moment. Vérifier la version **réellement chargée**, pas celle du binaire :
+
+```bash
+ls -l /proc/$(pgrep -f 'claude remote-control' | head -1)/exe
+```
+:::
 
 #### Les deux modes de « session KO »
 
@@ -176,7 +228,6 @@ Depuis l'app, dans **n'importe quelle** session penny, la commande **`/resume`**
 
 Nommer les sessions (`-n`/`--name`, ou `/rename` depuis l'app) rend ce sélecteur exploitable — sans quoi il faut retrouver un UUID parmi des dizaines de transcripts.
 
-Remote Control exige un login claude.ai complet : un token `claude setup-token` ou `CLAUDE_CODE_OAUTH_TOKEN` ne permet **pas** d'établir le lien. Ne pas remplacer l'auth du service par un token long-lived.
 
 ## Posture de sécurité
 
