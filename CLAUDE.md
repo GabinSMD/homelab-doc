@@ -31,7 +31,10 @@ cd /mnt/ssd/homelab-doc
 # editer docs/...
 git add docs/
 git commit -m "docs(scope): ..."
-git push origin main && git push github main  # seul `github` declenche le deploy GitHub Pages
+git push origin main && git push github main  # c'est l'etat de GitHub qui fait le site
+# Si le second push est rejete par `cannot lock ref ... is at X but expected Y`,
+# ce n'est PAS un echec : GitHub a deja le commit. Verifier, ne pas forcer :
+#   git ls-remote github -h refs/heads/main
 ```
 
 ## Commits
