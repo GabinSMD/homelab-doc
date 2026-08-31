@@ -26,7 +26,6 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[ntfy](ntfy.md)** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
 | **[Dozzle](boite-a-outils.md)** | `amir20/dozzle:latest` | `dozzle.home…` | penny | proxy, socket |
 | **[Homelable](homelable.md)** | `ghcr.io/pouzor/homelable-frontend:latest` | `homelable.home…` | penny | homelable, proxy |
-| **[Kroki](boite-a-outils.md)** | `yuzutech/kroki:latest` | `kroki.home…` | penny | proxy |
 | **[CyberChef](boite-a-outils.md)** | `ghcr.io/gchq/cyberchef:latest` | `cyberchef.home…` | penny | proxy |
 | **[Stirling PDF](boite-a-outils.md)** | `ghcr.io/stirling-tools/s-pdf:latest-ultra-lite` | `pdf.home…` | penny | proxy |
 
@@ -41,7 +40,6 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[loki-replica](logs-stack.md)** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
 | **[status](boite-a-outils.md)** | `busybox:1.38` | Page d'état statique |
 | **outline-db** / **outline-redis** | `postgres:16-alpine` / `redis:7-alpine` | Base et cache d'Outline |
-| **kroki-mermaid** | `yuzutech/kroki-mermaid:latest` | Moteur Mermaid de Kroki |
 | **homelable-backend** | `ghcr.io/pouzor/homelable-backend:latest` | API de Homelable |
 
 ### Hors penny

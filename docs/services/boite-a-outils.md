@@ -6,7 +6,6 @@ Authelia, tous en `cap_drop: ALL`, plusieurs en `read_only`.
 | Service | URL | Image | Mémoire | À quoi ça sert |
 |---|---|---|---|---|
 | **CyberChef** | `cyberchef.home…` | `ghcr.io/gchq/cyberchef` | 64 Mo | Encodages, hachages, décodage de jetons — sans rien envoyer à un site tiers |
-| **Kroki** | `kroki.home…` | `yuzutech/kroki` + `kroki-mermaid` | 512 Mo | Rendu de diagrammes en image, `KROKI_SAFE_MODE: secure` |
 | **Stirling PDF** | `pdf.home…` | `s-pdf:latest-ultra-lite` | 768 Mo | Manipulation de PDF en local, locale `fr_FR` |
 | **Dozzle** | `dozzle.home…` | `amir20/dozzle` | 128 Mo | Logs des conteneurs en direct, via `socket-proxy` |
 | **status** | — | `busybox:1.38` | 16 Mo | Page d'état statique servie depuis `/mnt/ssd/status` |

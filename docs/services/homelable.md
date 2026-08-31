@@ -33,6 +33,6 @@ en silence.
 ## Les services volontairement absents
 
 Les conteneurs qui n'écoutent que sur un réseau Docker interne — `outline-db`,
-`outline-redis`, `socket-proxy`, `kroki-mermaid`, `status`, `autoheal`,
+`outline-redis`, `socket-proxy`, `status`, `autoheal`,
 `homelable-backend` — n'ont **pas** de sonde. Un contrôle qui ne peut pas échouer
 ne renseigne sur rien.

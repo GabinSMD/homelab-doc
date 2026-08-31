@@ -128,7 +128,7 @@ que le chemin 2 passe par la route `/32` et pas par un `tailscale serve`.
 ## Ce qui n'est joignable par aucun de ces chemins
 
 - Les services qui n'écoutent que sur un **réseau Docker interne** : `outline-db`
-  (PostgreSQL), `outline-redis`, `socket-proxy`, `kroki-mermaid`, `status`,
+  (PostgreSQL), `outline-redis`, `socket-proxy`, `status`,
   `autoheal`. Ils sont volontairement sans sonde dans Homelable — un contrôle
   qui ne peut pas échouer ne renseigne sur rien.
 - Le **reste du LAN depuis le tailnet** : la route annoncée est un `/32`. Pour
