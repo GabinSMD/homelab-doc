@@ -162,9 +162,67 @@ Docker. Ça, c'est le périmètre de restic/R2 et de PBS. L'archive débloque la
 phase 3, elle ne remplace pas les sauvegardes.
 
 **À refaire** après toute rotation de secret ou changement de configuration
-notable, puis recopier sur la clé du coffre — le manifeste porte la date et les
-SHA, ce qui permet de savoir en un coup d'œil de quand date la copie.
+notable. Le recopiage sur la clé du coffre n'est plus un geste à retenir : il est
+automatisé depuis le 2026-08-30, voir la section suivante.
 :::
+
+### Dépôt sur la clé du coffre — automatisé depuis le 2026-08-30
+
+Le geste « recopier l'archive sur la clé » est resté en attente plusieurs jours
+après le drill du 26/08. Un geste manuel qu'on doit se rappeler de faire n'est
+pas une procédure, c'est une intention. Désormais : **brancher la clé `COFFRE`
+sur penny suffit.**
+
+Ce qui se déroule alors, sans intervention :
+
+1. udev reconnaît le volume par le **label du système de fichiers** (`COFFRE`),
+   jamais par une lettre de disque — le SSD de penny est lui-même en USB et se
+   ré-énumère (`sda1` → `sdb1` pendant l'incident du 29/08). Une règle qui
+   viserait « le disque USB » pourrait viser le SSD.
+2. `break-glass-auto-depot.sh` régénère l'archive si des commits sont plus
+   récents qu'elle, la dépose, puis **démonte et remonte la clé avant de relire
+   le sha256**. Une relecture immédiate viendrait du cache de pages et
+   validerait une clé défaillante, pleine ou arrachée trop tôt.
+3. La clé est démontée en fin de course : elle se débranche sans précaution.
+4. Confirmation par ntfy, échec compris.
+
+Le rappel est assuré par `break-glass-fraicheur.sh` (timer quotidien), qui lit la
+trace laissée dans `/var/lib/break-glass/dernier-depot` :
+
+- **urgent** si un secret a bougé depuis l'archive (`.env.enc`, `.sops.yaml`,
+  `authelia/secrets`, `system/secrets`) — la copie du coffre n'ouvre plus la
+  production ;
+- routine passé 60 jours.
+
+Il ne compte volontairement **pas** les commits : une journée de travail sur la
+documentation en produit dix, dont aucun ne change quoi que ce soit à la reprise.
+Un rappel qui se déclenche tous les jours n'informe plus.
+
+:::caution[La clé reste hors-ligne, au coffre]
+Elle n'est branchée que le temps du dépôt. Laissée en permanence sur penny, elle
+partagerait son sort — rançongiciel, effacement, incendie, vol — et cesserait
+d'être un break-glass. C'est précisément ce dont elle protège.
+:::
+
+#### Depuis un Mac
+
+`break-glass-depot-macos.sh` fait la même chose quand la clé est branchée sur le
+MacBook. Trois pièges, tous rencontrés à la **première exécution réelle** — le
+script avait été écrit et testé depuis penny, en root, donc le vrai chemin
+n'avait jamais été parcouru :
+
+- `PermitRootLogin no` fait arriver la session SSH en utilisateur normal. Il faut
+  donc que l'archive soit lisible par son groupe (corrigé dans
+  `break-glass-bundle.sh`), que `/var/lib/break-glass` lui soit accessible en
+  écriture, et que git accepte un dépôt appartenant à root (`safe.directory`).
+- Le script fait six aller-retours SSH : avec une clé matérielle, six saisies de
+  PIN. Ajouter `ControlMaster auto` dans le `~/.ssh/config` du Mac.
+- Si le démontage échoue (fenêtre Finder ouverte sur le volume), le script
+  **s'arrête** plutôt que de valider une copie non vérifiée. Fermer la fenêtre et
+  relancer, ne pas contourner.
+
+**Leçon générale** : un script d'urgence testé depuis la machine qui l'héberge
+n'est pas testé.
 
 ### Comptes externes (doivent rester actifs)
 

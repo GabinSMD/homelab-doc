@@ -69,6 +69,65 @@ Circuit breaker : max 3 tentatives par 24h (compteur `/var/lib/homelab_monitor/a
 
 Prouvé en live 2026-04-19 : stack down après recreation loki, auto-repair fire 172s après détection, 13 containers up. Voir log `/var/log/homelab_monitor.log` entry `AUTOREPAIR: docker compose up -d OK`.
 
+:::note[La garde de maintenance était inerte jusqu'au 2026-08-31]
+Le contrôle testait `/var/lib/homelab_monitor/maintenance`, alors que
+`homelab-maintenance.sh` écrit `/run/homelab/maintenance-until`. Personne
+n'écrivait le fichier surveillé : l'opt-out ne fonctionnait pas depuis son ajout
+en avril, et l'auto-repair pouvait donc relancer la pile en pleine maintenance
+planifiée. Découvert par accident, en ouvrant une vraie fenêtre pour tester
+autre chose. Les deux mécanismes sont désormais honorés.
+
+La méthode qui l'a révélé vaut d'être retenue : ne pas tester une garde en
+fabriquant sa condition à la main (`touch le_fichier_attendu`) mais en
+**déclenchant le vrai mécanisme** que l'opérateur utilise. Le premier prouve
+qu'on lit un fichier ; seul le second prouve qu'on lit le bon.
+:::
+
+### Reprise du stack après un décrochage SSD {#reprise-ssd}
+
+Deux mécanismes ajoutés le 2026-08-30, après un incident où le SSD a décroché
+deux fois et laissé **19 conteneurs sur 24** debout — un état que ni
+`check_docker_autorepair` (qui ne vise que le stack *entièrement* vide) ni
+`check_docker` (qui se contente d'alerter) ne couvrait.
+
+`revive_docker` — la recovery SSD **déclarait** le redémarrage de Docker sans le
+vérifier : `SSD RECOVERY: SUCCESS ... Docker restarted` à 21:14:21, puis
+`docker-down` à 21:14:22. Deux causes cumulées :
+
+- `systemctl start docker` est un **no-op** quand l'unité a atteint sa limite de
+  redémarrages (« Start request repeated too quickly »). Il faut lever le
+  compteur par `systemctl reset-failed docker.service docker.socket` d'abord.
+- Rien ne vérifiait que le daemon répondait : un `sleep 10`, puis un log de
+  succès.
+
+La fonction fait donc `reset-failed` **avant** `start`, deux passes, et ne rend
+un succès que si `docker info` a réellement répondu. Un succès non vérifié est un
+mensonge, et celui-là a coûté une nuit de pile à moitié à terre.
+
+`check_containers_restart` — relance les conteneurs arrêtés quand le stack est
+*partiel*. Volontairement `docker start` et **jamais** `docker compose up -d` :
+`/mnt/ssd/config` est la production (monté `watch: true` dans Traefik), on ne
+recrée pas des conteneurs depuis le checkout courant sans le demander. Garde-fous :
+
+- délai de confirmation de 2 min, pour ne pas courir contre un `compose up` ou un
+  redémarrage manuel ;
+- disjoncteur de 3 relances glissantes par conteneur et par 24 h — au-delà, on
+  laisse l'alerte `containers-stopped` faire son travail plutôt que de boucler
+  sur un conteneur cassé ;
+- exclusions : `IGNORE_STOPPED`, les résidus `<12hex>_<nom>` d'une recréation, et
+  l'état `restarting` (le conteneur réessaie déjà seul).
+
+Pas de redémarrage automatique de la machine en dernier recours : si Docker ne
+revient pas, alerte `ssd-recovery-docker-failed` en urgent et on s'arrête.
+Redémarrer une machine seule sur un défaut matériel intermittent est un mauvais
+échange.
+
+Tests : `scripts/tests/ssd-recovery-docker.test.sh`, 27 assertions, chaque garde
+vérifiée par mutation. C'est ce qui a rattrapé un délai de confirmation non
+couvert — le test sortait par la branche « témoin absent » sans jamais atteindre
+le contrôle des 120 s. Validé à chaud : un conteneur arrêté puis relancé par la
+vraie fonction contre le vrai Docker.
+
 ### House signal (deadman complément HomePod)
 
 `check_house` teste :

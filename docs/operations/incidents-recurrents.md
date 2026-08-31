@@ -72,6 +72,27 @@ les LXC. Un message « backup vault perime » est souvent le symptome visible
 d'une stack a terre, pas un probleme de sauvegarde.
 :::
 
+:::note[Automatisé depuis le 2026-08-30 — mais lire avant d'agir]
+`check_containers_restart` relance désormais les conteneurs arrêtés tout seul,
+2 minutes après détection, avec un disjoncteur de 3 relances par conteneur et par
+24 h. Il fait `docker start` et **jamais** `docker compose up -d` : le dépôt est
+la production, on ne recrée pas depuis le checkout courant sans le demander.
+
+Conséquences pratiques quand tu arrives sur l'incident :
+
+- si tu vois des conteneurs `exited` depuis moins de 2 min, **attends** plutôt que
+  de lancer la commande à la main — sinon tu cours contre la sonde ;
+- si un conteneur est en `restarting`, la sonde n'y touche pas volontairement : il
+  réessaie déjà seul, et le bousculer masquerait sa vraie cause (un backend mort,
+  par exemple) ;
+- si l'alerte `container-restart-capped` est partie, la sonde a abandonné après
+  3 essais : c'est là qu'un humain est réellement nécessaire.
+
+Le `docker compose up -d` ci-dessus reste le bon remède pour un conteneur
+**supprimé** (et non simplement arrêté), cas que la sonde ne couvre pas
+délibérément. Voir [monitoring](./monitoring.md#reprise-ssd).
+:::
+
 ---
 
 ## Traefik : provider docker en « unexpected EOF »

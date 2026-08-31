@@ -87,7 +87,48 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
   Le déclencheur réel depuis le 2026-08-05 est un appel direct à `aide-refresh.sh` en fin de `security-updates.sh`, conditionné à un upgrade effectif. Les deux en-têtes de script n'ont simplement jamais été mis à jour et **désignent un mécanisme mort** : les lire au pied de la lettre fait conclure à tort que le rebaseline est manuel. Seul le rebaseline après une modification de conf **faite à la main** demande de lancer `aide-refresh.sh` soi-même.
   :::
-- ~~**Trivy schedule**~~ DONE 2026-06-25 — `trivy-scan.sh` + timer hebdo (dim 06:00), ntfy si CRITICAL. 1er run : 27 CRITICAL / 641 HIGH sur 15 images → images tierces à bumper (traefik-crowdsec-bouncer, docker-socket-proxy).
+- ~~**Trivy schedule**~~ DONE 2026-06-25 — `trivy-scan.sh` + timer hebdo (dim 06:00). 1er run : 27 CRITICAL / 641 HIGH sur 15 images → images tierces à bumper (traefik-crowdsec-bouncer, docker-socket-proxy). **Déclencheur revu le 2026-08-31**, voir l'encadré.
+
+  :::caution[`FixedVersion` ne veut pas dire qu'une image corrigée existe]
+  Le scan a longtemps notifié sur tout total CRITICAL non nul, avec pour consigne
+  « bumper l'image + `@sha256` ». Mesure faite le 30/08, image par image : sur les
+  25 CRITICAL rapportées, **aucune n'était corrigeable par un bump**.
+
+  La confusion vient du champ `FixedVersion` de Trivy. Il signifie « un correctif
+  existe **dans l'écosystème du paquet** » — Alpine a publié `tar 7.5.19` — et non
+  « une image corrigée est disponible ». Tant que le mainteneur n'a pas
+  reconstruit, l'information est vraie et inutilisable.
+
+  La preuve, sur la seule image réellement en dérive du lot :
+
+  | | épinglée (homepage v2.0.0) | amont (v2.1.2) |
+  |---|---|---|
+  | CRITICAL | 1 (`CVE-2026-59873` tar) | **1, la même** |
+  | HIGH | 13 | **13** |
+
+  Une semaine de correctifs applicatifs, zéro CVE en moins — alors que cette
+  CRITICAL porte bien un `FixedVersion`. Les quatre autres images concernées
+  étaient déjà au digest amont : rien à ré-épingler.
+
+  **Le déclencheur est donc devenu le gain mesuré.** Pour chaque image porteuse de
+  CRITICAL, le script tire l'image amont et la scanne. Rien en baisse → silence,
+  mais silence **borné** : un point de situation part tous les 30 jours s'il reste
+  des CRITICAL. Le décompte des correctifs de paquet reste affiché comme contexte,
+  avec la nuance écrite dans le message.
+
+  Deux corrections structurelles au passage :
+
+  - **Scanner l'ID d'image déployé, pas le tag.** Un `docker pull` fait ailleurs
+    (`digest-drift-check`, geste humain) rebranche le tag, et le scan portait alors
+    sur ce qui n'est **pas** en service.
+  - **Comparer les ID d'image, jamais les digests.** Une même image porte
+    plusieurs `RepoDigests` (index OCI vs manifest list Docker) et le test naïf
+    fabrique de faux écarts. Deux ID égaux = même contenu.
+
+  Corollaire pratique : avant de recommander un bump pour une CVE, tirer l'image
+  amont et la scanner. Si le compte ne baisse pas, il n'y a pas d'action — le dire,
+  plutôt que de produire un chiffre qui fait croire le contraire.
+  :::
 
 #### Network / détection
 
