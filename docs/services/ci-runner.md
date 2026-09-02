@@ -65,3 +65,56 @@ dans `homelab-config`. Une reconstruction du conteneur repartira donc du défaut
 template — c'est cette page qui porte l'information, pas un fichier de
 configuration.
 :::
+
+## Le témoin sur l'état de la CI
+
+Le tableau des [contrôles planifiés](../operations/monitoring.md#contrôles-planifiés-timers-penny)
+renvoie ici pour `ci-health-check`, qui tourne toutes les 30 minutes sur penny.
+Voici ce qu'il fait et pourquoi il existe.
+
+**Pourquoi.** La CI de `homelab-config` est restée rouge du 25/08 07:38 au 27/08
+13:38 — vingt runs d'affilée — et personne ne l'a vu ; elle a été découverte par
+hasard en vérifiant un push. Le homelab avait des dead-man-switches pour les
+hôtes et des gardes de fraîcheur pour les sauvegardes, mais la chaîne qui
+**valide les scripts** avant qu'ils partent en production n'avait aucun témoin.
+Or ces scripts sont justement ce qui surveille tout le reste.
+
+**Ce qu'il regarde.** Pour chaque dépôt, le dernier run terminé de **chaque**
+workflow sur la branche principale. `homelab-doc` en a deux (« CI » et « Deploy
+Docusaurus ») et l'un peut casser pendant que l'autre passe : les évaluer
+séparément évite qu'un vert en cache un rouge. Les runs sont triés par date de
+création plutôt que de faire confiance à l'ordre de sortie de `gh`.
+
+**Il interroge GitHub, pas Forgejo**, alors que Forgejo est la source de vérité :
+aucun jeton Forgejo n'est scellé dans `/run/homelab`, et le miroir GitHub reçoit
+chaque push — il voit donc les mêmes commits. À basculer si un jeton Forgejo est
+un jour scellé.
+
+:::caution[Une sonde aveugle doit alerter — et dire de quoi elle est aveugle]
+Si `gh` échoue, la sonde notifie l'aveuglement au lieu de sortir 0 en silence.
+C'est la leçon de la sonde SMART, muette 114 passages parce que son binaire
+était introuvable dans le `PATH` de cron.
+
+Cela n'a pas suffi. Le **2026-09-02**, la sonde est restée aveugle de 04:04 à
+09:35, onze passages ; elle a notifié une fois, puis son cooldown de six heures
+l'a fait taire. Au post-mortem il ne restait que `rc=1` : le message d'erreur de
+`gh` partait dans `2>/dev/null`. La cause n'est plus établissable, seulement
+corrélée à un `LinkChange: major, rebinding` de `tailscaled` cinq secondes avant
+l'appel qui a échoué.
+
+`stderr` est désormais capturé. Comme ce texte finit dans le journal **et** dans
+la notification, il passe par un caviardage — une ligne, 200 caractères, tout ce
+qui ressemble à un jeton remplacé. Un journal de sonde n'est pas un coffre.
+:::
+
+### Tout test doit être appelé par le workflow
+
+Depuis le 2026-09-02, une étape « Aucun test orphelin » refuse tout
+`scripts/tests/*.test.sh` qui n'est pas invoqué par `.github/workflows/ci.yml`.
+Deux tests avaient vécu ainsi — 45 assertions vertes en local qui ne
+protégeaient rien. Ajouter un test sans le câbler casse maintenant la CI, au
+seul moment où l'oubli est encore réparable.
+
+Le garde a fait rouge son premier run : un troisième test venait d'arriver sans
+étape pour l'appeler. Il attrape après le push ; le même contrôle en pré-commit
+l'attraperait avant.

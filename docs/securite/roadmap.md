@@ -138,7 +138,7 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 #### Hardening cosmetiques
 
-- Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique). Done partiellement : penny — a propager galahad+lancelot.
+- ~~Symlink `/vmlinuz` (Lynis KRNL-5788, cosmetique)~~ DONE 2026-09-02 — et pas comme prévu. L'item était noté « done partiellement : penny », mais penny non plus ne le tenait pas : le lien désignait encore `/boot/vmlinuz-6.12.75` avec un noyau 6.12.96 en service. Un lien posé à la main ne peut pas tenir ici — `do_symlinks=0` dans `/etc/kernel-img.conf` sur penny (raspi-firmware) et les noyaux Proxmox ne posent pas ces liens. C'est donc un hook `/etc/kernel/postinst.d/zz-vmlinuz-symlink` qui les repose à chaque installation de noyau, sur les trois hôtes. Voir le [journal du 2026-09-02](../projet/journal/2026-09-02-angles-morts-observabilite.md#vmlinuz-symlink).
 - ~~SMTP migration port 25 → 587 auth submission~~ DONE 2026-05-11 (relay Proton submission, voir [operations/r2-migration.md](../projet/journal/2026-05-11-migration-r2.md) section connexes).
 - ~~Renommer Tailscale hosts `pve1`/`pve2` → `galahad`/`lancelot`~~ DONE.
 

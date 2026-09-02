@@ -160,6 +160,8 @@ const sidebars = {
           label: 'Journal',
           collapsed: true,
           items: [
+            { type: 'doc', id: 'projet/journal/2026-09-02-angles-morts-observabilite', label: "2026-09-02 — Angles morts d'observabilite" },
+            { type: 'doc', id: 'projet/journal/2026-08-31-retrait-kroki', label: '2026-08-31 — Retrait de Kroki' },
             { type: 'doc', id: 'projet/journal/2026-08-26-audit-fraicheur-doc', label: '2026-08-26 — Audit de fraicheur de la doc' },
             { type: 'doc', id: 'projet/journal/2026-08-25-migration-docusaurus', label: '2026-08-25 — Migration MkDocs vers Docusaurus' },
             { type: 'doc', id: 'projet/journal/2026-08-17-pilotage-financier-phase1-plan', label: '2026-08-17 — Pilotage financier : plan phase 1' },
