@@ -137,6 +137,120 @@ Diagnostiquer une politique à partir de ses anciennes sorties, sans aller lire
 la politique en vigueur, fabrique des écarts qui n'existent pas.
 :::
 
+## 6. Les 14 images en retard : onze traitees, trois assumees
+
+`digest-drift-check` comptait 14 images en retard sur l'amont au 01/09. Le
+critere de tri n'est pas le confort mais **l'ecart de version mesure**, image
+par image.
+
+Onze bumpees, chacune verifiee au-dela du simple `Up` :
+
+| Image | Ecart | Preuve retenue |
+|---|---|---|
+| traefik | v3.7.10 → v3.7.12 | 26 routeurs charges, aucune erreur de bind malgre le Funnel Tailscale sur `:443` |
+| loki (replica + primaire) | 3.7.6 → 3.7.7 | `/ready`, version dans le binaire, requete par label qui repond |
+| vaultwarden | 1.37.1 → 1.37.2 | `/alive` en local **et** a travers Traefik, sauvegarde restic vieille de 0 h |
+| adguard (×2 instances) | 0.107.78 → 0.107.79 | les deux resolveurs repondent, `doubleclick.net` rend toujours `0.0.0.0` |
+| ntfy | 2.27.0 → 2.28.0 | ACL relue, lecture authentifiee du vrai sujet en 200 |
+| dozzle | v10.7.4 → v10.9.0 | « Connected to Docker », HTML servi |
+| autoheal, portainer-ee, homelable ×2 | sans etat / rolling | conteneurs sains, nginx + uvicorn demarres |
+
+Les trois mineures — `grafana` 13.1.3 → 13.2.1, `prometheus` 3.13.2 → 3.14.0,
+`homepage` v2.0.0 → v2.2.0 — ont d'abord ete tenues a l'ecart, puis traitees sur
+arbitrage explicite. Chacune avec une preuve **positive** :
+
+- **prometheus** : la config versionnee passee a `promtool check config` de la
+  NOUVELLE image *avant* tout deploiement — valider apres redemarrage, c'est
+  valider trop tard. Apres : 5 cibles actives, 5 up, 6 h d'historique toujours
+  interrogeables. Deux cibles paraissaient « down » a la premiere seconde, sans
+  message d'erreur : simplement pas encore scrapees.
+- **grafana** : reference etablie *avant* — 23 erreurs d'evaluation dans les
+  logs, toutes du 29/08 19:44, un episode unique dont la cause est ecrite sur
+  place (`database is locked (SQLITE_BUSY)` a la reprise apres coupure). Aucune
+  depuis quatre jours, donc la reference utile etait « zero erreur **recente** ».
+  Apres : `database: ok`, zero erreur, et surtout « State cache has been
+  initialized **rules=21 states=41** » avec un scheduler qui tique toutes les
+  10 s.
+- **homepage** : rendu compare a l'identique (Infrastructure x5, Services x6,
+  media x2, services x8). La capture n'est possible qu'en reecrivant l'en-tete
+  `Host` — une requete par IP recoit « Host validation failed ». Le piege de
+  rendu documente ne s'est **pas** manifeste : la page etait complete avant
+  l'appel a `/api/revalidate`. Le `EROFS` sur le cache prerendu confirme en
+  revanche le mecanisme sous-jacent.
+
+**`pulse` reste en 5.1.32 face a une 6.4.1** — et pas par prudence : c'est un
+saut de **majeure**, et il est materiellement bloque. Son image pese 2,7 Go sur
+un rootfs de 4,9 Go ; il reste 439 Mo libres, il en faudrait ~2 Go pour tirer la
+nouvelle, et le VG de `galahad` est alloue a 100 %, donc le disque ne peut pas
+grandir. Le chemin existe (arreter, supprimer l'image, tirer, relancer) mais il
+laisse une majeure sans image de repli locale sur un volume a 91 % : c'est un
+arbitrage, pas une manipulation de routine.
+
+:::tip[Rendre le piege mesurable plutot que le craindre]
+AdGuard etait l'item redoute : la synchro recopie la config du primaire Docker
+vers le secondaire natif, et une divergence de schema y a deja produit une
+boucle de crash. Deux mesures ont suffi a le desarmer — `schema_version` vaut
+**34 avant et apres, des deux cotes**, donc aucune migration ; et
+`adguard-sync.sh` est un declenchement **manuel**, pas un timer, donc rien ne
+pouvait synchroniser au milieu de l'operation.
+
+L'ordre restait important pour autant : secondaire natif d'abord, primaire
+Docker ensuite. « Primaire plus recent que secondaire » est la direction
+dangereuse.
+:::
+
+### Ce que le passage a mis au jour
+
+**Deux composes de LXC sur quatre n'etaient pas versionnes** — ceux de
+`vaultwarden` et `pulse`, dont celui du coffre a mots de passe. Verses au
+depot, sans aucun secret dedans, et `control-drift-check` les compare
+desormais : verser un fichier sans temoin fabrique une reference qui peut
+mentir des le lendemain.
+
+**La recette d'epinglage ecrite dans le compose etait la mauvaise.** Elle
+recommandait `{{index .RepoDigests 0}}`, exactement ce que la mesure du
+2026-08-30 avait invalide : une image porte plusieurs `RepoDigests` (index OCI
+vs manifest list) et l'indice 0 n'est pas stable. La recette fabriquait donc
+elle-meme les fausses derives qu'on avait passe du temps a comprendre.
+
+**`pulse` n'est epingle par aucun digest**, seul service dans ce cas. Son
+epingle candidate resout bien au registre, mais la poser demande un `up -d` et
+la comparaison des ID d'image avant/apres — un geste a part.
+
+## 7. Ce que mon propre travail a coute en disque
+
+Le binaire Alloy pese **450 Mo**, sur chacun des dix LXC — soit ~4,5 Go
+ajoutes a la flotte en une matinee. `lxc-disk-check` l'a vu tout seul au
+passage de 14:02 et a notifie **six hausses**, toutes de mon fait :
+dns-failover 50→59, vault 29→35, pulse 82→91, waterline 18→24, pbs 55→62,
+ci-runner 75→81. La sonde a fonctionne exactement comme concue — seuil critique
+a 92 % *et* detection de variation a +6 points — et c'est elle qui m'a attrape.
+
+Puis les bumps d'images ont fait pire, temporairement : le LXC 101 est monte a
+**97 %, 370 Mo libres**, parce que Docker garde l'ancienne image a cote de la
+nouvelle et que grafana en pese 1,9 Go. Nettoyage :
+
+| LXC | Avant | Apres | Ce qui a ete retire |
+|---|---|---|---|
+| 101 logs | 97 % | **59 %** | 4 anciennes images (grafana x2, loki, prometheus) |
+| 108 ci-runner | 81 % | **32 %** | 3,9 Go d'images de jobs de CI abandonnees (anterieur a ce jour) |
+| 102 vault | 40 % | 36 % | ancienne image vaultwarden |
+
+:::caution[`docker image prune -f` ne suffit pas apres un changement d'epingle]
+Dans le LXC 101 il a rendu **0 octet**. Une image dont on remplace l'epingle
+garde son nom de depot et perd seulement son tag (`grafana/grafana:<none>`) :
+Docker ne la traite pas comme orpheline. Il faut la supprimer par son ID, ou
+passer `-a`. Les 3,4 Go n'ont ete rendus qu'apres `docker rmi <id>`.
+:::
+
+Et l'espace rendu dans un LXC ne revient a l'hote **que** sur `pct fstrim` :
+4,3 + 5,5 GiB pour lancelot, 5,2 + 0,7 GiB pour galahad. Le `/` de lancelot est
+repasse de 76 % a **61 %**.
+
+Il reste deux volumes serres, et c'est le meme blocage que la roadmap : `pulse`
+a 91 % (un point sous le seuil critique) et `zomboid` a 86 %. On ne peut pas les
+agrandir tant que le VG de `galahad` est alloue a 100 %.
+
 ## Ce qui reste, et pour qui
 
 Hors de portée d'une session sans accès physique :
