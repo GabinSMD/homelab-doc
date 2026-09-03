@@ -38,6 +38,9 @@ les alimente. Les entrees ajoutees apres cette date portent `—`.
 | [Bruit auditd EXECVE sur galahad](#bruit-auditd-execve-sur-galahad) | 0 | Aucun (diagnostic) |
 | [Regle Grafana orpheline apres retrait d'un service](#regle-grafana-orpheline-apres-retrait-dun-service) | — | Faible |
 | [Un « penny » de plus dans l'app Claude](#penny-en-double) | — | Faible |
+| [Chaine egress presente mais branchee sur rien](#egress-orpheline) | — | Faible |
+| [Services ZFS en echec dans un LXC](#zfs-lxc) | — | Aucun (masquage) |
+| [Chute de lancelot : ou est la preuve](#chute-lancelot-preuve) | — | Aucun (diagnostic) |
 
 ---
 
@@ -469,3 +472,162 @@ Meme famille que la
 [regle Grafana orpheline](#regle-grafana-orpheline-apres-retrait-dun-service) :
 le garde-fou surveillait le mauvais artefact.
 :::
+
+---
+
+## Chaine egress presente mais branchee sur rien {#egress-orpheline}
+
+**Constate le 2026-09-03 sur lancelot, apres un redemarrage a 01:42.**
+Le pare-feu de sortie n'a rien applique pendant sept heures, et le controle de
+derive repondait « present ».
+
+`egress-phase2-boot.service` echoue au demarrage avec :
+
+```
+Can't lock /run/xtables.lock: Resource temporarily unavailable
+```
+
+Le script tourne en `set -e` : il s'arrete **avant** de brancher la chaine sur
+`OUTPUT`. On obtient donc une chaine `EGRESS-PHASE2` complete — ses 20 regles
+sont la — mais aucun saut vers elle. Une chaine branchee sur rien ne filtre
+rien.
+
+:::danger[Compter des lignes n'est pas mesurer un effet]
+`control-drift-check` faisait `iptables -S | grep -c EGRESS` et se contentait
+d'un resultat non nul. La chaine orpheline lui repondait « 20 », donc
+« deploye ». Il verifie desormais **aussi** le saut depuis `OUTPUT`.
+
+L'incident n'a ete vu que parce qu'un AUTRE controle, celui des units en
+echec, a signale le service a 06:00. Un simple `systemctl reset-failed`
+l'aurait rendu totalement muet.
+:::
+
+### Diagnostic
+
+```bash
+# La chaine existe-t-elle ?
+ssh <noeud> 'sudo iptables -S EGRESS-PHASE2 | grep -c "^-A"'   # attendu : 20
+
+# Est-elle BRANCHEE ? C'est la question qui compte.
+ssh <noeud> 'sudo iptables -S OUTPUT | grep -c "j EGRESS-PHASE2"'   # attendu : 1
+```
+
+Forme attendue de `OUTPUT` sur un noeud PVE — le saut egress **avant** celui
+de pve-firewall :
+
+```
+-P OUTPUT ACCEPT
+-A OUTPUT -j EGRESS-PHASE2
+-A OUTPUT -j PVEFW-OUTPUT
+```
+
+### Remede
+
+```bash
+ssh <noeud> 'sudo systemctl start egress-phase2-boot.service'
+ssh <noeud> 'sudo systemctl show egress-phase2-boot.service -p Result --value'  # success
+```
+
+Le service reconstruit la chaine entiere, ce qui est idempotent. En cas de
+doute, armer un filet avant — c'est ce qui a ete fait le 2026-09-03 :
+
+```bash
+systemd-run --on-active=240 --unit=egress-net /bin/sh -c \
+  "/sbin/iptables -w 10 -D OUTPUT -j EGRESS-PHASE2; /sbin/iptables -w 10 -I OUTPUT 1 -j EGRESS-PHASE2"
+```
+
+### Cause de fond, corrigee
+
+L'unit ordonnait deja `After=pve-firewall.service`, et cela ne suffit pas :
+pve-firewall **demarre** avant, puis continue de reappliquer ses regles.
+L'ordre ne supprime pas la course, l'attente si. Les appels du script passent
+maintenant par `iptables -w 15`, pose en une fonction qui intercepte les 32
+sites d'appel.
+
+---
+
+## Services ZFS en echec dans un LXC {#zfs-lxc}
+
+**Constate le 2026-09-03 dans le LXC 103 (pbs)** : `zfs-zed.service` en echec
+12 fois en 30 minutes, plus `zfs-mount` et `zfs-share`, ce qui declenche
+l'alerte « unit en crash-loop ».
+
+Il n'y a pas de `/dev/zfs` dans un LXC non privilegie, donc ces services ne
+peuvent structurellement pas demarrer. `zfsutils-linux` arrive comme
+dependance de `proxmox-backup-server` : le paquet est la, la fonctionnalite
+non.
+
+Cela echouait probablement depuis toujours **sans que rien ne le dise** : ce
+LXC n'expediait pas ses journaux vers Loki avant le 2026-09-02. La premiere
+nuit de collecte a suffi a le reveler — c'est l'observabilite qui a cree
+l'alerte, pas la panne qui est apparue.
+
+### Remede
+
+```bash
+pct exec <id> -- systemctl mask zfs-zed.service zfs-mount.service zfs-share.service
+pct exec <id> -- systemctl reset-failed zfs-zed.service zfs-mount.service zfs-share.service
+```
+
+Masquer plutot que desactiver : `mask` empeche aussi un demarrage declenche
+par une dependance. A refaire si un jour ZFS est reellement utilise dans le
+conteneur (Phase 4 de la roadmap).
+
+---
+
+## Chute de lancelot : ou est la preuve {#chute-lancelot-preuve}
+
+Lancelot tombe sans laisser de trace dans `journald` : le journal s'arrete net
+et la machine revient une minute plus tard. **Ce ne sont pas des coupures
+franches, ce sont des paniques noyau** — et la preuve n'est pas la ou on la
+cherche d'instinct.
+
+:::danger[`/sys/fs/pstore` vide ne prouve RIEN]
+`systemd-pstore` **deplace** les enregistrements au demarrage vers
+`/var/lib/systemd/pstore/<epoch>/`. Trouver `/sys/fs/pstore` vide et en
+conclure « pas de panique » est une erreur — elle a ete commise le 2026-09-03,
+puis corrigee en trouvant 35 fragments de dump dans `/var/lib`.
+
+Deuxieme piege dans le meme dossier : le dmesg y est fragmente en `Part<N>`
+sur des dizaines de fichiers. Un `grep` sur un seul fragment ne rend presque
+rien ; il faut balayer tout le repertoire.
+:::
+
+```bash
+# LE bon endroit
+ssh lancelot 'sudo ls -la /var/lib/systemd/pstore/'
+
+# La signature, en balayant tous les fragments
+ssh lancelot 'sudo sh -c "for f in \$(find /var/lib/systemd/pstore/<epoch> -type f); do
+  grep -ahoE \"Kernel panic[^,]*|RIP: [^ ]+|CPU: [0-9]+.{0,60}Comm: [^ ]+\" \$f; done | sort -u"'
+```
+
+### Trois episodes, trois RIP sans rapport
+
+| Date | RIP | Contexte |
+|---|---|---|
+| 2026-07-10 | `cpuidle_enter_state+0xc7` | inactivite CPU |
+| 2026-08-05 | `update_sd_lb_stats+0x93` | equilibrage d'ordonnancement |
+| 2026-09-03 | `vma_interval_tree_remove+0x1a4` | arbre des zones memoire, processus `smartctl` en fin de vie |
+
+**C'est le motif qui parle.** Un bug logiciel frappe le meme chemin de code ;
+une corruption memoire aleatoire frappe n'importe ou. Trois sous-systemes sans
+rapport pointent vers le materiel — RAM non-ECC sur un ZimaBoard2, alors que
+galahad, meme modele et meme noyau, est indemne.
+
+Le 2026-09-03, penny et galahad avaient 4 jours d'uptime au moment de la chute :
+un evenement electrique est exclu par construction.
+
+:::caution[`ce_count`/`ue_count` a 0 ne dedouane pas la RAM]
+Sur de la memoire **non-ECC**, il n'y a aucune capacite de detection. Zero
+erreur EDAC signifie « rien n'a ete mesure », pas « rien ne s'est passe ».
+C'est exactement pourquoi `memtest86+` — deja installe — reste le seul examen
+concluant, et pourquoi il faut le lancer plutot que d'accumuler des compteurs
+rassurants.
+:::
+
+### Consequence a surveiller apres chaque chute
+
+Un redemarrage de lancelot rejoue `egress-phase2-boot.service`, qui peut echouer
+sur le verrou xtables : verifier le pare-feu de sortie, voir
+[chaine egress branchee sur rien](#egress-orpheline).
