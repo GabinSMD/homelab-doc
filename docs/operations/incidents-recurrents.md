@@ -626,8 +626,56 @@ concluant, et pourquoi il faut le lancer plutot que d'accumuler des compteurs
 rassurants.
 :::
 
+### L'echelle de diagnostic, du moins cher au plus cher
+
+**1. `memtester` en espace utilisateur — aucune indisponibilite.** Installe sur
+lancelot. Il verrouille une portion de RAM et la torture sans arreter la
+machine, avec un resultat lisible dans le journal :
+
+```bash
+ssh lancelot 'sudo systemd-run --unit=memtest-userspace \
+  /usr/sbin/memtester 6G 1'
+ssh lancelot 'sudo journalctl -u memtest-userspace -f'
+```
+
+Ses limites, a garder en tete : il ne teste que la memoire qu'il arrive a
+allouer, jamais celle que le noyau occupe, et il ne peut pas exercer les
+motifs bas niveau d'un test au boot. **Une passe verte ne dedouane donc pas la
+RAM** — c'est un filtre, pas une preuve. Une passe ROUGE, elle, conclut
+immediatement et evite tout le reste.
+
+Passe du 2026-09-03 : 6 Go verrouilles, une boucle, 24 minutes, **0 echec**,
+`Result=success`, machine saine apres coup. Filtre negatif, donc la question
+reste ouverte et l'etape 2 reste necessaire.
+
+**2. `memtest86+` au demarrage — immobilise la machine.** C'est le seul examen
+concluant. Deux precautions.
+
+:::warning[Ne pas armer `grub-reboot` a l'avance]
+`grub-reboot` vise le PROCHAIN demarrage. Or cette machine tombe justement
+toute seule : si elle panique dans la nuit, elle revient dans memtest et y
+reste, hors ligne, avec Loki primary, Grafana, PBS et le runner de CI dedans.
+On arme au moment ou on est devant, pas avant.
+:::
+
+L'entree a preferer est la variante **serial console** — lancelot a un UART
+(`ttyS0`, 16550A a 0x3f8) et memtest86+ sait y ecrire, donc le resultat est
+lisible sans ecran **si** un cable est branche en face :
+
+```
+Memory test (memtest86+x64.efi, serial console)
+```
+
+Sans cable, il faut un ecran sur le mini-DP : memtest86+ n'ecrit aucun
+resultat sur disque, et personne ne pourra lire le verdict a distance.
+
 ### Consequence a surveiller apres chaque chute
 
 Un redemarrage de lancelot rejoue `egress-phase2-boot.service`, qui peut echouer
 sur le verrou xtables : verifier le pare-feu de sortie, voir
 [chaine egress branchee sur rien](#egress-orpheline).
+
+Et les sauvegardes : la chute du 2026-09-03 a 01:42 a rendu PBS injoignable a
+01:43, quinze minutes avant la fenetre de 02:00. Elles ont toutes reussi ce
+soir-la (9 invites, job « finished successfully » a 02:07), mais c'est le
+premier controle a faire — pas une evidence.
