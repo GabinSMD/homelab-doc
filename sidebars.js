@@ -119,6 +119,7 @@ const sidebars = {
         { type: 'doc', id: 'operations/backups', label: 'Backups' },
         { type: 'doc', id: 'operations/break-glass', label: 'Break-glass' },
         { type: 'doc', id: 'operations/depannage', label: 'Depannage' },
+        { type: 'doc', id: 'operations/derive-configuration', label: 'Derive de configuration' },
         { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents recurrents' },
         { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (acces urgence)' },
         { type: 'doc', id: 'operations/dr-drill-scenario-1', label: 'DR drill scenario 1' },
@@ -160,6 +161,7 @@ const sidebars = {
           label: 'Journal',
           collapsed: true,
           items: [
+            { type: 'doc', id: 'projet/journal/2026-09-04-declaratif-ansible-terraform', label: '2026-09-04 — Rendre le parc declaratif' },
             { type: 'doc', id: 'projet/journal/2026-09-02-angles-morts-observabilite', label: "2026-09-02 — Angles morts d'observabilite" },
             { type: 'doc', id: 'projet/journal/2026-08-31-retrait-kroki', label: '2026-08-31 — Retrait de Kroki' },
             { type: 'doc', id: 'projet/journal/2026-08-26-audit-fraicheur-doc', label: '2026-08-26 — Audit de fraicheur de la doc' },
