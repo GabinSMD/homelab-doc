@@ -849,6 +849,57 @@ de temps sur `tailscale serve`/`funnel` en local ni sur un redemarrage de
 `tailscaled` : les deux ont ete essayes le 2026-09-04 et n'y changent rien,
 la publication ne depend pas du noeud.
 
+### Resolu le 2026-09-04 — ce qui a ete change, et la preuve
+
+Le bloc `nodeAttrs` a ete modifie en **retirant `tag:fish`**, ne laissant que
+`GabinSMD@github` :
+
+```json
+{
+  // Funnel : les devices de GabinSMD (dont penny, non-taggé)
+  "target": ["GabinSMD@github"],
+  "attr": ["funnel"],
+},
+```
+
+Deux raisons de laisser tomber le tag, verifiees avant :
+
+- penny est **non taggé**, donc c'est `GabinSMD@github` qui le couvre — et la
+  preuve etait deja la, le noeud recevait bien la capacite `funnel`. Ajouter
+  penny explicitement n'aurait rien change ;
+- `tag:fish` visait le LXC renomme **sucre**, arrete depuis le 2026-08-25.
+  Mesure faite : **rien n'ecoutait sur son port 8080**, aucun service actif, et
+  son propre nom `fish.<tailnet>.ts.net` n'etait pas publie non plus. Son
+  Funnel pointait vers le vide.
+
+Cette seule modification a suffi — elle fait disparaitre puis revenir l'entree
+du point de vue du plan de controle.
+
+**La preuve, sur le chemin que le client emprunte vraiment** :
+
+| Verification | Resultat |
+|---|---|
+| `8.8.8.8`, `1.1.1.1`, `9.9.9.9` | NOERROR, 3 reponses |
+| fetch force sur l'ingress public (`--resolve`, contourne MagicDNS) | **HTTP 200**, contenu recupere |
+| le meme sans jeton | 403 — l'auth protege toujours |
+| **le telephone lui-meme**, jeton utilise depuis une adresse **publique** (ni tailnet, ni LAN) | **acces reussi** |
+
+C'est cette derniere ligne qui ferme le dossier. Tous les tests precedents
+montraient `172.18.0.1` (local) ou `100.x` (tailnet) — autrement dit moi, sur
+un chemin que le telephone n'emprunte pas.
+
+:::caution[Rechute possible : `ns1` repond toujours faux]
+Apres correction, `ns1.dnsimple.com` rend **encore** `NXDOMAIN` en UDP. Deux
+autoritaires sur trois suffisent et les resolveurs publics ont converge, mais
+tant que Tailscale ne l'a pas corrige, un resolveur qui interroge `ns1` au
+mauvais moment peut remettre un NXDOMAIN en cache negatif. Si le symptome
+revient, c'est lui :
+
+```bash
+dig @ns1.dnsimple.com penny.<tailnet>.ts.net A
+```
+:::
+
 ### Ce qui a ete remonte en amont
 
 Le [commentaire poste le 2026-09-04](https://github.com/tailscale/tailscale/issues/11849)
