@@ -747,37 +747,137 @@ ssh galahad "curl -sS -o /dev/null -w '%{http_code}\n' \
 Les trois au vert ⇒ le serveur est hors de cause, le probleme est dans
 l'identifiant que porte l'application.
 
-### La cause du 2026-09-04 : une rotation a coupe un consommateur
+### La cause du 2026-09-04 : un serveur autoritaire sur trois repond faux
 
-`ntfy token list` montrait un jeton pour `phone`, `publisher` et `fish` —
-et **aucun pour `admin`**. Or le commit de rotation du 2026-09-01 dit
-exactement ceci : « `NTFY_PHONE_TOKEN` contenait le jeton ADMIN, le remplacer
-par un jeton phone en lecture seule ».
+:::danger[Trois diagnostics successifs, dont deux faux — la progression compte plus que la conclusion]
+**1. « L'identifiant de l'app est perime. »** La rotation du 01/09 avait
+revoque le jeton `admin` que le telephone portait. Vrai fait, mauvaise cause.
 
-Le telephone etait donc configure avec le jeton **admin**, que la rotation a
-revoque. L'app porte un identifiant qui n'existe plus : elle ne peut plus
-recuperer le contenu, et iOS affiche le texte de remplacement.
+**2. « Le nom du Funnel n'est pas publie. »** Quatre chemins rendaient
+NXDOMAIN, dont l'autoritaire avec le drapeau `aa`. Toujours faux.
 
-La rotation etait la bonne decision — un jeton admin sur un telephone est
-sur-privilegie. Ce qui a manque, c'est l'etape d'apres.
+**3. Le vrai constat.** Le nom **est** publie. Un seul des trois serveurs
+autoritaires repond mal, et seulement en UDP.
 
-:::tip[Rotationner un secret, c'est aussi enumerer ses consommateurs]
-Aucune sonde serveur n'aurait attrape ca : cote serveur **tout est vert**, le
-jeton `phone` et le couple `phone` + mot de passe authentifient l'un comme
-l'autre. Le consommateur casse est une application sur un appareil, qu'on ne
-peut pas interroger a distance.
-
-D'ou la regle : avant de revoquer un identifiant, lister **ou il est
-recopie**, y compris hors du homelab — un telephone, un navigateur, un client
-tiers. Ces recopies-la ne se voient dans aucun `git grep`.
+L'erreur de methode commune aux deux premiers : mes tests passaient par le
+TAILNET. Depuis penny ou galahad, `penny.tail8850a4.ts.net` resout vers
+`100.97.239.90` par MagicDNS et la connexion se fait en direct — **jamais par
+le Funnel public**. Je validais un chemin que le telephone n'emprunte pas.
 :::
 
-### Remede
+Le nom porte bien trois A et trois AAAA, qui pointent l'ingress Funnel de
+Tailscale :
 
-Ressaisir l'identifiant dans l'application iOS, pour le serveur
-`https://penny.tail8850a4.ts.net`. Les deux fonctionnent, verifies en HTTP
-200 : le jeton `NTFY_PHONE_TOKEN` (lecture seule), ou l'utilisateur `phone`
-avec `NTFY_PHONE_PASS`. Les deux sont scelles dans `.env.enc`.
+```
+penny.tail8850a4.ts.net. 300 IN A    176.58.90.46 / .63 / .145
+penny.tail8850a4.ts.net. 300 IN AAAA 2a00:dd80:3e::47e / ::b3a / ::e2c
+```
+
+Mais selon l'interlocuteur, la meme question recoit deux reponses opposees —
+mesure reproductible :
+
+| Interlocuteur | Reponse |
+|---|---|
+| `ns1.dnsimple.com` en **UDP** | **NXDOMAIN** (5 essais sur 5) |
+| `ns1.dnsimple.com` en **TCP** | NOERROR, 3 reponses |
+| `ns2.dnsimple-edge.net` en UDP | NOERROR, 3 reponses |
+| `ns3.dnsimple.com` en UDP | NOERROR, 3 reponses |
+
+Consequence : **tout resolveur qui interroge `ns1` met un NXDOMAIN en cache**
+pour la duree du TTL negatif de la zone. D'ou un symptome intermittent, qui
+depend du resolveur utilise par le telephone — constate le meme jour, a une
+demi-heure d'intervalle :
+
+| Resolveur public | Verdict |
+|---|---|
+| `8.8.8.8`, `8.8.4.4`, `9.9.9.9` | NOERROR, 3 reponses |
+| `1.1.1.1`, `1.0.0.1` | NXDOMAIN (cache negatif) |
+
+Ce n'est donc ni la configuration de penny, ni l'app, ni un reglage Tailscale a
+changer. `tailscale serve status` est conforme, la console d'administration
+affiche bien le badge Funnel sur penny, `tailscale lock status` dit que le
+verrouillage n'est pas active, et **crt.sh rend 4 certificats** pour ce nom, le
+dernier emis le 2026-08-09 et valide jusqu'au 2026-11-07.
+
+Un **redemarrage de `tailscaled`** a ete tente : propre — `:443` rebinde sur
+l'IP du tailnet, MagicDNS revenu, SSH aux noeuds OK, config Funnel intacte, et
+`Hostinfo.IngressEnabled changed to true` prouve la reannonce. **Sans effet**,
+ce qui etait attendu une fois la cause connue : le probleme est chez le
+fournisseur DNS de Tailscale.
+
+:::tip[Trois reflexes de mesure que cet incident a coutes]
+**Tester le chemin que le CLIENT emprunte.** Un test depuis le tailnet valide
+le tailnet, pas le Funnel. Verifier d'abord vers quoi le nom resout depuis le
+poste de test.
+
+**`dig +short` n'affiche rien pour « pas d'enregistrement » ET pour un
+timeout.** Lire `status:` plutot que l'absence de sortie — c'est ce qui a fait
+croire a un NXDOMAIN sur trois resolveurs.
+
+**Quand un nom semble NXDOMAIN, interroger CHAQUE autoritaire, et essayer
+TCP.** Ici `ANY` rendait 6 enregistrements que `A` niait sur le meme serveur :
+c'est cette incoherence qui a mis sur la voie. Une seule reponse autoritaire
+fausse empoisonne les caches negatifs et fabrique une panne intermittente,
+impossible a comprendre depuis un seul point de vue.
+:::
+
+### Le remede : basculer l'attribut `funnel` dans les ACL
+
+C'est un bug connu de Tailscale, suivi dans
+[tailscale/tailscale#11849](https://github.com/tailscale/tailscale/issues/11849)
+(« Funnel works only within tailnet »), ouvert depuis avril 2024. Le fil
+contient le contournement, confirme par plusieurs utilisateurs.
+
+**Ce sont les ACL qui commandent la publication DNS du Funnel**, via
+`nodeAttrs` / `attr: ["funnel"]`. Et le point qui compte : meme quand
+l'attribut est deja present et correct, **le faire disparaitre puis revenir
+force le plan de controle a recreer l'enregistrement public**.
+
+Dans la console d'administration, *Access Controls* :
+
+1. retirer l'entree `funnel` de `nodeAttrs`, enregistrer ;
+2. la remettre a l'identique, enregistrer.
+
+Puis verifier — et sur `ns1` precisement, puisque c'est lui qui repondait faux :
+
+```bash
+dig @ns1.dnsimple.com penny.<tailnet>.ts.net A   # attendu : NOERROR
+```
+
+Geste a faire dans le navigateur, sans aucun risque pour l'hote. Ne pas perdre
+de temps sur `tailscale serve`/`funnel` en local ni sur un redemarrage de
+`tailscaled` : les deux ont ete essayes le 2026-09-04 et n'y changent rien,
+la publication ne depend pas du noeud.
+
+### Ce qui a ete remonte en amont
+
+Le [commentaire poste le 2026-09-04](https://github.com/tailscale/tailscale/issues/11849)
+apporte au fil l'element que personne n'avait mesure : l'enregistrement n'est
+pas absent, il est servi de facon **incoherente** entre les autoritaires. C'est
+ce qui explique les temoignages de panne intermittente plutot qu'absolue.
+
+Le nom du tailnet a ete volontairement laisse hors du message public : la
+reproduction n'en a pas besoin.
+
+### Contournement immediat
+
+Rallumer Tailscale sur le telephone. Avec le tailnet actif, MagicDNS resout le
+nom vers l'IP du tailnet et la lecture fonctionne — verifie depuis galahad et
+lancelot, HTTP 200 avec `user_name=phone` visible dans la trace detaillee. Le
+telephone etait **hors tailnet depuis 8 jours**, ce qui explique la date a
+laquelle le symptome est apparu.
+
+### Remede de fond
+
+Republier le nom cote Tailscale : verifier dans la console d'administration que
+Funnel est autorise pour le tailnet et que penny le porte toujours. Si tout y
+est conforme, c'est un ticket Tailscale — avec les elements ci-dessus, dont le
+certificat du 2026-08-09 qui prouve que le nom etait publie.
+
+Independamment, l'identifiant de l'app doit etre le bon : le jeton
+`NTFY_PHONE_TOKEN` (lecture seule) ou l'utilisateur `phone` avec
+`NTFY_PHONE_PASS`, tous deux scelles dans `.env.enc` et verifies en HTTP 200.
+Le jeton `admin` que l'app portait a ete revoque le 01/09.
 
 Puis controler que l'app est bien venue chercher : le dernier acces du jeton
 doit avancer.
