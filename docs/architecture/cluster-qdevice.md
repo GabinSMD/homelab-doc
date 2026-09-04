@@ -1,5 +1,22 @@
 # Cluster Proxmox — qdevice (3 votes)
 
+:::info[Les dix LXC sont declares en OpenTofu depuis le 2026-09-04]
+Le cluster n'a plus seulement une description en prose : ses dix conteneurs
+sont declares dans `homelab-config/iac/terraform/`, un fichier par conteneur
+nomme `<VMID>-lxc-<nom>.tf`. `tofu plan` rend `No changes.` — et le jour ou il
+ne le rendra plus, quelqu'un aura modifie un conteneur a la main.
+
+Le token API est en **lecture seule** (`PVEAuditor`) : une ecriture sur l'API
+rend HTTP 403, donc un `apply` lance par erreur echoue cote Proxmox. Aucun
+`apply` n'a jamais ete execute.
+
+Trois limites a connaitre avant d'envisager l'ecriture — dont le fait que
+quatre conteneurs portent un passthrough TUN que le provider ne modelise pas,
+et qu'aucun fichier ne declare `vm_id`. Elles sont sur la page
+[Derive de configuration](../operations/derive-configuration.md) et dans
+`iac/README.md`.
+:::
+
 **Deployé 2026-04-19** suite à incident perte-de-quorum sur cluster 2-node.
 
 ## Problème initial (2-node)

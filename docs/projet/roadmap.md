@@ -109,4 +109,11 @@
 
 ### Reproductibilite
 
-- [ ] **Ansible playbook** ou Nix flake pour reconstruire penny depuis git en 1 commande
+- [~] **Ansible playbook** ou Nix flake pour reconstruire penny depuis git en 1 commande
+  — *avance le 2026-09-04, pas termine.* Un manifeste Ansible declare 104 paires
+  source -> copie live (scripts, units systemd, regles udev) sur les trois hotes,
+  et `--check --diff` detecte la derive ; les 10 LXC du cluster sont declares en
+  OpenTofu. **Mais reconstruire penny en une commande n'est pas fait** : le
+  manifeste deploie des fichiers sur un systeme deja installe, il n'installe ni
+  l'OS, ni Docker, ni les paquets. La case reste ouverte pour cette raison. Voir
+  [Derive de configuration](../operations/derive-configuration.md).

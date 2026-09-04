@@ -363,3 +363,71 @@ est conservé comme trace de décision, il ne décrit plus l'état courant.
 **Alternative rejetee** : (1) **DietPi mode -3 (rsyslog+logrotate)** — persistance disque reelle mais installe rsyslog + /var/log passe tmpfs→disque, plus gros blast radius. (2) **Exclure /var/log/journal de dietpi-logclear** — necessite d'editer un fichier gere par DietPi, fragile (reecrit aux updates).
 
 **Impact** : plus de journal local persistant apres reboot (l'historique central reste dans Loki). Fichiers `/var/log/journal/*` desormais vestigiaux. Lecon : sur DietPi RAMlog, ne jamais poser le journald persistant sous `/var/log/journal`.
+
+## IaC : declarer l'existant en lecture seule plutot que reconstruire
+
+**Date** : 2026-09-04 · **Statut** : applique
+
+### Le probleme
+
+Deux questions n'avaient aucune reponse mecanique. Les scripts versionnes dans
+`homelab-config` sont recopies vers `/usr/local/bin/` et `/root/` sur trois
+hotes : rien ne garantissait que les copies suivaient. Et les dix LXC du
+cluster avaient ete montes a la main, decrits nulle part.
+
+Le cout de cette absence est mesure, pas theorique : une sonde SMART morte 114
+passages parce qu'un correctif n'avait jamais ete redeploye, et huit jours de
+publication vers un ntfy **public** sur un noeud, apres que le correctif ait
+ete applique a l'autre.
+
+### La decision
+
+**Declarer ce qui EST, et seulement le declarer.**
+
+- **Un manifeste Ansible explicite**, jamais un glob : 104 paires
+  source -> destination nommees une par une. `scripts/` contient aussi des
+  tests, des migrations a usage unique et des scripts de noeud ou de LXC, qui
+  n'ont rien a faire sur un hote donne.
+- **OpenTofu plutot que Terraform** : licence MPL, meme provider
+  `bpg/proxmox`, binaire `linux_arm64` publie. Installe par binaire verifie par
+  somme SHA256, jamais par `curl | sh`.
+- **Import en lecture seule, jamais d'`apply`.** Le token est en `PVEAuditor` :
+  une ecriture sur l'API rend HTTP 403. Ce n'est pas une discipline, c'est un
+  garde-fou materiel. Le critere d'acceptation est un `tofu plan` VIDE — ce qui
+  fait du plan un detecteur de derive et non un outil de creation.
+
+### Pourquoi pas autrement
+
+**Pourquoi pas un `apply` ?** Quatre conteneurs portent un passthrough
+`/dev/net/tun` que le provider ne modelise pas : une recreation le perdrait en
+silence et Tailscale tomberait sans alerte. Et aucun fichier ne declare
+`vm_id`, l'import ne peuplant pas ce champ — un `apply` sur un etat perdu
+creerait dix doublons de MAC et d'IP au lieu de readopter. L'ecriture est une
+decision separee, a prendre en ayant lu ces deux limites.
+
+**Pourquoi Packer, alors ?** A la demande explicite, en sachant qu'il n'a
+**aucun consommateur** : le cluster n'heberge aucune VM, `qm list` est vide sur
+les deux noeuds. Le code est valide, jamais construit. Il existe pour que la
+premiere VM ne soit pas montee a la main.
+
+**Pourquoi pas Kubernetes, ArgoCD, Longhorn** — presents chez les homelabs
+publics dont ce chantier s'est inspire ? Inadaptes a un Raspberry Pi 4 et deux
+ZimaBoards. Le choix de Docker Compose n'est pas un retard, c'est un
+dimensionnement.
+
+### Ce que ca a coute et ce qui reste
+
+Le plan qui pilotait le chantier comptait quatorze affirmations fausses, toutes
+trouvees a l'execution. Aucune n'a atteint la production : la boucle de
+relecture les a arretees, et trois fois un executant a **refuse d'appliquer**
+en constatant que ce qu'il allait ecraser valait mieux que ce qu'il allait
+ecrire.
+
+La regle qui en sort, apres quatre occurrences en trois jours : dans ce parc,
+un renommage ne casse pas les garde-fous, **il les rend muets**. La question a
+se poser en ecrivant un controle n'est pas « detecte-t-il le probleme ? » mais
+« que rend-il si sa cible disparait ? ».
+
+Mode d'emploi et limites : [Derive de configuration](../operations/derive-configuration.md).
+Recit complet : [journal du 2026-09-04](./journal/2026-09-04-declaratif-ansible-terraform.md).
+
