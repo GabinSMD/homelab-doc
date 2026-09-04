@@ -87,9 +87,21 @@ créerait une surface de dérive là où il n'y en a pas.
 
 ```bash
 cd /mnt/ssd/config/iac/terraform
-set -a; . /run/homelab/.env; set +a
+export $(grep -E '^PROXMOX_VE_' /run/homelab/.env | xargs)
 tofu plan
 ```
+
+:::warning[N'exportez que les trois variables du provider]
+Un `set -a; . /run/homelab/.env; set +a` — la forme qui figurait ici jusqu'au
+2026-09-04 — met les **37 secrets** du homelab dans l'environnement du shell,
+de tous ses enfants et de `/proc/<pid>/environ` : token Cloudflare, clef
+Tailscale, secrets Outline, Forgejo, Firefly. Pour un `plan` qui en a besoin de
+trois.
+
+C'est le même raisonnement que « un secret qui passe par un terminal atterrit
+dans un historique, une transcription et un scrollback », appliqué une ligne
+plus loin — et il avait été manqué là.
+:::
 
 Attendu : `No changes. Your infrastructure matches the configuration.`
 
