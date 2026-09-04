@@ -164,7 +164,7 @@ Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
 | Donnée | Chemin | Criticite |
 |---|---|---|
 | Authelia (DB SQLite + clé OIDC + config + secrets) | `/mnt/ssd/config/authelia/` | **Critique** |
-| AdGuard (config avec rewrites) | `/mnt/ssd/config/adguard/` | Haute |
+| AdGuard (config avec rewrites) | `/mnt/ssd/config/adguard/adguard-prod-1/` | Haute |
 | Traefik (config + dynamic routes) | `/mnt/ssd/config/traefik/` | Haute |
 | Homepage (dashboard config) | `/mnt/ssd/config/homepage/` | Faible |
 | Scripts système | `/mnt/ssd/config/scripts/` | Moyenne |
