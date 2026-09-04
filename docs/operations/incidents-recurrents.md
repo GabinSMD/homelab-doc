@@ -41,6 +41,7 @@ les alimente. Les entrees ajoutees apres cette date portent `—`.
 | [Chaine egress presente mais branchee sur rien](#egress-orpheline) | — | Faible |
 | [Services ZFS en echec dans un LXC](#zfs-lxc) | — | Aucun (masquage) |
 | [Chute de lancelot : ou est la preuve](#chute-lancelot-preuve) | — | Aucun (diagnostic) |
+| [ntfy iOS n'affiche que « New message »](#ntfy-new-message) | — | Faible |
 
 ---
 
@@ -679,3 +680,108 @@ Et les sauvegardes : la chute du 2026-09-03 a 01:42 a rendu PBS injoignable a
 01:43, quinze minutes avant la fenetre de 02:00. Elles ont toutes reussi ce
 soir-la (9 invites, job « finished successfully » a 02:07), mais c'est le
 premier controle a faire — pas une evidence.
+
+---
+
+## ntfy iOS n'affiche que « New message » {#ntfy-new-message}
+
+La notification arrive, mais sans contenu : juste le texte de remplacement.
+**C'est toujours la meme mecanique** — le reveil passe, la recuperation du
+contenu echoue.
+
+### Comprendre le chemin avant de chercher
+
+Un serveur auto-heberge ne peut pas pousser vers APNs. ntfy publie donc un
+**reveil** sur un sujet derive chez `upstream-base-url` (ntfy.sh), visible en
+log detaille :
+
+```
+DEBUG Publishing poll request to https://ntfy.sh/31f92d23...4696b6
+```
+
+Le sujet derive est un hachage de `base-url` + nom du topic. L'app calcule le
+meme hachage a partir du serveur qu'ELLE a enregistre. Deux consequences qui
+orientent tout le diagnostic :
+
+- **Tu recois « New message » ⇒ l'app est bien sur la bonne URL.** Si son
+  serveur differait de `base-url`, les hachages differeraient et tu ne
+  recevrais **rien du tout**.
+- Le contenu, lui, n'est jamais dans le push : l'app doit venir le chercher
+  chez nous, **avec ses identifiants**. C'est la que ca casse.
+
+:::danger[Un refus d'authentification est INVISIBLE dans les logs par defaut]
+ntfy rend 401/403 **sans ecrire une seule ligne** au niveau `info`. Verifie le
+2026-09-04 en envoyant un mauvais jeton : HTTP 401, zero log. Conclure
+« aucun refus dans les logs, donc l'app n'est pas rejetee » est une inference
+invalide — c'est l'erreur commise ce jour-la.
+
+Pour voir quoi que ce soit, ajouter temporairement dans `ntfy/server.yml` :
+
+```yaml
+log-level: debug
+```
+
+puis `docker restart ntfy`. **Et le retirer apres** : ce fichier est versionne.
+:::
+
+### Isoler en trois mesures
+
+```bash
+TOKEN=$( . /run/homelab/.env; printf '%s' "$NTFY_PHONE_TOKEN" )
+
+# 1. Le serveur repond-il sur l'URL PUBLIQUE, avec le jeton ?
+curl -sS -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
+  'https://penny.tail8850a4.ts.net/homelab/json?poll=1&since=1h'      # attendu 200
+
+# 2. Et sans jeton ? (doit refuser)
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  'https://penny.tail8850a4.ts.net/homelab/json?poll=1'               # attendu 403
+
+# 3. Depuis un membre du tailnet AUTRE que penny — c'est la situation du
+#    telephone sous VPN, et penny resout differemment de ses pairs.
+ssh galahad "curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'Authorization: Bearer $TOKEN' \
+  'https://penny.tail8850a4.ts.net/homelab/json?poll=1'"              # attendu 200
+```
+
+Les trois au vert ⇒ le serveur est hors de cause, le probleme est dans
+l'identifiant que porte l'application.
+
+### La cause du 2026-09-04 : une rotation a coupe un consommateur
+
+`ntfy token list` montrait un jeton pour `phone`, `publisher` et `fish` —
+et **aucun pour `admin`**. Or le commit de rotation du 2026-09-01 dit
+exactement ceci : « `NTFY_PHONE_TOKEN` contenait le jeton ADMIN, le remplacer
+par un jeton phone en lecture seule ».
+
+Le telephone etait donc configure avec le jeton **admin**, que la rotation a
+revoque. L'app porte un identifiant qui n'existe plus : elle ne peut plus
+recuperer le contenu, et iOS affiche le texte de remplacement.
+
+La rotation etait la bonne decision — un jeton admin sur un telephone est
+sur-privilegie. Ce qui a manque, c'est l'etape d'apres.
+
+:::tip[Rotationner un secret, c'est aussi enumerer ses consommateurs]
+Aucune sonde serveur n'aurait attrape ca : cote serveur **tout est vert**, le
+jeton `phone` et le couple `phone` + mot de passe authentifient l'un comme
+l'autre. Le consommateur casse est une application sur un appareil, qu'on ne
+peut pas interroger a distance.
+
+D'ou la regle : avant de revoquer un identifiant, lister **ou il est
+recopie**, y compris hors du homelab — un telephone, un navigateur, un client
+tiers. Ces recopies-la ne se voient dans aucun `git grep`.
+:::
+
+### Remede
+
+Ressaisir l'identifiant dans l'application iOS, pour le serveur
+`https://penny.tail8850a4.ts.net`. Les deux fonctionnent, verifies en HTTP
+200 : le jeton `NTFY_PHONE_TOKEN` (lecture seule), ou l'utilisateur `phone`
+avec `NTFY_PHONE_PASS`. Les deux sont scelles dans `.env.enc`.
+
+Puis controler que l'app est bien venue chercher : le dernier acces du jeton
+doit avancer.
+
+```bash
+docker exec ntfy ntfy token list | grep -A1 'user phone'
+```
