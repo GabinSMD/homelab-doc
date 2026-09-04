@@ -28,11 +28,17 @@ pas — voir [PATH cron](./incidents-recurrents.md).
 jusqu'au 03/09. Le correctif était appliqué à un hôte, pas au parc. Récit
 complet : [journal du 2026-09-04](../projet/journal/2026-09-04-declaratif-ansible-terraform.md).
 
-**Trois garde-fous endormis par un renommage.** En renommant `logs/` en
-`logs/logs-prod-1/`, trois contrôles ont cessé de contrôler *sans cesser de
-rendre vert* : `repo-drift-check.sh` cherchait ses fichiers dans un répertoire
-devenu parent, et `ci.yml` comme `pre-merge-check.sh` testaient un chemin mort
-par un `if [ -f ]` sans branche d'échec.
+**Quatre garde-fous endormis par un renommage.** En renommant `logs/` en
+`logs/logs-prod-1/` et `adguard/` en `adguard/adguard-prod-1/`, quatre
+contrôles ont cessé de contrôler *sans cesser de rendre vert* :
+
+- `repo-drift-check.sh` cherchait ses fichiers dans un répertoire devenu
+  parent — son `find` ne trouvait rien, son `2>/dev/null` avalait l'erreur ;
+- `ci.yml` et `pre-merge-check.sh` testaient un chemin mort par un
+  `if [ -f ]` **sans branche d'échec**, sautant la validation en silence ;
+- un motif `.gitignore` ne matchait plus, laissant les fichiers temporaires
+  d'AdGuard prêts à remonter dans un commit — le plus instructif des quatre,
+  puisque ce n'était même pas un « contrôle ».
 
 Le motif est le même dans les trois cas : **la panne se manifeste par un
 succès.** C'est ce que ces deux commandes rendent visible.
@@ -77,6 +83,12 @@ en avance d'un correctif nfsd/systemd du 27/08 que les nœuds n'ont pas. L'y
 ajouter ferait de son premier `apply` un **déploiement**, pas une réparation de
 dérive. Déployer un correctif est une décision ; l'ajouter au manifeste suffira
 le jour où elle est prise.
+
+**Le template Packer n'est couvert par rien**, et c'est normal : il n'a aucun
+consommateur. Le cluster n'héberge aucune VM — `qm list` est vide sur les deux
+nœuds — et son build n'a jamais tourné. Il existe pour que la première VM ne
+soit pas montée à la main. Vérifier l'espace sur `galahad:local` avant tout
+build : il était à 78 % le 2026-09-03.
 
 **`sync-grafana-config.sh` n'y est pas non plus**, et c'est volontaire : il
 n'a aucune copie live, il s'invoque depuis le dépôt. Le manifeste déclare les
