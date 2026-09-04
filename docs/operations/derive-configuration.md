@@ -6,7 +6,7 @@ aucune des deux n'avait de réponse mécanique :
 1. **Ce que le dépôt déclare est-il ce qui tourne ?** Les scripts versionnés
    dans `homelab-config` sont recopiés vers `/usr/local/bin/` et `/root/` sur
    les trois hôtes. Rien ne garantissait que les copies suivaient.
-2. **Le cluster Proxmox est-il tel qu'on le croit ?** Les dix LXC étaient
+2. **Les conteneurs du cluster sont-ils tels qu'on les croit ?** Les dix LXC étaient
    montés à la main, sans description nulle part.
 
 Elles ont désormais chacune une commande. Cette page dit laquelle, ce qu'elle
@@ -119,6 +119,21 @@ Attendu : `No changes. Your infrastructure matches the configuration.`
 
 Un plan non vide signifie que quelqu'un a modifié un conteneur à la main. Un
 fichier par conteneur, nommé `<VMID>-lxc-<nom>.tf`.
+
+:::danger[Un plan vide ne prouve pas que le cluster est tel qu'on le croit]
+Il prouve que les conteneurs **déclarés** correspondent à leur déclaration.
+Terraform ne compare que ce qu'il connaît — un conteneur créé à la main lui est
+**invisible**.
+
+Mesuré le 2026-09-04 : le LXC 110 « securo » tournait sur lancelot, aucune
+déclaration ne le mentionnait, et `tofu plan` répondait « No changes ». La page
+que vous lisez affirmait le contraire ; c'était faux.
+
+La moitié manquante vient de `control-drift-check.sh`, qui compare la liste des
+invités de chaque nœud aux fichiers de déclaration présents et signale les
+absents — sans token ni tofu. **Il faut les deux** : `tofu plan` pour la
+fidélité, `control-drift-check.sh` pour l'exhaustivité.
+:::
 
 ### Le garde-fou est matériel, pas déclaratif
 

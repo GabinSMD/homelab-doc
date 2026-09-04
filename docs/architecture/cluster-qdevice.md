@@ -6,6 +6,10 @@ sont declares dans `homelab-config/iac/terraform/`, un fichier par conteneur
 nomme `<VMID>-lxc-<nom>.tf`. `tofu plan` rend `No changes.` — et le jour ou il
 ne le rendra plus, quelqu'un aura modifie un conteneur a la main.
 
+Attention a la portee : un plan vide couvre les conteneurs DECLARES, pas le
+cluster entier. Un conteneur cree a la main est invisible a Terraform ; c'est
+`control-drift-check.sh` qui le signale.
+
 Le token API est en **lecture seule** (`PVEAuditor`) : une ecriture sur l'API
 rend HTTP 403, donc un `apply` lance par erreur echoue cote Proxmox. Aucun
 `apply` n'a jamais ete execute.
