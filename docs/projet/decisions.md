@@ -384,7 +384,7 @@ ete applique a l'autre.
 
 **Declarer ce qui EST, et seulement le declarer.**
 
-- **Un manifeste Ansible explicite**, jamais un glob : 104 paires
+- **Un manifeste Ansible explicite**, jamais un glob : 109 paires (compte du 2026-09-06)
   source -> destination nommees une par une. `scripts/` contient aussi des
   tests, des migrations a usage unique et des scripts de noeud ou de LXC, qui
   n'ont rien a faire sur un hote donne.

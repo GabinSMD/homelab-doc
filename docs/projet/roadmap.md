@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Mise a jour 2026-09-06** — La reconstruction declarative de penny est livree et eprouvee sur banc jetable (voir [Reproductibilite](#reproductibilite)) ; la premiere reconstruction reelle reste a faire.
+> **Mise a jour 2026-09-06** — La reconstruction declarative est livree et eprouvee **sur banc jetable** (voir [Reproductibilite](#reproductibilite)). Sur penny elle n'a jamais tourne : la premiere reconstruction reelle reste a faire.
 >
 > **Mise a jour 2026-08-29** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Sucre roadmap](sucre.md#roadmap).
 >
@@ -111,19 +111,25 @@
 
 ### Reproductibilite
 
-- [x] **Reconstruction declarative de penny en playbooks Ansible** — *livree le
-  2026-09-06, eprouvee sur banc jetable.* Trois couches (`bootstrap-base`,
+- [x] **Reconstruction declarative en playbooks Ansible, eprouvee sur banc
+  jetable** — *livree le 2026-09-06.* Le titre dit « sur banc » et pas
+  « de penny » : c'est la seule cible ou le parcours complet a tourne.
+  Ce qui vise penny est mesure et rapporte plus bas, sans etre coche.
+
+  Trois couches (`bootstrap-base`,
   `bootstrap-stack`, `bootstrap-pi`) et un juge (`verify.yml`) qui demande aux
   services de SERVIR, controle negatif compris. Cycle complet
   detruire-recreer-reconstruire-juger sur LXC 111 : **490 s**, rejeu idempotent,
-  `ok=11 failed=0`. S'y ajoutent le manifeste de 104 paires source -> copie live
-  sur les trois hotes et les 10 LXC declares en OpenTofu. Voir
+  `ok=11 failed=0`. S'y ajoutent le manifeste de 109 paires source -> copie live
+  sur les trois hotes (45 scripts + 51 units + 3 udev sur penny, 5 scripts sur
+  chacun des deux noeuds ; compte du 2026-09-06) et les 10 LXC declares en OpenTofu. Voir
   [Derive de configuration](../operations/derive-configuration.md).
 
   **Portee exacte — ce qui n'est PAS couvert, et ne le sera pas :** flasher la
   carte SD, ouvrir le coffre et sortir la YubiKey restent manuels, et c'est le
-  principe meme du break-glass. Restent aussi hors playbook les 19 autres
-  services de la stack, la restauration des volumes depuis R2, les certificats
+  principe meme du break-glass. Restent aussi hors playbook les 17 autres
+  services de la stack (22 declares dans le compose, moins les cinq de la
+  couche 2), la restauration des volumes depuis R2, les certificats
   TLS reels et l'enrolement Tailscale.
 
   **Ce qui reste a faire avant la premiere vraie reconstruction**, mesure le

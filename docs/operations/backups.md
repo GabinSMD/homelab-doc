@@ -200,6 +200,88 @@ Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
 - Vérification 10% données aléatoires (détection bit rot)
 - Alerte ntfy en cas d'échec
 
+### Le filtre qui jetait les fichiers (2026-09-06)
+
+Pendant quatre mois, ce script a construit sa liste de chemins ainsi :
+
+```bash
+for p in "${CONFIG_PATHS[@]}"; do
+    [ -d "$p" ] && BACKUP_PATHS+=("$p")
+done
+```
+
+**`-d` ne repond vrai que pour un repertoire.** Toute entree de type FICHIER
+etait donc ecartee **sans un mot**, et la sauvegarde se declarait « OK ». Deux
+entrees en sont mortes :
+
+| Entree declaree | Type | Jetee depuis | Ce qu'elle porte |
+|---|---|---|---|
+| `/boot/firmware/dietpi.txt` | fichier | **2026-05-11** | la configuration globale DietPi |
+| `/mnt/ssd/config/iac/terraform/terraform.tfstate` | fichier | **2026-09-04** | l'etat OpenTofu des dix LXC du cluster |
+
+La seconde est la plus grave, et elle vient d'un changement **bien intentionne** :
+le 2026-09-04, l'entree `iac/` (repertoire) a ete remplacee par le seul fichier
+d'etat, pour cesser d'expedier chaque nuit 26 Mo de binaire de provider
+retelechargeable. Le raisonnement etait juste ; le filtre l'a annule.
+
+Mesure contre le depot R2, faite avant de conclure quoi que ce soit :
+
+| Snapshot | `/mnt/ssd/config/iac` | fichier d'etat | `dietpi.txt` |
+|---|---|---|---|
+| 2026-09-04 | present | — | absent |
+| 2026-09-05 | absent | absent | absent |
+| 2026-09-06 | absent | absent | absent |
+
+**Deux nuits sans l'etat OpenTofu**, alors que le script ecrit lui-meme « Seul
+ce backup le couvre donc » — l'etat est gitignore. Et aucun `dietpi.txt` dans
+aucun snapshot, jamais.
+
+#### Ce qui a ete corrige, et pourquoi ca ne suffisait pas d'accepter les fichiers
+
+Le filtre teste desormais `-e`, qui repond vrai pour un fichier comme pour un
+repertoire. Mais accepter les fichiers ne repare que **la moitie** du defaut.
+L'autre moitie est que le `&&` **approuvait l'absence de son objet** :
+
+> La question a poser d'un controle n'est pas « detecte-t-il le probleme ? »
+> mais **« que rend-il si sa cible disparait ? »**. S'il rend vert, ce n'est
+> pas un controle.
+
+`CONFIG_PATHS` est une **declaration d'intention**. Un chemin qui n'y
+correspond plus a rien est une anomalie, pas un « rien a faire ». Le script
+journalise donc les manquants, marque `ERRORS` — ce qui transforme le resume
+final en « Backup partiel » au lieu de « Backup OK » — et notifie. Il
+**n'interrompt pas** : sauvegarder ce qui existe *et* crier vaut mieux que ne
+rien sauvegarder parce qu'une entree a vieilli.
+
+Au passage, l'entree `dietpi.txt` designait le mauvais fichier. `/boot` et
+`/boot/firmware` en portent chacun un, et ce ne sont **pas** des liens :
+`/boot/dietpi.txt` est le vivant (222 references dans `/boot/dietpi/`),
+`/boot/firmware/dietpi.txt` est la copie de l'image de mars 2025 (aucune
+reference), qui porte encore `AUTO_SETUP_GLOBAL_PASSWORD=dietpi` en clair.
+`CONFIG_PATHS` designe desormais le premier.
+
+#### Le test, parce que c'est son absence qui a laisse vivre la regression
+
+`scripts/tests/backup-paths-selection.test.sh` — **18 assertions**, invoque par
+la CI. Il extrait la fonction *et le bloc appelant* du fichier de production, au
+lieu de les retaper.
+
+Deux cas portent l'essentiel :
+
+- **le cas 4** exige qu'un chemin declare et introuvable ressorte en
+  `MANQUANT`. Le taire serait exactement la panne qu'on repare ;
+- **le cas 7 est le test du test** : il rejoue l'ancienne implementation `[ -d ]`
+  et **exige qu'elle echoue**. Un test qui passerait aussi bien avec le bug ne
+  protege rien.
+
+Le cas 8 relit `CONFIG_PATHS` dans le fichier de production — jamais une copie —
+et verifie que les treize entrees sont retenues et qu'aucune n'est introuvable.
+Ajouter demain une entree qui n'existe pas casse la CI.
+
+Contre-epreuve executee le 2026-09-06 : le filtre `[ -d ]` reintroduit dans une
+copie du script fait tomber **13 des 18 assertions**, dont « les 13 entrees de
+`CONFIG_PATHS` sont toutes retenues », qui rend alors `11`.
+
 ### Destinations
 
 | Destination | Chemin | Retention | Chiffrement | Cout |

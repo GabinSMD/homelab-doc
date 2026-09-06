@@ -64,8 +64,8 @@ relançant le `--check` juste après : il doit rendre `changed=0`.
 
 | Manifeste | Portée |
 |---|---|
-| `ansible/inventory/group_vars/penny.yml` | 34 scripts + 47 units systemd sur la Pi |
-| `ansible/inventory/group_vars/pve_nodes.yml` | 5 scripts sur `galahad` et `lancelot` |
+| `ansible/inventory/group_vars/penny.yml` | 45 scripts + 51 units systemd + 3 regles udev sur la Pi |
+| `ansible/inventory/group_vars/pve_nodes.yml` | 5 scripts sur `galahad` et `lancelot`, soit 10 paires |
 
 Le manifeste est **explicite**, jamais un glob : `scripts/` contient aussi des
 tests, des migrations à usage unique et des scripts destinés aux LXC, qui n'ont
@@ -258,8 +258,9 @@ Le parcours complet de reprise — matériel, coffre, YubiKey, ordre de démarra
 
 ## Un garde-fou doit hurler, pas hausser les épaules
 
-C'est la seule règle que ce chantier a produite, et elle a coûté quatre
-occurrences pour être admise.
+C'est la seule règle que ce chantier a produite, et elle a coûté **cinq**
+occurrences pour être admise — la cinquième, la plus chère, a été trouvée le
+2026-09-06.
 
 `repo-drift-check.sh` porte désormais une garde qui vérifie que les répertoires
 et fichiers qu'il surveille **existent encore**, et remonte une dérive sinon.
@@ -271,9 +272,24 @@ les fichiers compose testait leur présence par `if [ -f ]` **sans branche
 d'échec**. Un chemin mort y était silencieusement sauté. Elle sort désormais en
 erreur.
 
+La cinquième n'était même pas un contrôle : c'était la boucle qui construit la
+liste de chemins de `homelab_backup.sh`.
+
+```bash
+[ -d "$p" ] && BACKUP_PATHS+=("$p")
+```
+
+Un `&&` qui échoue ne dit rien. Toute entrée de type **fichier** y était donc
+écartée en silence, et la sauvegarde se déclarait « OK » — dont l'état OpenTofu
+des dix LXC, absent du dépôt R2 pendant deux nuits. C'est-à-dire : l'objet même
+de la question 2 de cette page n'était plus sauvegardé, et rien ne le disait.
+Récit et correctif dans
+[Sauvegardes](./backups.md#le-filtre-qui-jetait-les-fichiers-2026-09-06).
+
 Quand vous écrivez un contrôle, la question n'est pas « détecte-t-il le
 problème ? » mais **« que rend-il si sa cible disparaît ? »**. S'il rend vert,
-ce n'est pas un contrôle.
+ce n'est pas un contrôle. Et la question vaut aussi pour ce qui n'a pas l'air
+d'un contrôle : une liste filtrée est un contrôle qui s'ignore.
 
 ## Un piège adjacent : ne pas sonder `/ready` sur loki-replica
 

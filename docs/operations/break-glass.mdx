@@ -313,6 +313,35 @@ pct start 101
 Vaultwarden (LXC 102) et AdGuard secondaire (LXC 100) restent operationnels. Les mots de passe et la resolution DNS de base continuent de fonctionner.
 :::
 
+:::tip[Le parcours praticable AUJOURD'HUI — a suivre dans cet ordre]
+Etabli par mesure le 2026-09-06. **Le playbook ne remplace pas encore ce
+parcours** : sa couche 1 s'arrete sur penny (voir plus bas). Suivre de haut en
+bas.
+
+1. **[Phase 1](#phase-1--materiel-t0-a-t15min)** — acquerir le materiel,
+   flasher DietPi. *Manuel pour toujours.*
+2. **[Phase 2](#phase-2--amorce-t15min-a-t30min)** — premier boot, mot de
+   passe, clef SSH, monter le SSD, poser `git`, `age`, `sops`, `ansible-core`.
+   *Manuel pour toujours.*
+3. **[Phase 3](#phase-3--ouvrir-le-coffre-t30min-a-t45min)** — ouvrir le
+   coffre, sortir la YubiKey, cloner les depots, **desceller les VRAIS
+   secrets**. *Manuel pour toujours.* Ne jamais laisser la couche 1 arriver
+   avant : elle poserait une fixture de test a la place.
+4. **[Repli manuel](#repli-manuel--les-phases-3bis-a-6-a-la-main), phase 3bis**
+   — les configs systeme. Lancer d'abord la couche 3 en lecture seule
+   (`bootstrap-pi.yml --check --diff`) : elle dit ce que le depot ferait
+   perdre. Puis copier.
+5. **Repli manuel, phases 4 a 6** — Docker, volumes depuis R2, Authelia,
+   reseau, scripts.
+6. **[`verify.yml`](#phases-4-a-6--le-playbook-et-ce-quil-ne-fait-pas-encore-sur-penny)**
+   — le juge. Celui-la tourne sur penny : `rc=0`, mesure le 2026-09-06.
+
+**Ce que le playbook prend en charge sur penny aujourd'hui** : l'etape 6, et
+l'etape 4 en lecture. La couche 1 est bloquee ; la couche 2 n'est bloquee par
+aucune garde mais n'a jamais ete jouee pour de vrai contre penny — le repli
+manuel reste donc la reference.
+:::
+
 #### Phase 1 — Materiel (T+0 a T+15min)
 
 1. **Acquerir le materiel de remplacement** :
@@ -397,8 +426,25 @@ tar xf bg.tar                       # -> homelab-config.bundle, homelab-doc.bund
 
 # LE CHEMIN COMPTE : les playbooks exigent le depot a /mnt/ssd/config
 # (`repo_root`), pas dans un repertoire de travail voisin.
-git clone homelab-config.bundle /mnt/ssd/config
-git clone homelab-doc.bundle    /mnt/ssd/doc-repo   # ce runbook, hors ligne
+#
+# ET `git clone` REFUSE un repertoire non vide — « destination path already
+# exists and is not an empty directory ». C'est le cas le PLUS PROBABLE ici :
+# la phase 2 propose de reutiliser le SSD, qui porte alors deja le depot.
+# Les trois branches ci-dessous ont ete eprouvees le 2026-09-06.
+if [ -d /mnt/ssd/config/.git ]; then
+    echo "Depot deja present — NE RIEN ECRASER, c'est peut-etre plus a jour que le coffre."
+    git -C /mnt/ssd/config log --oneline -1
+    git -C /mnt/ssd/config status --short          # des modifications non commitees ?
+    grep -A3 homelab-config MANIFESTE.txt          # comparer au HEAD de l'archive
+elif [ -e /mnt/ssd/config ]; then
+    # Present mais sans .git : on met de cote, on n'ecrase jamais.
+    mv /mnt/ssd/config "/mnt/ssd/config.avant-reprise-$(date +%Y%m%d-%H%M%S)"
+    git clone homelab-config.bundle /mnt/ssd/config
+else
+    git clone homelab-config.bundle /mnt/ssd/config
+fi
+
+git clone homelab-doc.bundle /mnt/ssd/doc-repo     # ce runbook, hors ligne
 
 # Repli si la cle USB est perdue ET qu'un acces GitHub est disponible :
 #   git clone https://github.com/GabinSMD/homelab-config.git /mnt/ssd/config
@@ -431,7 +477,7 @@ coffre, a cote de l'archive, une copie `age`-chiffree de ces deux fichiers.
 Constate le 2026-09-06 ; non corrige a cette date.
 :::
 
-#### Phases 4 a 6 — automatisees depuis le 2026-09-04
+#### Phases 4 a 6 — le playbook, et ce qu'il ne fait pas encore sur penny
 
 Ce que faisaient a la main les phases 4 (Docker + services), 5 (Authelia) et 6
 (reseau + verification), et la moitie automatisable de la phase 3 (les configs
@@ -527,8 +573,9 @@ rapporte alors « aucun conteneur » sur une machine qui en fait tourner cinq
 (mesure sur penny). Un `--check` rouge sur la couche 2 ne prouve rien.
 :::
 
-**Ce que le playbook ne fait pas**, et qui reste ci-dessous : les 19 autres
-services de la stack, la restauration des volumes depuis R2 (phase 4 du repli
+**Ce que le playbook ne fait pas**, et qui reste ci-dessous : les 17 autres
+services de la stack (`docker/docker-compose.yml` en declare 22, moins les
+cinq de la couche 2 — compte du 2026-09-06), la restauration des volumes depuis R2 (phase 4 du repli
 manuel), la configuration Authelia (phase 5), les certificats TLS reels — la couche 2 pose
 un certificat auto-signe sur le banc et laisse ACME desarme — et l'enrolement
 Tailscale, qui exige une clef d'authentification et reste un geste humain, au
@@ -577,24 +624,38 @@ fonction `dietpi-set_swapfile` y persiste `AUTO_SETUP_SWAPFILE_SIZE` et
 `AUTO_SETUP_SWAPFILE_LOCATION`. Aucune sonde ne le compare a quoi que ce soit.
 Reserve connue, pas un oubli.
 
-Ce qui, en revanche, **est** un defaut, decouvert le 2026-09-06 en verifiant
-cette phrase : `homelab_backup.sh` sauvegarde bien un `dietpi.txt` — mais
-**pas celui-la**. Ce sont deux fichiers distincts, et non un lien :
+Vouloir verifier cette phrase a ouvert un defaut bien plus grave, corrige le
+jour meme et raconte en detail dans
+[Sauvegardes](./backups.md#le-filtre-qui-jetait-les-fichiers-2026-09-06).
+Le resume, parce qu'il change ce que vaut une restauration a froid :
+
+`homelab_backup.sh` construisait sa liste de chemins avec
+`[ -d "$p" ] && BACKUP_PATHS+=("$p")`. **`-d` ne repond vrai que pour un
+repertoire** : toute entree de type FICHIER etait jetee sans un mot, et la
+sauvegarde se declarait « OK ». Deux entrees en sont mortes —
+`/boot/firmware/dietpi.txt` depuis le 2026-05-11, et l'etat OpenTofu des dix
+LXC depuis le 2026-09-04. Verifie contre le depot R2 : **aucun `dietpi.txt`
+dans aucun snapshot**, et l'etat absent des nuits du 05 et du 06/09.
+
+Au passage, l'entree elle-meme designait le mauvais fichier. Ce sont **deux
+fichiers distincts, pas un lien** :
 
 ```console
 $ ls -l /boot/dietpi.txt /boot/firmware/dietpi.txt
--rw-r--r-- 1 root root 18518 Aug 27 10:25 /boot/dietpi.txt        <- le VIVANT (rootfs)
--rwxr-xr-x 1 root root 18389 Mar  3  2025 /boot/firmware/dietpi.txt <- l'image d'origine (vfat)
+-rw-r--r-- 1 root root 18518 Aug 27 10:25 /boot/dietpi.txt        <- le VIVANT (rootfs, 222 references dans /boot/dietpi/)
+-rwxr-xr-x 1 root root 18389 Mar  3  2025 /boot/firmware/dietpi.txt <- l'image d'origine (vfat, 0 reference)
 ```
 
-Quatorze lignes different. La copie sauvegardee porte
+Quatorze lignes different : la copie de l'image porte
 `AUTO_SETUP_SWAPFILE_SIZE=0` la ou la machine tourne a `2048`, et
 `AUTO_SETUP_GLOBAL_PASSWORD=dietpi` — le mot de passe par defaut, en clair, que
-le fichier vivant a justement remplace par un commentaire. Restaurer a froid
-depuis cette entree reinstallerait donc l'etat de l'image de mars 2025.
-Corriger la liste `CONFIG_PATHS` : c'est `/boot/dietpi.txt` qu'il faut y
-mettre. **Meme motif que le `cp` vers `adguard/` plus haut : un chemin qui a
-l'air bon, une sauvegarde qui rend vert, et rien du contenu attendu dedans.**
+le fichier vivant a justement remplace par un commentaire.
+
+Les deux sont corriges depuis le 2026-09-06 : le filtre teste `-e`, un chemin
+declare et introuvable **fait crier** le script au lieu d'etre saute, et
+`CONFIG_PATHS` designe desormais `/boot/dietpi.txt`. **Meme motif que le `cp`
+vers `adguard/` plus haut : un chemin qui a l'air bon, une sauvegarde qui rend
+vert, et rien du contenu attendu dedans.**
 
 Enfin, la couche 3 **ne redemarre pas**. Son gestionnaire le dit et s'arrete
 la : `dietpi-update` a deja coupe une session par un postinst tailscale, et un
@@ -682,8 +743,13 @@ ls -d /mnt/ssd/config/adguard/adguard-prod-1 \
 
 # Les secrets applicatifs ont ete descelles en phase 3 par homelab-unseal.sh
 # vers /run/homelab/ (tmpfs). Restent ceux de restic, hors de son perimetre.
-# Execute le 2026-09-06 : rc=0, 4 clefs
-# (RESTIC_REPOSITORY, RESTIC_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
+# Execute le 2026-09-06 : rc=0, 8 assignations — RESTIC_REPOSITORY,
+# RESTIC_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, R2_ACCOUNT_ID,
+# R2_BUCKET, R2_ENDPOINT, B2_CAP_BYTES.
+# (Cette page a d'abord annonce « 4 clefs » : le compte venait d'un
+# `grep -cE '^[A-Z_]+='`, qui ne matche pas un nom contenant un CHIFFRE et
+# jetait donc les quatre entrees R2_/B2_. Compter avec
+# `grep -cE '^[A-Za-z_][A-Za-z0-9_]*='`.)
 SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt \
   sops --input-type dotenv --output-type dotenv \
     -d /mnt/ssd/config/system/secrets/restic-env.enc > /root/.restic-env
@@ -758,10 +824,11 @@ tailscale up --authkey=<TS_AUTHKEY_DEPUIS_CLE_USB>
 # Ou se connecter via login.tailscale.com si pas d'authkey
 
 # Deployer les scripts et les units — le manifeste Ansible, pas des `cp`.
-# 104 paires source -> copie live sur les trois hotes ; `--check --diff`
+# 109 paires source -> copie live sur les trois hotes ; `--check --diff`
 # d'abord, LIRE le diff, puis appliquer. Voir la page « Derive de
 # configuration ». Les `cp` manuels qui figuraient ici ne couvraient que deux
-# fichiers sur trente-quatre.
+# fichiers sur les 45 scripts et 51 units que le manifeste de penny declare
+# (compte le 2026-09-06 dans ansible/inventory/group_vars/penny.yml).
 cd /mnt/ssd/config/ansible
 ansible-playbook playbooks/deploy-scripts.yml --limit penny --check --diff
 ansible-playbook playbooks/deploy-systemd.yml --limit penny --check --diff
@@ -797,7 +864,7 @@ ansible-playbook playbooks/verify.yml -e cible=penny
 | Traefik HTTPS | `curl -sk https://home.gabin-simond.fr` | HTTP 200 ou redirect auth |
 | Authelia | `curl -sk https://auth.home.gabin-simond.fr` | Page de login |
 | Containers UP | `docker ps --format "table {{.Names}}\t{{.Status}}"` | Tous `Up` |
-| Monitoring | `cat /var/lib/homelab_monitor/status` | Pas d'alerte |
+| Monitoring | `cat /var/lib/homelab_monitor/heartbeat` puis comparer a `date +%s` | Horodatage de moins de 15 min |
 | Tailscale | `tailscale status` | Connecte au tailnet |
 | Backup restic | `set -a; . /root/.restic-env; set +a; restic snapshots > /tmp/s.txt` | rc=0, snapshots recents dans `/tmp/s.txt` |
 
@@ -1235,21 +1302,40 @@ l'incident.
 
 ```bash
 cd /mnt/ssd/homelab-doc
-grep -oE '/mnt/ssd/config/[A-Za-z0-9_./-]+' docs/operations/break-glass.mdx \
-  | sed 's/[.,;)]*$//' | sort -u | while read -r p; do
-    [ -e "$p" ] || printf '  MORT %s\n' "$p"
-  done
+
+# Chemins que la procedure CREE elle-meme, ou qui n'existent qu'au milieu d'une
+# sauvegarde. Les declarer ici est une decision qu'on relit ; les taire dans le
+# grep serait un filtre qui grandit tout seul sans que personne le voie.
+ATTENDUS_ABSENTS='^/mnt/ssd/doc-repo$|^/mnt/ssd/\.restic-staging|^/mnt/ssd/config\.avant-reprise'
+
+grep -oE '(/mnt/ssd|/boot|/etc|/root|/var/lib|/usr/local)/[A-Za-z0-9_./-]+' \
+     docs/operations/break-glass.mdx \
+  | sed 's|[.,;)]*$||' | sort -u \
+  | grep -Ev "$ATTENDUS_ABSENTS" \
+  | while read -r p; do
+      [ -e "$p" ] || printf '  MORT %s\n' "$p"
+    done
 echo "  (aucune ligne = tous vivants)"
 ```
 
-Deux limites a connaitre, sinon il rassure a tort :
+**La liste de racines a ete elargie le 2026-09-06**, apres qu'une relecture eut
+trouve un chemin mort dans le tableau de verification post-restauration — un
+fichier d'etat du moniteur qui n'a jamais existe sous ce nom. La version
+precedente du controle ne pouvait pas le voir : elle ne regardait que
+`/mnt/ssd/config`. **Un controle qui n'inspecte qu'une portion de son objet ne
+dit rien du reste, et son silence ressemble a un succes.**
 
-- il ne juge que les chemins sous `/mnt/ssd/config` — pas `/boot/firmware`, pas
-  `/etc`, pas `/root` ;
+Trois limites subsistent, a connaitre sinon il rassure a tort :
+
+- **les racines sont une liste**, donc un chemin ailleurs echappe encore. En
+  ajouter une plutot que de faire confiance a sa memoire ;
+- **`ATTENDUS_ABSENTS` est une liste aussi**, et elle vieillit dans l'autre
+  sens : une entree dont le chemin a disparu de la page ne protege plus rien,
+  elle masque juste un peu plus. La relire quand on l'allonge ;
 - il ne distingue pas une **prescription** d'un **recit**. Un chemin mort cite
   pour raconter une correction passee sortirait en `MORT` a chaque execution.
-  D'ou la regle : dans un commentaire historique, nommer le chemin abandonne
-  sans l'ecrire en entier.
+  D'ou la regle appliquee deux fois dans cette page : dans un commentaire
+  historique, **nommer** le chemin abandonne sans **l'ecrire** en entier.
 
 ## Compte rendu du drill du 2026-08-26
 
