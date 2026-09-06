@@ -262,7 +262,7 @@ reference), qui porte encore `AUTO_SETUP_GLOBAL_PASSWORD=dietpi` en clair.
 
 #### Le test, parce que c'est son absence qui a laisse vivre la regression
 
-`scripts/tests/backup-paths-selection.test.sh` — **18 assertions**, invoque par
+`scripts/tests/backup-paths-selection.test.sh` — **19 assertions**, invoque par
 la CI. Il extrait la fonction *et le bloc appelant* du fichier de production, au
 lieu de les retaper.
 
@@ -274,13 +274,40 @@ Deux cas portent l'essentiel :
   et **exige qu'elle echoue**. Un test qui passerait aussi bien avec le bug ne
   protege rien.
 
-Le cas 8 relit `CONFIG_PATHS` dans le fichier de production — jamais une copie —
-et verifie que les treize entrees sont retenues et qu'aucune n'est introuvable.
-Ajouter demain une entree qui n'existe pas casse la CI.
+Le cas 8 relit `CONFIG_PATHS` dans le fichier de production — jamais une copie.
 
-Contre-epreuve executee le 2026-09-06 : le filtre `[ -d ]` reintroduit dans une
-copie du script fait tomber **13 des 18 assertions**, dont « les 13 entrees de
-`CONFIG_PATHS` sont toutes retenues », qui rend alors `11`.
+#### Ce que la CI garantit vraiment sur `CONFIG_PATHS`
+
+Cette page a affirme, du 2026-09-04 au 2026-09-06, qu'« ajouter demain une
+entree qui n'existe pas casse la CI ». **C'etait faux**, et la mecanique du
+faux merite d'etre lue, parce que c'est celle que ce depot passe son temps a
+corriger : le cas 8 etait garde par
+`[ -d /mnt/ssd/config ] && [ -r /root/.restic-env ]`, « il ne tourne que sur
+penny ». Sur le runner Forgejo, **aucun des deux n'existe**. Le cas 8 y etait
+donc saute en silence, la suite rendait 15 assertions au lieu de 18, et sortait
+`0`. Un temoin qui mesure ce qui est disponible au moment du controle, et non le
+travail accompli, approuve son propre effacement.
+
+Le cas 8 ne se saute plus jamais. Il distingue desormais deux choses, au lieu de
+promettre la seconde en ne faisant que la premiere :
+
+| Ce qui est declare | Ce qui le verifie | Ou |
+|---|---|---|
+| les 7 entrees situees **sous le depot et versionnees** (`authelia`, `adguard/adguard-prod-1`, `traefik`, `homepage`, `scripts`, `boot`, `system`) | leur existence est controlee **pour de vrai**, contre la racine du checkout d'ou le test tourne | CI **et** penny, identiquement |
+| les 6 autres (`iac/terraform/terraform.tfstate` — gitignore —, `/mnt/ssd/forgejo`, `/mnt/ssd/outline`, `/root/.config/sops/age`, `/etc/iptables`, `/boot/dietpi.txt`) | **aucun checkout ne peut dire si elles existent sur penny.** Le test refuse de le pretendre : il exige seulement qu'elles soient **classees**, et leur existence reelle est jugee chaque nuit par le script lui-meme (`MANQUANT` journalise, notifie, `ERRORS` marque) | penny, au runtime |
+
+L'affirmation exacte est donc : **toute entree ajoutee a `CONFIG_PATHS` casse la
+CI tant que personne n'est venu la classer** dans le test — et si elle est sous
+le depot, son absence la casse aussi. Contre-epreuve du 2026-09-06 : une entree
+`/mnt/ssd/config/ce-chemin-nexiste-pas` ajoutee a la declaration fait tomber le
+cas 8a **sur le runner Forgejo**, `rc=1`. Et le compte d'assertions y est
+desormais le meme qu'en local : **19 = 19**.
+
+Contre-epreuve du filtre, meme jour : le `[ -d ]` reintroduit dans une copie du
+script fait tomber **9 des 19 assertions** — les cas 2, 2b, 3, 4b, 5 et les
+quatre du cablage (cas 9). Le cas 8 n'y participe plus, et c'est assume : les
+sept entrees qu'il verifie sont toutes des repertoires, que `[ -d ]` accepte.
+C'est le cas 2b, qui simule le `tfstate`, qui porte cette part-la.
 
 ### Destinations
 
