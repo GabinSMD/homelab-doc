@@ -325,8 +325,9 @@ bas.
    *Manuel pour toujours.*
 3. **[Phase 3](#phase-3--ouvrir-le-coffre-t30min-a-t45min)** — ouvrir le
    coffre, sortir la YubiKey, cloner les depots, **desceller les VRAIS
-   secrets**. *Manuel pour toujours.* Ne jamais laisser la couche 1 arriver
-   avant : elle poserait une fixture de test a la place.
+   secrets**. *Manuel pour toujours.* Garder cet ordre : la couche 1 ne pose
+   plus de fixture hors du banc depuis le 2026-09-06 (voir le point 3 des
+   pieges), mais l'ordre reste celui qui a du sens.
 4. **[Repli manuel](#repli-manuel--les-phases-3bis-a-6-a-la-main), phase 3bis**
    — les configs systeme. Lancer d'abord la couche 3 en lecture seule
    (`bootstrap-pi.yml --check --diff`) : elle dit ce que le depot ferait
@@ -558,14 +559,28 @@ une variable a recopier. Tant qu'elle n'est pas prise, **les phases 4 a 6 ne
 sont pas automatisees de bout en bout sur penny**, et il faut retomber sur les
 gestes de l'ancien runbook, conserves plus bas.
 
-**3. La couche 1 scelle une FIXTURE, pas vos secrets.** Ses trois dernieres
-taches chiffrent `ansible/fixtures/banc/.env.plain` — des valeurs factices —
-et les descellent vers `/run/homelab/.env`, le fichier meme que lit la
-production. Elles ne sont pas conditionnees au banc. Le seul garde-fou est
-leur `creates:` : si `/run/homelab/.env` existe deja, le descellement est
-saute. **D'ou l'ordre de cette page** : la phase 3 desselle les VRAIS secrets
-avant que la couche 1 ne tourne. Inverser les deux donne un penny qui demarre
-avec des secrets de test.
+**3. La couche 1 scelle une FIXTURE — et depuis le 2026-09-06, sur le banc
+SEULEMENT.** Ses trois dernieres taches chiffrent
+`ansible/fixtures/banc/.env.plain` — des valeurs factices — et les descellent
+vers `/run/homelab/.env`, le fichier meme que lit la production.
+
+Jusqu'au 2026-09-06 elles n'etaient **pas** conditionnees au banc, et leur seul
+garde-fou etait un `creates:` : sur une penny fraiche, `/run/homelab` est vide,
+donc ce garde-fou ne retenait rien. Les 14 valeurs sont factices mais les 14
+**noms** sont ceux de la production : tous les `${VAR:?}` du compose auraient
+ete satisfaits, **rien n'aurait crie**, et la couche 2 — `banc_mode` faux, donc
+ACME arme — serait partie demander un certificat pour le vrai domaine avec
+`CF_DNS_API_TOKEN=banc-cloudflare-factice`. Un defi DNS-01 en rafale, et le
+quota Let's Encrypt du domaine brule. Ce qui l'empechait n'etait qu'un accident
+de plus : la couche 1 mourait sur `paquets_base` avant d'y arriver.
+
+Les trois taches portent desormais `when: banc_mode | bool`, le meme mecanisme
+que les vingt-huit taches de surcharge de la couche 2. Verifie en le
+provoquant, le 2026-09-06 : `-e cible=penny -e bootstrap_autorise=true`
+rend `skipping: [penny]` sur les trois, et `ok=12 skipped=0` sur le banc.
+
+**L'ordre de cette page reste le bon** — la phase 3 desselle les VRAIS secrets
+avant la couche 1 — mais ce n'est plus lui qui vous protege.
 
 **4. `--check` n'est pas un apercu valide de la couche 2.** Ses commandes
 `docker compose` sont sautees en mode verification, et l'attente qui suit
