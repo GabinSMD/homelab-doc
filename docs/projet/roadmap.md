@@ -111,7 +111,7 @@
 
 ### Reproductibilite
 
-- [x] **Reconstruction declarative en playbooks Ansible, eprouvee sur banc
+- [~] **Reconstruction declarative en playbooks Ansible, eprouvee sur banc
   jetable** — *livree le 2026-09-06.* Le titre dit « sur banc » et pas
   « de penny » : c'est la seule cible ou le parcours complet a tourne.
   Ce qui vise penny est mesure et rapporte plus bas, sans etre coche.
