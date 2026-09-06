@@ -175,6 +175,87 @@ rien quand la sauvegarde procède par liste.*
 En dernier recours, l'état se reconstruit par ré-import — plus lent, mais rien
 n'est perdu. Voir `homelab-config/iac/README.md`.
 
+## La troisième question : reconstruire, et pas seulement maintenir
+
+Les deux commandes ci-dessus **maintiennent en phase un système déjà installé**.
+Elles ne savent pas partir d'une machine nue. Depuis le 2026-09-06, trois
+playbooks de plus s'en chargent — et un quatrième juge le résultat.
+
+| Playbook | Ce qu'il pose | Éprouvé ? |
+|---|---|---|
+| `bootstrap-base.yml` | paquets, Docker, sops, Tailscale *installé mais pas enrôlé*, Alloy | **oui**, sur banc jetable |
+| `bootstrap-stack.yml` | socket-proxy, traefik, authelia, adguard, homepage | **oui**, sur banc jetable |
+| `bootstrap-pi.yml` | `/boot/firmware`, `/etc/modules`, fstab, zram DietPi, paquets matériel Pi | **non** — jamais exécuté pour de vrai |
+| `verify.yml` | rien : il **juge** | oui, sur les deux cibles |
+
+```bash
+cd /mnt/ssd/config/ansible
+ansible-playbook playbooks/verify.yml -e cible=penny
+```
+
+Exécuté le 2026-09-06 : `ok=11 failed=0` sur penny (37 clefs descellées) et sur
+le banc LXC 111 (14 clefs). **Sur le banc**, le cycle complet
+détruire-recréer-reconstruire-juger tient en **490 s** sans intervention (reset
+58 s, couche 1 316 s, couche 2 105 s, verdict 11 s). Sur penny, seul `verify.yml`
+a réellement tourné — voir les réserves plus bas.
+
+### Ce que `verify.yml` fait, et que les healthchecks ne font pas
+
+Il ne demande pas « le conteneur est-il *healthy* ? » mais « le service
+**sert**-il ? ». Deux mesures de ce homelab imposent la distinction : un 302
+d'Authelia vient du middleware et non du backend (CyberChef est resté mort 24 h
+derrière un 302), et `loki-replica` rend 503 sur `/ready` en servant
+normalement.
+
+Il porte surtout un **contrôle négatif** : un hôte en `.invalid` — non
+délégable par construction, donc qui ne pourra jamais correspondre à un routeur
+réel — doit obtenir une réponse *différente* du vrai domaine. Sans cette
+contre-épreuve, la sonde ne distinguerait pas un routage d'une redirection
+inconditionnelle. Mesuré sur penny : vrai domaine `302`, hôte inexistant `000`.
+
+### Le banc jetable, et ce qu'il ne peut pas prouver
+
+Le banc est un LXC amd64 sur `galahad`, monté et détruit par
+`scripts/banc-test.sh` (`create|destroy|reset|status`). Il porte
+`192.168.1.28/32` sur sa loopback — l'adresse de penny — pour que Traefik s'y
+lie comme en production, avec `arp_ignore=1` posé **avant** l'adresse pour
+qu'il ne réponde jamais à l'ARP du LAN à la place de penny.
+
+Le critère d'acceptation le plus important du chantier n'était pas que
+`verify.yml` passe : c'est qu'il **échoue sur un banc nu**. Un juge qui rend
+vert sur une machine vide ne juge rien.
+
+Ce qu'un LXC amd64 ne peut pas porter : `/boot/firmware`, une carte SD,
+`vcgencmd`, DietPi. La couche 3 est donc **appuyée** sur penny — penny comme
+oracle, `--check --diff`, gardes de pré-vol éprouvées par cinq fautes
+provoquées — mais appuyer n'est pas éprouver. Ces appuis **prouvent la
+non-régression, pas la reconstruction.**
+
+### Trois réserves à connaître avant de s'en servir
+
+**La couche 1 ne tourne pas sur penny.** `paquets_base` n'est déclaré que pour
+le groupe `banc` ; visée sur penny, la couche s'arrête sur
+`'paquets_base' is undefined` (mesuré le 2026-09-06). Ce n'est pas un oubli à
+combler d'un copier-coller : la liste du banc **exclut délibérément** les
+paquets matériel Pi, que la couche 3 reprend à son compte. Décider ce que penny
+reçoit est une décision, pas une variable.
+
+**Les trois couches refusent de tourner sans `bootstrap_autorise`.** Déclaré
+par groupe dans `inventory/homelab.yml` : vrai pour le banc, faux pour penny et
+pour les nœuds Proxmox. Le cran est délibéré — la couche 1 installerait des
+dizaines de paquets et trois dépôts apt tiers sur la production. Une cible sans
+déclaration **échoue** au lieu de passer : le garde juge la chose protectrice,
+jamais la chose dangereuse.
+
+**Rien ne rejoue le banc automatiquement.** La CI (`.github/workflows/ci.yml`)
+exerce la *logique pure* du pré-vol et de `banc-test.sh`, pas le cycle réel :
+celui-ci demande `galahad`, six gigaoctets et huit minutes. Dire « éprouvé à
+chaque campagne » serait une intention ; ce qui est vrai, c'est « éprouvé le
+2026-09-06 ».
+
+Le parcours complet de reprise — matériel, coffre, YubiKey, ordre de démarrage
+— reste dans [la procédure break-glass](./break-glass.mdx).
+
 ## Un garde-fou doit hurler, pas hausser les épaules
 
 C'est la seule règle que ce chantier a produite, et elle a coûté quatre

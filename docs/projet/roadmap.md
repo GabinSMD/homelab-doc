@@ -1,5 +1,7 @@
 # Roadmap
 
+> **Mise a jour 2026-09-06** — La reconstruction declarative de penny est livree et eprouvee sur banc jetable (voir [Reproductibilite](#reproductibilite)) ; la premiere reconstruction reelle reste a faire.
+>
 > **Mise a jour 2026-08-29** — Phase 1 quasi-complète (gaps restants : UPS + DR drill from cold). Phases 2-4 bloquees hardware/demenagement. Voir aussi [Roadmap sécurité](../securite/roadmap.md) et [Sucre roadmap](sucre.md#roadmap).
 >
 > La coupure secteur du 2026-08-29 (11:18 → retour 13:23) a redémarré les trois machines sans dégât — recovery EXT4 propre, compteurs SMART inchangés. C'est le gap **UPS** ci-dessous qui se manifeste, et il reste ouvert.
@@ -109,11 +111,29 @@
 
 ### Reproductibilite
 
-- [~] **Ansible playbook** ou Nix flake pour reconstruire penny depuis git en 1 commande
-  — *avance le 2026-09-04, pas termine.* Un manifeste Ansible declare 104 paires
-  source -> copie live (scripts, units systemd, regles udev) sur les trois hotes,
-  et `--check --diff` detecte la derive ; les 10 LXC du cluster sont declares en
-  OpenTofu. **Mais reconstruire penny en une commande n'est pas fait** : le
-  manifeste deploie des fichiers sur un systeme deja installe, il n'installe ni
-  l'OS, ni Docker, ni les paquets. La case reste ouverte pour cette raison. Voir
+- [x] **Reconstruction declarative de penny en playbooks Ansible** — *livree le
+  2026-09-06, eprouvee sur banc jetable.* Trois couches (`bootstrap-base`,
+  `bootstrap-stack`, `bootstrap-pi`) et un juge (`verify.yml`) qui demande aux
+  services de SERVIR, controle negatif compris. Cycle complet
+  detruire-recreer-reconstruire-juger sur LXC 111 : **490 s**, rejeu idempotent,
+  `ok=11 failed=0`. S'y ajoutent le manifeste de 104 paires source -> copie live
+  sur les trois hotes et les 10 LXC declares en OpenTofu. Voir
   [Derive de configuration](../operations/derive-configuration.md).
+
+  **Portee exacte — ce qui n'est PAS couvert, et ne le sera pas :** flasher la
+  carte SD, ouvrir le coffre et sortir la YubiKey restent manuels, et c'est le
+  principe meme du break-glass. Restent aussi hors playbook les 19 autres
+  services de la stack, la restauration des volumes depuis R2, les certificats
+  TLS reels et l'enrolement Tailscale.
+
+  **Ce qui reste a faire avant la premiere vraie reconstruction**, mesure le
+  2026-09-06 : la couche 1 s'arrete sur `'paquets_base' is undefined` quand on
+  la vise sur penny (la liste n'est declaree que pour le groupe `banc`), et la
+  couche 3 n'a jamais tourne pour de vrai — son pre-vol de non-perte
+  *s'arretera* au premier essai sur une image DietPi fraiche, par construction.
+  Le detail et la marche a suivre sont dans
+  [la procedure break-glass](../operations/break-glass.mdx).
+
+- [ ] **Premiere reconstruction reelle de penny** — c'est le meme jalon que
+  « DR drill from cold » plus haut : tant qu'il n'est pas franchi, la couche 3
+  prouve la non-regression, pas la reconstruction.

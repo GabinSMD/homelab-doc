@@ -228,7 +228,7 @@ n'est pas testé.
 
 | Compte | Usage | Vérification |
 |---|---|---|
-| Cloudflare R2 EU | Bucket `homelab-backups` (s3 endpoint `<account-id>.eu.r2.cloudflarestorage.com`) | `source ~/.restic-env && restic snapshots` |
+| Cloudflare R2 EU | Bucket `homelab-backups` (s3 endpoint `<account-id>.eu.r2.cloudflarestorage.com`) | `set -a; . /root/.restic-env; set +a; restic snapshots` |
 | Proton Mail | `homelab@gabin-simond.fr` (custom domain) + SMTP submission token | login proton.me, voir `/account/u/0/mail/imap-smtp` |
 | Cloudflare | Zone `gabin-simond.fr`, token DNS:Edit | Dashboard Cloudflare |
 | Tailscale | Tailnet, 3 machines | login.tailscale.com |
@@ -278,7 +278,8 @@ ssh gabins@pve1
 pct status 102
 pct start 102
 # Si corrompu : verifier les backups d'abord
-source /root/.restic-env && restic snapshots  # verifier les backups disponibles
+set -a; . /root/.restic-env; set +a          # `source` seul ne transmet RIEN a restic
+restic snapshots                             # verifier les backups disponibles
 # Recreer le LXC
 pct destroy 102
 pct create 102 local:vztmpl/debian-12-standard_*.tar.zst \
@@ -320,7 +321,10 @@ Vaultwarden (LXC 102) et AdGuard secondaire (LXC 100) restent operationnels. Les
    - SSD USB (ou récupérer l'existant)
 2. **Flasher DietPi** sur la SD depuis un autre appareil ([dietpi.com](https://dietpi.com))
 
-#### Phase 2 — OS de base (T+15min a T+30min)
+#### Phase 2 — Amorce (T+15min a T+30min)
+
+Ce qui suit est **hors de portee de tout playbook** : il faut d'abord une
+machine joignable, un disque monte, et l'outil qui jouera la reconstruction.
 
 ```bash
 # Premier boot : connexion console locale, mdp default DietPi
@@ -337,9 +341,52 @@ chmod 600 ~/.ssh/authorized_keys
 # Si SSD recupere : monter directement
 mkdir -p /mnt/ssd
 mount /dev/sda1 /mnt/ssd
+
+# Les outils dont la PHASE 3 a besoin, avant tout playbook.
+# La couche 1 les pose aussi — trop tard : elle ne tourne qu'apres le coffre.
+apt install -y git age
+
+# sops par binaire verifie par somme, jamais curl-pipe-shell.
+# Recette reprise mot pour mot de bootstrap-base.yml (couche 1).
+cd /tmp
+VER=$(curl -fsSL https://api.github.com/repos/getsops/sops/releases/latest \
+      | grep -oP '"tag_name": *"v\K[^"]+')
+ARCH=$(dpkg --print-architecture)
+curl -fsSLO "https://github.com/getsops/sops/releases/download/v${VER}/sops-v${VER}.linux.${ARCH}"
+curl -fsSLO "https://github.com/getsops/sops/releases/download/v${VER}/sops-v${VER}.checksums.txt"
+grep " sops-v${VER}.linux.${ARCH}$" "sops-v${VER}.checksums.txt" | sha256sum -c -
+install -m 0755 "sops-v${VER}.linux.${ARCH}" /usr/local/bin/sops
 ```
 
-#### Phase 3 — Restaurer les configs système (T+30min a T+45min)
+:::caution[`age-plugin-yubikey` n'existe pas dans Debian]
+`age` oui — `1.1.1-1+b3` en bookworm, verifie le 2026-09-06. Le **plugin
+YubiKey**, non : il faut son binaire de release GitHub, ou une machine tierce.
+Si la YubiKey est le seul recipiendaire disponible et qu'aucun binaire n'est
+joignable, la reprise est bloquee des la phase 3.
+
+Parade : deposer sur la cle du coffre, a cote de l'archive, **le binaire
+`age-plugin-yubikey` pour `linux/arm64`**. Il ne coute que quelques megaoctets
+et il ferme une dependance a Internet dans le seul scenario ou l'on suppose
+justement Internet absent.
+:::
+
+:::caution[`ansible-core` n'est declare nulle part — a poser a la main]
+La reconstruction n'installe pas son propre outil. Mesure sur penny le
+2026-09-06 : `ansible-playbook` y est un lien vers
+`/root/.local/share/uv/tools/ansible-core/bin/`, pose par `uv tool install`.
+Il n'est ni dans `paquets_base` (la liste de la couche 1), ni dans un
+manifeste de deploiement, ni dans aucune sauvegarde de binaire.
+
+Debian bookworm propose `ansible-core` **2.14.18** ; penny joue ces playbooks
+sous **2.21.3**. L'ecart de version n'a jamais ete eprouve — si le paquet
+Debian est le seul recours en reprise, s'attendre a devoir lire des erreurs de
+syntaxe avant que ca tourne.
+:::
+
+#### Phase 3 — Ouvrir le coffre (T+30min a T+45min)
+
+Physique, et irremplacable : c'est ici qu'on sort la YubiKey et qu'on ouvre
+l'archive. Aucun playbook ne peut le faire a votre place.
 
 ```bash
 # Depuis la cle USB du coffre — aucune authentification GitHub requise.
@@ -347,14 +394,236 @@ mount /dev/sda1 /mnt/ssd
 cd /mnt/ssd
 age -d -i <cle-ou-yubikey> /media/cle-usb/homelab-break-glass-<date>.tar.age > bg.tar
 tar xf bg.tar                       # -> homelab-config.bundle, homelab-doc.bundle, MANIFESTE.txt
-git clone homelab-config.bundle config-repo
-git clone homelab-doc.bundle doc-repo    # ce runbook, hors ligne
+
+# LE CHEMIN COMPTE : les playbooks exigent le depot a /mnt/ssd/config
+# (`repo_root`), pas dans un repertoire de travail voisin.
+git clone homelab-config.bundle /mnt/ssd/config
+git clone homelab-doc.bundle    /mnt/ssd/doc-repo   # ce runbook, hors ligne
 
 # Repli si la cle USB est perdue ET qu'un acces GitHub est disponible :
-#   git clone https://github.com/GabinSMD/homelab-config.git config-repo
+#   git clone https://github.com/GabinSMD/homelab-config.git /mnt/ssd/config
 
-# Appliquer les configs systeme
-cd /mnt/ssd/config-repo
+# Poser la cle age la ou la production la cherche, puis desceller POUR DE VRAI.
+# C'est la seule etape de secrets du parcours : ce que fait la couche 1 sur ce
+# terrain est une FIXTURE de banc (voir l'avertissement plus bas).
+mkdir -p /root/.config/sops/age
+age-plugin-yubikey --identity > /root/.config/sops/age/keys.txt
+chmod 600 /root/.config/sops/age/keys.txt
+/mnt/ssd/config/scripts/homelab-unseal.sh          # -> /run/homelab/.env (+ authelia, crowdsec)
+```
+
+:::danger[Trou connu du coffre hors-ligne : Authelia n'a pas de configuration]
+`authelia/configuration.yml` et `authelia/users_database.yml` sont exclus par
+`.gitignore` (lignes 15-16). `break-glass-bundle.sh` produit un
+`git bundle --all` : il n'embarque donc **que du suivi git**. Une Pi
+reconstruite depuis la seule cle du coffre n'a **aucune configuration
+Authelia**, donc aucune authentification — ni les utilisateurs, ni les clients
+OIDC, ni les regles d'acces.
+
+**Ce n'est pas une perte de donnees** : `/mnt/ssd/config/authelia` fait partie
+des `CONFIG_PATHS` de `homelab_backup.sh`, les deux fichiers sont donc dans
+restic vers R2 et se restaurent normalement (phase 5 ci-dessous). C'est un trou
+du **coffre hors-ligne** : le seul scenario ou il mord est celui ou l'archive
+du coffre est la seule source disponible — pas d'Internet, pas de R2.
+
+Repli immediat, sans attendre un correctif du script : deposer sur la cle du
+coffre, a cote de l'archive, une copie `age`-chiffree de ces deux fichiers.
+Constate le 2026-09-06 ; non corrige a cette date.
+:::
+
+#### Phases 4 a 6 — automatisees depuis le 2026-09-04
+
+Ce que faisaient a la main les phases 4 (Docker + services), 5 (Authelia) et 6
+(reseau + verification), et la moitie automatisable de la phase 3 (les configs
+systeme), est desormais un playbook — decrit en detail dans
+[Derive de configuration](./derive-configuration.md). Il est **eprouve contre un banc jetable**
+— contrairement a ce runbook, qui a pourri trois mois et demi sans que
+personne le sache.
+
+:::warning[Lire l'encadre rouge sous ce bloc AVANT de copier les commandes]
+La couche 1 **s'arrete** aujourd'hui sur penny, les trois exigent un drapeau
+explicite, et la couche 3 n'a jamais tourne pour de vrai. Tout est mesure et
+detaille juste dessous ; un repli manuel complet suit plus bas.
+:::
+
+```bash
+cd /mnt/ssd/config/ansible
+
+# Couche 1 — paquets, Docker, sops, Tailscale (installe, PAS enrole), Alloy
+ansible-playbook playbooks/bootstrap-base.yml  -e cible=penny \
+    -e bootstrap_autorise=true -e age_key_path=/root/.config/sops/age/keys.txt
+
+# Couche 2 — socket-proxy, traefik, authelia, adguard, homepage
+ansible-playbook playbooks/bootstrap-stack.yml -e cible=penny -e bootstrap_autorise=true
+
+# Couche 3 — Pi et DietPi. aarch64 uniquement. LIRE le --check avant d'appliquer.
+ansible-playbook playbooks/bootstrap-pi.yml -e bootstrap_autorise=true --check --diff
+ansible-playbook playbooks/bootstrap-pi.yml -e bootstrap_autorise=true
+
+# Le verdict
+ansible-playbook playbooks/verify.yml -e cible=penny
+```
+
+`verify.yml` rend le verdict. Il ne dit pas « les conteneurs sont demarres »
+mais « les services SERVENT » — un 302 d'Authelia vient du middleware et non du
+backend, et CyberChef est reste mort 24 h derriere un 302. Il porte aussi un
+**controle negatif** : un hote qui ne peut correspondre a aucun routeur doit
+obtenir une reponse DIFFERENTE, faute de quoi la sonde mesurerait une
+redirection inconditionnelle au lieu d'un routage.
+
+Execute le 2026-09-06 sur les deux cibles :
+
+| Cible | Resultat |
+|---|---|
+| banc (LXC 111) | `ok=11 failed=0` — 14 clefs descellees |
+| penny (production) | `ok=11 failed=0` — 37 clefs descellees |
+
+:::danger[Ce qui BLOQUERA la premiere vraie reconstruction — mesure, pas suppose]
+Le 2026-09-06, les trois couches ont ete jouees contre penny en lecture seule.
+Voici ce qu'elles rendent, mot pour mot. **Lire avant, pas pendant.**
+
+**1. `bootstrap_autorise` est a `false` pour penny, exprès.** Sans le drapeau :
+
+```console
+$ ansible-playbook playbooks/bootstrap-base.yml -e cible=penny --check
+fatal: [penny]: FAILED! => penny n'autorise pas ce playbook
+  (bootstrap_autorise = False). Cette couche installe des dizaines de paquets,
+  ajoute trois depots apt tiers et purge le cache apt de la cible.
+```
+
+C'est un cran de securite, pas un defaut : penny **est** la production. En
+reprise apres sinistre, c'est bien l'intention — on passe le drapeau.
+
+**2. La couche 1 ne tourne PAS sur penny aujourd'hui.** Avec le drapeau, elle
+s'arrete a sa troisieme tache :
+
+```console
+$ ansible-playbook playbooks/bootstrap-base.yml -e cible=penny \
+      -e bootstrap_autorise=true -e age_key_path=/root/.config/sops/age/keys.txt --check
+TASK [Paquets de base] *********************************************************
+fatal: [penny]: FAILED! => Error while resolving value for 'name':
+  'paquets_base' is undefined
+```
+
+`paquets_base` n'est declare que dans `inventory/group_vars/banc.yml`. Les
+couches 1 et 2 ont ete construites **pour le banc** ; les porter sur penny
+demande de decider quelle liste de paquets penny recoit — une decision, pas
+une variable a recopier. Tant qu'elle n'est pas prise, **les phases 4 a 6 ne
+sont pas automatisees de bout en bout sur penny**, et il faut retomber sur les
+gestes de l'ancien runbook, conserves plus bas.
+
+**3. La couche 1 scelle une FIXTURE, pas vos secrets.** Ses trois dernieres
+taches chiffrent `ansible/fixtures/banc/.env.plain` — des valeurs factices —
+et les descellent vers `/run/homelab/.env`, le fichier meme que lit la
+production. Elles ne sont pas conditionnees au banc. Le seul garde-fou est
+leur `creates:` : si `/run/homelab/.env` existe deja, le descellement est
+saute. **D'ou l'ordre de cette page** : la phase 3 desselle les VRAIS secrets
+avant que la couche 1 ne tourne. Inverser les deux donne un penny qui demarre
+avec des secrets de test.
+
+**4. `--check` n'est pas un apercu valide de la couche 2.** Ses commandes
+`docker compose` sont sautees en mode verification, et l'attente qui suit
+rapporte alors « aucun conteneur » sur une machine qui en fait tourner cinq
+(mesure sur penny). Un `--check` rouge sur la couche 2 ne prouve rien.
+:::
+
+**Ce que le playbook ne fait pas**, et qui reste ci-dessous : les 19 autres
+services de la stack, la restauration des volumes depuis R2 (phase 4 du repli
+manuel), la configuration Authelia (phase 5), les certificats TLS reels — la couche 2 pose
+un certificat auto-signe sur le banc et laisse ACME desarme — et l'enrolement
+Tailscale, qui exige une clef d'authentification et reste un geste humain, au
+meme titre que l'ouverture du coffre.
+
+Il n'exprime pas non plus **l'ordre de demarrage des dependances** : c'est le
+tableau en tete de cette page, et lui seul.
+
+:::warning[La couche 3 n'a jamais tourne pour de vrai, et le premier essai s'arretera]
+Elle ne peut pas etre eprouvee sur le banc : un LXC amd64 n'a ni
+`/boot/firmware`, ni carte SD, ni DietPi, ni `vcgencmd`. Ce qui a ete fait a la
+place — penny comme oracle, `--check --diff`, cinq fautes provoquees contre le
+pre-vol — **prouve la non-regression, pas la reconstruction**.
+
+**Le pre-vol de non-perte ARRETERA la premiere vraie reconstruction.** C'est
+certain, et c'est voulu : une image DietPi fraiche porte des directives que
+penny n'a pas (`dtparam=audio=on` la ou penny a `off`, un `quiet` ou un
+`fsck.repair=yes` dans `cmdline.txt`, des lignes de `config.txt` posees par
+defaut). Chacune sortira en `PERDUE` et l'assertion tombera. La marche a suivre
+est dans le message d'echec : **verser au depot ce qu'on garde, inscrire dans
+`pi_abandons` ce qu'on laisse tomber.** Qui decouvre ca en pleine reconstruction
+prendra une garde qui fonctionne pour un playbook casse.
+
+**Deux divergences de `config.txt` ne sont pas tranchees.** Mesure le
+2026-09-06 par `--check --diff` sur penny — c'est le seul `changed` de tout le
+playbook :
+
+```diff
+--- before: /boot/firmware/config.txt
++++ after:  /mnt/ssd/config/boot/config.txt
+-max_framebuffers=1
++max_framebuffers=0
+-#hdmi_ignore_hotplug=1
++hdmi_ignore_hotplug=1
+```
+
+Le pre-vol ne mord pas dessus, et il a raison : `max_framebuffers` est une cle
+scalaire presente des deux cotes (la valeur du depot fait foi), et
+`hdmi_ignore_hotplug` est un **ajout**, pas une perte. Une execution reelle
+remettrait donc les valeurs du depot — moins de memoire video, HDMI ignore.
+C'est vraisemblablement l'intention d'origine sur une machine sans ecran, mais
+personne ne l'a decide. **A trancher avant, pas pendant.**
+
+**`/boot/dietpi.txt` est ecrit par la couche 3 et n'est pas versionne.** La
+fonction `dietpi-set_swapfile` y persiste `AUTO_SETUP_SWAPFILE_SIZE` et
+`AUTO_SETUP_SWAPFILE_LOCATION`. Aucune sonde ne le compare a quoi que ce soit.
+Reserve connue, pas un oubli.
+
+Ce qui, en revanche, **est** un defaut, decouvert le 2026-09-06 en verifiant
+cette phrase : `homelab_backup.sh` sauvegarde bien un `dietpi.txt` — mais
+**pas celui-la**. Ce sont deux fichiers distincts, et non un lien :
+
+```console
+$ ls -l /boot/dietpi.txt /boot/firmware/dietpi.txt
+-rw-r--r-- 1 root root 18518 Aug 27 10:25 /boot/dietpi.txt        <- le VIVANT (rootfs)
+-rwxr-xr-x 1 root root 18389 Mar  3  2025 /boot/firmware/dietpi.txt <- l'image d'origine (vfat)
+```
+
+Quatorze lignes different. La copie sauvegardee porte
+`AUTO_SETUP_SWAPFILE_SIZE=0` la ou la machine tourne a `2048`, et
+`AUTO_SETUP_GLOBAL_PASSWORD=dietpi` — le mot de passe par defaut, en clair, que
+le fichier vivant a justement remplace par un commentaire. Restaurer a froid
+depuis cette entree reinstallerait donc l'etat de l'image de mars 2025.
+Corriger la liste `CONFIG_PATHS` : c'est `/boot/dietpi.txt` qu'il faut y
+mettre. **Meme motif que le `cp` vers `adguard/` plus haut : un chemin qui a
+l'air bon, une sauvegarde qui rend vert, et rien du contenu attendu dedans.**
+
+Enfin, la couche 3 **ne redemarre pas**. Son gestionnaire le dit et s'arrete
+la : `dietpi-update` a deja coupe une session par un postinst tailscale, et un
+redemarrage automatique en fin de reconstruction empecherait de constater le
+resultat. Redemarrer a la main, puis rejouer `verify.yml`.
+:::
+
+#### Repli manuel — les phases 3bis a 6 a la main
+
+Ce qui suit est **l'ancien parcours manuel**. Il reste ici pour une raison
+precise, mesuree le 2026-09-06 : la couche 1 s'arrete sur `'paquets_base' is
+undefined` des qu'on la vise sur penny. Le supprimer laisserait ce runbook sans
+aucun chemin praticable pour la machine qu'il est cense reconstruire.
+
+Il resterait utile de toute facon : la restauration des volumes depuis R2 et la
+configuration Authelia ne sont dans aucun playbook.
+
+**Phase 3bis — appliquer les configs systeme a la main.** Equivalent manuel de
+la couche 3. Les `cp` ci-dessous **ecrasent sans regarder** : c'est exactement
+ce que le pre-vol du playbook existe pour empecher. Le 2026-08-27,
+`/boot/firmware/config.txt` a recu `dtoverlay=ramoops-pi4,...` — le seul temoin
+qui survive a un reset dur — et le depot ne l'a recu que le 2026-09-06.
+Comparer avant de copier.
+
+```bash
+cd /mnt/ssd/config
+diff boot/config.txt  /boot/firmware/config.txt     # LIRE avant d'ecraser
+diff boot/cmdline.txt /boot/firmware/cmdline.txt
+
 cp boot/config.txt /boot/firmware/config.txt
 cp boot/cmdline.txt /boot/firmware/cmdline.txt
 cp udev/50-argon-ssd.rules /etc/udev/rules.d/
@@ -367,7 +636,7 @@ cp network/interfaces /etc/network/interfaces       # IP 192.168.1.28
 sysctl --system
 ```
 
-#### Phase 4 — Docker + services (T+45min a T+1h30)
+#### Phase 4 (repli manuel) — Docker + services (T+45min a T+1h30)
 
 :::danger[Corrigé le 2026-08-26 — les commandes de restauration ne pouvaient pas s'authentifier]
 Jusqu'à cette date, les blocs de restauration de cette page exportaient
@@ -398,28 +667,37 @@ apt install -y fail2ban restic watchdog unattended-upgrades
 
 # Configurer Docker
 mkdir -p /etc/docker
-cp docker/daemon.json /etc/docker/daemon.json
+cp /mnt/ssd/config/docker/daemon.json /etc/docker/daemon.json
 systemctl restart docker
 
-# Preparer les configs applicatives
-mkdir -p /mnt/ssd/config
-cp -r adguard/ /mnt/ssd/config/adguard/
-cp -r traefik/ /mnt/ssd/config/traefik/
-cp -r homepage/ /mnt/ssd/config/homepage/
+# Les configs applicatives sont DEJA en place : la phase 3 a clone le depot
+# directement dans /mnt/ssd/config, qui EST le chemin lu par la production
+# (bind-monte dans Traefik, en `watch: true`). Rien a recopier.
+# (Corrige le 2026-09-06 : cette etape faisait trois `cp -r` depuis un clone
+# voisin. L'un visait `adguard/`, chemin deplace vers `adguard/adguard-prod-1/`
+# le 03/09 ; les deux autres seraient devenus des copies sur elles-memes.)
+ls -d /mnt/ssd/config/adguard/adguard-prod-1 \
+      /mnt/ssd/config/traefik \
+      /mnt/ssd/config/homepage
 
-# Dechiffrer les secrets depuis le repo (YubiKey requise)
-# Prerequis : age-plugin-yubikey installe, YubiKey inseree
-age-plugin-yubikey --identity > /tmp/yk-id.txt
-SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv --output-type dotenv -d /mnt/ssd/config/.env.enc > /mnt/ssd/config/.env
-SOPS_AGE_KEY_FILE=/tmp/yk-id.txt sops --input-type dotenv --output-type dotenv -d /mnt/ssd/config/system/secrets/restic-env.enc > /root/.restic-env
-chmod 600 /root/.restic-env /mnt/ssd/config/.env
-rm /tmp/yk-id.txt
+# Les secrets applicatifs ont ete descelles en phase 3 par homelab-unseal.sh
+# vers /run/homelab/ (tmpfs). Restent ceux de restic, hors de son perimetre.
+# Execute le 2026-09-06 : rc=0, 4 clefs
+# (RESTIC_REPOSITORY, RESTIC_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
+SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt \
+  sops --input-type dotenv --output-type dotenv \
+    -d /mnt/ssd/config/system/secrets/restic-env.enc > /root/.restic-env
+chmod 600 /root/.restic-env
 
 # Le docker-compose est DEJA en place : le clone restaure le porte a
 # docker/docker-compose.yml, qui est le chemin que lit la production.
-# (Corrige le 2026-09-04 : cette etape faisait un `cp` vers
-# /mnt/ssd/config/docker-compose.yml, chemin de l'ancienne disposition. Elle
-# fabriquait un doublon a la racine au lieu de restaurer quoi que ce soit.)
+# (Corrige le 2026-09-04 : cette etape faisait un `cp` vers la RACINE du depot,
+# disposition d'avant le deplacement du compose sous docker/. Elle fabriquait
+# un doublon au lieu de restaurer quoi que ce soit. Le chemin mort n'est PAS
+# ecrit en entier ici : le controle de chemins vivants — section « Maintenance
+# de ce document » — grep le texte de la page et ne sait pas distinguer une
+# prescription d'un recit. Un controle qui signale toujours la meme chose
+# n'informe plus.)
 ls -l /mnt/ssd/config/docker/docker-compose.yml
 
 # Restaurer les volumes Docker depuis restic (Cloudflare R2 EU, chiffre AES-256)
@@ -444,7 +722,7 @@ done
 rm -rf /tmp/restore
 ```
 
-#### Phase 5 — Authelia (T+1h30 a T+1h45)
+#### Phase 5 (repli manuel) — Authelia (T+1h30 a T+1h45)
 
 ```bash
 # Restaurer la config Authelia depuis restic ou regenerer les secrets
@@ -471,7 +749,7 @@ else
 fi
 ```
 
-#### Phase 6 — Réseau et vérification (T+1h45 a T+2h)
+#### Phase 6 (repli manuel) — Réseau et vérification (T+1h45 a T+2h)
 
 ```bash
 # Installer et configurer Tailscale
@@ -479,14 +757,20 @@ curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up --authkey=<TS_AUTHKEY_DEPUIS_CLE_USB>
 # Ou se connecter via login.tailscale.com si pas d'authkey
 
-# Deployer le script monitoring
-cp scripts/homelab_monitor.sh /root/homelab_monitor.sh
-chmod +x /root/homelab_monitor.sh
-cp scripts/homelab_backup.sh /root/homelab_backup.sh
-chmod +x /root/homelab_backup.sh
+# Deployer les scripts et les units — le manifeste Ansible, pas des `cp`.
+# 104 paires source -> copie live sur les trois hotes ; `--check --diff`
+# d'abord, LIRE le diff, puis appliquer. Voir la page « Derive de
+# configuration ». Les `cp` manuels qui figuraient ici ne couvraient que deux
+# fichiers sur trente-quatre.
+cd /mnt/ssd/config/ansible
+ansible-playbook playbooks/deploy-scripts.yml --limit penny --check --diff
+ansible-playbook playbooks/deploy-systemd.yml --limit penny --check --diff
+# puis les deux memes sans --check
 
-# Lancer la stack
-cd /mnt/ssd/config
+# Lancer la stack. Le projet s'appelle `config` (declare par `name:` en tete du
+# compose) et non `docker` : c'est ce qui donne aux volumes leur prefixe
+# `config_`, celui que la restauration ci-dessus recree.
+cd /mnt/ssd/config/docker
 docker compose up -d
 
 # Verifier que restic fonctionne
@@ -495,6 +779,15 @@ restic snapshots  # doit lister les snapshots existants
 ```
 
 #### Vérification post-restauration penny
+
+Le juge est `verify.yml` — il demande aux services de SERVIR, et il porte un
+controle negatif. Le tableau ci-dessous couvre ce qu'il ne regarde pas
+(materiel, ASPM, Tailscale, sauvegardes).
+
+```bash
+cd /mnt/ssd/config/ansible
+ansible-playbook playbooks/verify.yml -e cible=penny
+```
 
 | Check | Commande | Attendu |
 |---|---|---|
@@ -506,7 +799,7 @@ restic snapshots  # doit lister les snapshots existants
 | Containers UP | `docker ps --format "table {{.Names}}\t{{.Status}}"` | Tous `Up` |
 | Monitoring | `cat /var/lib/homelab_monitor/status` | Pas d'alerte |
 | Tailscale | `tailscale status` | Connecte au tailnet |
-| Backup restic | `source ~/.restic-env && restic snapshots \| tail -5` | Snapshots recents |
+| Backup restic | `set -a; . /root/.restic-env; set +a; restic snapshots > /tmp/s.txt` | rc=0, snapshots recents dans `/tmp/s.txt` |
 
 ---
 
@@ -894,8 +1187,9 @@ total=$(docker ps -q | wc -l)
 healthy=$(docker ps --filter "status=running" -q | wc -l)
 echo "$healthy/$total running"
 
-echo -n "Backup B2 accessible : "
-source /root/.restic-env && restic snapshots >/dev/null 2>&1 && echo "OK" || echo "FAIL"
+echo -n "Backup R2 accessible : "   # R2 depuis le 2026-05-11, plus B2
+set -a; . /root/.restic-env; set +a  # `source` seul n'exporte rien vers restic
+restic snapshots >/dev/null 2>&1 && echo "OK" || echo "FAIL"
 
 echo -n "Temperature : "
 temp=$(vcgencmd measure_temp | grep -oP '[0-9.]+')
@@ -913,7 +1207,8 @@ La procédure doit être testee **au moins une fois par an** sur un environnemen
 | Date | Scénario | Durée reelle | Problèmes rencontres | Actions correctives |
 |---|---|---|---|---|
 | 2026-04-13 | DR drill Vaultwarden | 7s | Aucun | — |
-| — | Reconstruction complète penny | — | A faire | — |
+| 2026-09-06 | Reconstruction complète sur **banc jetable** (LXC 111, couches 1+2) | 490 s le cycle complet (reset 58 + couche 1 316 + couche 2 105 + verdict 11), rejeu idempotent | Le banc n'est pas une Pi : couche 3 non eprouvable | `verify.yml` passe (`ok=11 failed=0`) ; couche 3 appuyee sur penny en `--check --diff` |
+| — | Reconstruction complète penny (reelle, a froid) | — | A faire — voir les deux blocages mesures plus haut | — |
 | — | Reconstruction cluster | — | A faire | — |
 | — | Scénario 3 (tout detruit) | — | A faire | — |
 | — | Rotation secrets Authelia | — | A faire | — |
@@ -930,6 +1225,31 @@ Documenter chaque obstacle et chaque ecart par rapport au temps estime. Mettre a
 - **Mise a jour clé USB** : mensuelle (première semaine du mois)
 - **Test DR** : annuel minimum, trimestriel recommandé
 - **Responsable** : GabinSMD
+
+### Controle des chemins vivants — a rejouer apres chaque edition
+
+Cette page a deja porte **trois** chemins morts, dont un dans l'etape qui
+restaure le resolveur DNS de secours — celle dont on a besoin quand tout le
+reste est a terre. Un chemin mort dans un runbook ne se voit pas : il attend
+l'incident.
+
+```bash
+cd /mnt/ssd/homelab-doc
+grep -oE '/mnt/ssd/config/[A-Za-z0-9_./-]+' docs/operations/break-glass.mdx \
+  | sed 's/[.,;)]*$//' | sort -u | while read -r p; do
+    [ -e "$p" ] || printf '  MORT %s\n' "$p"
+  done
+echo "  (aucune ligne = tous vivants)"
+```
+
+Deux limites a connaitre, sinon il rassure a tort :
+
+- il ne juge que les chemins sous `/mnt/ssd/config` — pas `/boot/firmware`, pas
+  `/etc`, pas `/root` ;
+- il ne distingue pas une **prescription** d'un **recit**. Un chemin mort cite
+  pour raconter une correction passee sortirait en `MORT` a chaque execution.
+  D'ou la regle : dans un commentaire historique, nommer le chemin abandonne
+  sans l'ecrire en entier.
 
 ## Compte rendu du drill du 2026-08-26
 
