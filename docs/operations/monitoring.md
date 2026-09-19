@@ -197,8 +197,6 @@ le tableau fait référence.
 | `pbs-datastore-sync` | 03:30 | Sync du datastore PBS vers R2 via rclone — voir [backups](backups.md) |
 | `aide-check` | 04:30 | Intégrité des fichiers système (AIDE) — voir [roadmap sécurité](../securite/roadmap.md) |
 | `security-updates` | 05:40 | Applique les mises à jour de sécurité (politique unattended-upgrades) |
-| `firefly-echeances` | 06:15 | Échéances de prêt Firefly III (capital / intérêts / assurance) — voir [Firefly III](../services/firefly.md) |
-| `firefly-post-import` | 06:30 | Post-traitement des imports Firefly III (virements internes, mensualités) |
 | `backup-coverage-check` | 06:45 | Quels invités Proxmox n'ont **pas** de sauvegarde récente |
 | `repo-drift-check` | 07:10 | Vérifie que le déployé dans la LXC 101 correspond encore au dépôt |
 | `backup-freshness-check` | 09:30 | Dead-man-switch sur la fraîcheur des dépôts restic |

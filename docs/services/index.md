@@ -8,7 +8,6 @@ Tous les conteneurs sur penny tournent depuis un seul `/mnt/ssd/config/docker/do
 
 Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [grafana.md](grafana.md).
 Vaultwarden est **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
-Firefly III et son importeur tournent dans le LXC `finance` (galahad, 192.168.1.37). Voir [firefly.md](firefly.md).
 Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
 ### Exposés derrière Traefik
@@ -50,7 +49,6 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[Vaultwarden](vaultwarden.md)** | `vault.home…` | LXC 102 `vault` / galahad |
 | **[PBS](pbs.md)** | `backup.home…` | LXC 103 `pbs` / lancelot |
 | **[Pulse](pulse.md)** | `pulse.home…` | LXC 106 `pulse` / galahad |
-| **[Firefly III](firefly.md)** + [importeur](firefly.md#importeur-de-donnees) | `finance.home…` / `import.home…` | LXC 109 `finance` / galahad |
 | **[AdGuard secondaire](dns-failover.md)** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
 | **Docs** | `homelab.gabin-simond.fr` | GitHub Pages, hors infra — seul service public sans Authelia |
@@ -94,7 +92,6 @@ graph TB
         Traefik -->|dynamic/| PVE2[lancelot]
         Traefik -->|dynamic/| Logs[Grafana LXC]
         Traefik -->|dynamic/| Vault[Vaultwarden LXC]
-        Traefik -->|dynamic/| Finance[Firefly III LXC]
     end
 ```
 
@@ -133,7 +130,6 @@ Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surfac
 | 106 | [`pulse`](pulse.md) | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
 | 107 | [`waterline`](waterline.md) | galahad | DHCP | Serveur de test du mod Waterline |
 | 108 | [`ci-runner`](ci-runner.md) | lancelot | DHCP | Runner Forgejo Actions (aarch64) |
-| 109 | [`finance`](firefly.md) | galahad | `192.168.1.37` | Firefly III + importeur |
 
 Note d'isolement : `vault` et `logs` sont sur des hosts différents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 

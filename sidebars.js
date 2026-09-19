@@ -61,7 +61,6 @@ const sidebars = {
           items: [
             { type: 'doc', id: 'services/vaultwarden', label: 'Vaultwarden' },
             { type: 'doc', id: 'services/pbs', label: 'Proxmox Backup Server (LXC 103)' },
-            { type: 'doc', id: 'services/firefly', label: 'Firefly III (LXC 109)' },
           ],
         },
         {

@@ -54,7 +54,6 @@ sur le réseau Docker `proxy`), soit vers un LXC par IP:port, via les fichiers d
 | `backup.home…` | `https://192.168.1.33:8007` — PBS (LXC 103) |
 | `pulse.home…` | `192.168.1.34:7655` — Pulse (LXC 106) |
 | `logs.home…` | `192.168.1.31:3000` — Grafana (LXC 101) |
-| `finance.home…` / `import.home…` | `192.168.1.37:8080` et `:8081` — Firefly III (LXC 109) |
 | `dns-failover.home…` | `192.168.1.30:3000` — AdGuard secondaire (LXC 100) |
 | `galahad.home…` / `lancelot.home…` | `https://192.168.1.1x:8006` — les deux nœuds PVE |
 | `dns.home…` | `192.168.1.28:3000` — AdGuard primaire |

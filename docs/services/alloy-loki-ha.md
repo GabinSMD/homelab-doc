@@ -47,7 +47,6 @@ flowchart LR
 | 106 pulse | galahad | journald + Docker (`pulse`, filtré) |
 | 107 waterline | galahad | journald |
 | 108 ci-runner | lancelot | journald seulement |
-| 109 finance | galahad | journald + Docker (ajouté le 2026-08-24) |
 
 :::note[Cette page disait le contraire jusqu'au 2026-09-02 — voici pourquoi il a changé]
 La version précédente actait : « LXC 100/102/103 : pas d'Alloy. Trade-off
