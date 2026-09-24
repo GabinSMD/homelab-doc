@@ -131,7 +131,48 @@ L'étape 1 **ne peut pas être automatisée** : l'`API_TOKEN` du fichier
 `data/.env` est une empreinte SHA-256, pas le jeton — Pulse ne l'affiche qu'à
 sa création. Même limite que le plafond de budget IA, qui vit dans `ai.enc`.
 
-En attendant, on se connecte avec les identifiants locaux.
+### Résolu le 2026-09-24 — c'est l'interface qui prime, pas la variable
+
+Le correctif est de saisir l'URL de rappel **à la main dans Settings →
+Security → Single Sign-On**, ce qui court-circuite la détection automatique.
+Valeur posée :
+
+```
+https://pulse.home.gabin-simond.fr/api/oidc/legacy-oidc/callback
+```
+
+Le point à retenir, et il n'est écrit nulle part en amont : **la configuration
+de l'interface écrase la variable d'environnement.** `OIDC_REDIRECT_URL`
+pointe toujours sur le chemin nu `/api/oidc/callback` dans le compose, et
+Pulse l'ignore désormais. Chercher la vérité dans le compose induirait en
+erreur — elle est dans `data/sso.enc`, chiffré, écrit par l'interface, comme
+`ai.enc` pour le budget IA.
+
+Mesuré après coup, en interrogeant Pulse en direct pour contourner le
+middleware :
+
+```
+avant : http://pulse.home.gabin-simond.fr:443/api/oidc/callback     refusé
+après : https://pulse.home.gabin-simond.fr/api/oidc/legacy-oidc/callback   accepté
+```
+
+### Le conseil du mainteneur ne marche pas en 6.4.1
+
+L'issue amont [#1562](https://github.com/rcourtman/Pulse/issues/1562) décrit
+le même symptôme derrière Traefik, et la réponse est :
+
+> Set the env var `PULSE_TRUSTED_PROXY_CIDRS` to your Traefik/Docker network
+> range (e.g. `172.18.0.0/16`) so the forwarded scheme is honoured.
+
+**Testé, sans effet.** Avec `172.16.0.0/12` dans les proxys de confiance *et*
+un `X-Forwarded-Proto: https` explicite, Pulse rendait toujours
+`http://…:443/api/oidc/callback`. Le réglage a été retiré plutôt que gardé :
+il élargit la confiance aux en-têtes forgés sans bénéfice démontré, et comme
+le port est publié en `0.0.0.0`, toute machine du LAN arrive par la même
+passerelle `172.18.0.1` et en profiterait.
+
+Deux sessions ont fait cet essai indépendamment, à trois semaines d'écart.
+C'est écrit ici pour qu'il n'y en ait pas une troisième.
 
 :::warning Le port est ouvert sur le LAN
 Pulse publie `0.0.0.0:7655`. N'importe quelle machine du réseau peut donc
