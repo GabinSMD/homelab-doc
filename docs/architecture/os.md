@@ -62,10 +62,12 @@ UUID=b32ed1bb-... /mnt/ssd ext4 noatime,lazytime,rw,nofail,errors=remount-ro
 
 ### config.txt
 
+Relevé le 2026-09-24 sur `/boot/firmware/config.txt` :
+
 ```ini
-max_framebuffers=0          # Pas de framebuffer (headless)
-hdmi_ignore_hotplug=1       # Ignore HDMI meme si branche
+max_framebuffers=1          # UNE console : voir l'encadre ci-dessous
 hdmi_blanking=1             # Standby HDMI
+disable_overscan=1
 disable_splash=1            # Pas de splash screen
 dtparam=audio=off           # Pas d'audio
 gpu_mem_256=16              # GPU minimal
@@ -74,8 +76,32 @@ gpu_mem_1024=16
 dtoverlay=disable-wifi      # WiFi desactive
 dtparam=sd_poll_once        # Pas de polling SD continu
 enable_uart=1               # Console serie active (debug)
+arm_64bit=1
+temp_limit=75               # Throttle thermique
+initial_turbo=20
 dtparam=i2c_arm=on          # I2C pour le ventilateur Argon
+dtparam=watchdog=on         # Watchdog materiel BCM2835, voir plus bas
+dtoverlay=ramoops-pi4,total-size=131072,console-size=65536
 ```
+
+:::info[Pourquoi `max_framebuffers=1` et pas `0` — tranché le 2026-09-23]
+Ces deux lignes ont longtemps été `max_framebuffers=0` et `hdmi_ignore_hotplug=1`, au nom
+de l'économie de RAM GPU sur une machine sans tête. Elles ont été retirées **exprès**.
+
+Ensemble, elles coupent la sortie HDMI même écran branché et suppriment la console : elles
+retirent le **seul chemin de diagnostic** quand la machine ne démarre plus et que SSH est
+inaccessible. C'est exactement le scénario vécu les **2026-04-17, 2026-08-03 et
+2026-08-25**.
+
+Le bon critère n'est pas l'économie, c'est la **récupérabilité**. Un serveur sans tête n'a
+pas besoin d'écran au quotidien ; il en a besoin le jour où tout le reste est tombé.
+Quelques Mo de RAM GPU ne valent pas ça.
+:::
+
+`dtoverlay=ramoops-pi4` mérite d'être remarqué : il réserve 128 Kio de RAM persistante
+pour `pstore`. C'est le **seul témoin d'un kernel Oops**, qui par nature n'atteint jamais
+le journal sur disque — voir [où est la preuve d'une
+chute](../operations/incidents-recurrents.md#chute-lancelot-preuve).
 
 ## Docker
 
@@ -134,7 +160,9 @@ dtparam=watchdog=on
 **`/etc/modules` :**
 
 ```text
-bcm2835_wdt
+i2c-bcm2708      # ventilateur Argon
+i2c-dev
+bcm2835_wdt      # le watchdog
 ```
 
 **`/etc/watchdog.conf` (extrait) :**
@@ -207,16 +235,26 @@ echo c > /proc/sysrq-trigger              # Provoque un kernel panic
 
 Les containers avec healthcheck sont surveilles par Docker. Si un check échoué 3 fois de suite, le container passe en `unhealthy`.
 
-| Container | Healthcheck | Méthode |
-|---|---|---|
-| Traefik | `wget http://localhost:8080/ping` | Endpoint `/ping` activé dans traefik.yml |
-| AdGuard | `wget http://localhost:3000` | Interface web |
-| Tailscale | `tailscale status` | CLI interne |
-| Vaultwarden | Healthcheck intégré a l'image | — |
-| Homepage | Healthcheck intégré a l'image | — |
-| Authelia | Healthcheck intégré a l'image | — |
-| Portainer | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
-| Beszel | Aucun (image distroless) | Surveillé par homelab_monitor.sh |
+Relevé le 2026-09-24 (`docker inspect --format '{{if .Config.Healthcheck}}…'`).
+**12 conteneurs sur 22** en ont un.
+
+| Conteneur | Healthcheck |
+|---|---|
+| Traefik | `wget http://localhost:8080/ping` — endpoint `/ping` activé dans `traefik.yml` |
+| AdGuard | `wget http://localhost:3000` — interface web |
+| Authelia, Homepage, Outline, outline-db, outline-redis | Intégré à l'image |
+| CrowdSec, Portainer, Beszel, beszel-agent, autoheal, socket-proxy | Intégré à l'image |
+
+Les **10 sans healthcheck** : `ntfy`, `forgejo`, `dozzle`, `cyberchef`, `stirling-pdf`,
+`status`, `homelable`, `homelable-backend`, `loki-replica`, et donc rien ne les fait
+redémarrer par autoheal. Ils sont couverts par `homelab_monitor.sh` (le conteneur est-il
+là ?) et, pour ceux exposés par Traefik, par `outillage-health-check`.
+
+:::note[Un conteneur sans healthcheck est invisible pour autoheal]
+`AUTOHEAL_CONTAINER_LABEL: all` ne veut pas dire « tous les conteneurs » : autoheal ne
+peut agir que sur ceux que Docker sait marquer `unhealthy`. Sur un conteneur sans
+healthcheck, un processus mort mais un PID 1 vivant ne déclenche **rien**.
+:::
 
 ### Autoheal
 
@@ -228,9 +266,23 @@ autoheal:
   environment:
     AUTOHEAL_CONTAINER_LABEL: all
     AUTOHEAL_INTERVAL: 30
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
+    DOCKER_SOCK: tcp://socket-proxy:2375   # PAS le socket en direct
+  networks: [socket]
 ```
+
+:::warning[Autoheal ne monte pas `/var/run/docker.sock`]
+Il passe par `socket-proxy` en TCP, comme Traefik, Homepage et Dozzle. Les seuls
+conteneurs qui montent le socket **en direct** sont `portainer` (nécessité admin),
+`beszel-agent` (lecture des métriques de conteneur) et `socket-proxy` lui-même.
+
+```bash
+# Redériver la liste plutot que la croire
+for c in $(docker ps --format '{{.Names}}'); do
+  docker inspect "$c" --format '{{range .Mounts}}{{.Source}} {{end}}' \
+    | grep -q /var/run/docker.sock && echo "$c"
+done
+```
+:::
 
 ## Résumé
 
@@ -244,9 +296,9 @@ autoheal:
 | Logs systeme en tmpfs | Pas d'usure SD |
 | Swap désactivé | Pas d'usure SSD/SD |
 | GPU 16 Mo | Plus de RAM pour les services |
-| Headless | Framebuffers a 0 |
+| Headless, mais **une** console | Diagnostic possible quand SSH est mort |
 | WiFi off | Economie énergie, sécurité |
-| fstrim hebdo | Maintenance SSD |
+| `fstrim.timer` hebdo (lundi 00:00) | **Sans effet sur le SSD** — voir ci-dessous |
 | Watchdog BCM2835 | Reboot auto si kernel freeze (15s) |
 | Healthchecks Docker | Détection containers zombie |
 | Autoheal | Restart auto des containers unhealthy |
@@ -257,4 +309,23 @@ autoheal:
 - **TRIM non supporte** (`discard_max_bytes=0`) — le garbage collection interne du SSD compense
 - **USB 3.0 plafonne a ~200 MB/s** — bus partagé avec Ethernet Gigabit sur RPi 4
 - **`nr_requests=2`** — limitation du driver `usb-storage`, non modifiable sans UAS
+:::
+
+:::warning[`fstrim.timer` tourne chaque lundi et ne trime rien]
+Les deux affirmations de cette page se contredisaient : le résumé annonçait « fstrim hebdo
+— maintenance SSD », l'encadré ci-dessus dit que le bridge ne passe pas TRIM. C'est
+l'encadré qui a raison.
+
+```console
+$ cat /sys/block/sda/queue/discard_max_bytes
+0
+```
+
+Le timer est actif (`Mon *-*-* 00:00:00`) et s'exécute sans erreur — il ne trouve
+simplement aucun périphérique à trimer. Il n'est pas nuisible, mais **ce n'est pas une
+mesure d'entretien du SSD** : compter dessus, c'est croire à un entretien qui n'a pas
+lieu. L'usure du SSD est gérée par son garbage collection interne, pas par l'hôte.
+
+Le TRIM qui compte réellement dans ce parc est ailleurs : `pct fstrim` sur les rootfs LXC
+des nœuds PVE, sans lequel l'espace libéré dans un conteneur ne revient jamais à l'hôte.
 :::

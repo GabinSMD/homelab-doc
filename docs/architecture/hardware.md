@@ -9,17 +9,28 @@
 | Board | Raspberry Pi 4 Model B Rev 1.4 (8 Go RAM) |
 | Boitier | Argon ONE M.2 (avec ventilateur actif via `argononed`) |
 | Stockage OS | SD Card 64 Go (boot + OS) |
-| Stockage Data | SSD Intenso 480 Go via bridge USB-SATA ASMedia ASM1156 (USB 3.0) |
-| OS | DietPi v10.2 (Debian 12 Bookworm), kernel 6.12.x aarch64 |
+| Stockage Data | SSD Intenso 480 Go (476,9 Gio) via bridge USB-SATA ASMedia ASM1156 (`174c:1156`, USB 3.0) |
+| OS | DietPi v10.6.2 (Debian 12 Bookworm), kernel 6.12.x aarch64 |
 | IP LAN | 192.168.1.28 |
 | IP Tailscale | 100.97.239.90 |
 | SSH | `ssh root@penny` (Tailscale SSH) — port 2806 en direct sur le LAN |
+
+:::info[Le pontet USB-SATA a été remplacé le 2026-09-21]
+Même modèle, pièce neuve. Le compteur qui sert de témoin est
+`UDMA_CRC_Error_Count` : il vit dans le SSD et non dans le pontet, il est cumulatif et ne
+se remet jamais à zéro. Sa valeur au moment du remplacement était **33** — tout
+incrément au-delà signifie que la pièce neuve faute à son tour.
+
+Il est historisé dans Prometheus depuis le 2026-09-24 (`smart-textfile-exporter`, toutes
+les 15 min). Voir aussi [la sonde SMART qui lisait un périphérique
+inexistant](../operations/incidents-recurrents.md#sonde-smart-aveugle).
+:::
 
 ### ZimaBoard x2 (cluster Proxmox)
 
 | Composant | galahad | lancelot |
 |---|---|---|
-| Stockage | eMMC 32 Go | eMMC 32 Go |
+| Stockage | eMMC 64 Go (57,7 Go utiles) | eMMC 64 Go (57,7 Go utiles) |
 | OS | Proxmox VE 9 (Debian Trixie) | Proxmox VE 9 (Debian Trixie) |
 | IP LAN | 192.168.1.18 | 192.168.1.19 |
 | IP Tailscale | 100.98.58.121 | 100.69.6.13 |
@@ -32,7 +43,6 @@ Les deux ZimaBoards forment le cluster Proxmox **homelab**. Tailscale installe n
 
 | Machine | Specs | Rôle | Budget |
 |---|---|---|---|
-
 | Appliance firewall | 4x 2.5GbE, fanless (Topton/CWWK N100) | OPNsense dedie | 100-180€ |
 | Minisforum N5 Max | Intel N100/N150, 16+ Go RAM | Proxmox VE (compute + storage / NAS) | 250-400€ |
 | Switch 2.5GbE 16+ ports | 802.1Q managed | Switch coeur (Phase 2) | 150-300€ |

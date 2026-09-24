@@ -11,11 +11,22 @@ déployer : la source de vérité des conteneurs de penny reste
 | Auth | OIDC Authelia, connexion automatique, formulaire interne masqué |
 | Limite mémoire | 256 Mo |
 
-## La seule exception au socket-proxy
+## Les exceptions au socket-proxy {#la-seule-exception-au-socket-proxy}
 
-Tous les conteneurs passent par `socket-proxy` pour parler à l'API Docker. Portainer
-est le **seul** à monter `/var/run/docker.sock` directement, en lecture seule —
-parce qu'il a besoin d'endpoints que le proxy ne relaie pas.
+Presque tous les conteneurs passent par `socket-proxy` pour parler à l'API Docker.
+Portainer monte `/var/run/docker.sock` directement, parce qu'il a besoin d'endpoints que
+le proxy ne relaie pas.
+
+:::note[Il n'est pas le seul — corrigé le 2026-09-24]
+Cette page affirmait « le seul ». Le relevé en donne **deux** : `portainer` et
+`beszel-agent`, qui lit les métriques par conteneur. Les deux montent en `ro`.
+
+Et `ro` protège moins qu'il n'en a l'air : le drapeau porte sur le **nœud de système de
+fichiers**, pas sur ce qu'on envoie dans la socket. Un processus qui peut ouvrir cette
+socket peut émettre n'importe quel appel de l'API Docker, y compris créer un conteneur
+privilégié. `ro` n'est pas une réduction de privilège — c'est l'accès lui-même qui est le
+privilège.
+:::
 
 :::warning[C'est la surface d'attaque la plus large du homelab]
 Un accès à Portainer est un accès à l'API Docker, donc à l'hôte. C'est la raison
