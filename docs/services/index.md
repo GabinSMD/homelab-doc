@@ -86,6 +86,24 @@ pct list                                          # sur galahad, puis lancelot
 
 Tous les services web sont accessibles via `*.home.gabin-simond.fr` (reverse proxy Traefik). Tous les services sont proteges par [Authelia](authelia.md) (OIDC ou ForwardAuth). Voir [authelia.md](authelia.md) pour les clients OIDC et la configuration.
 
+:::info[Les tags `:latest` ci-dessus sont tous épinglés par digest]
+Les tableaux donnent le tag pour la lisibilité, mais **les 22 images sont épinglées
+`@sha256:…`** dans le compose — vérifié le 2026-09-24. Aucune ne flotte. `pulse` était la
+dernière exception, épinglée le 2026-09-02.
+
+Conséquence pratique : un `docker compose pull` **ne met rien à jour**, il retélécharge le
+digest déjà épinglé. Mettre à jour se fait en changeant le digest dans le dépôt. L'écart
+entre le digest épinglé et le `:latest` amont est surveillé par `digest-drift-check`
+(le 1er du mois).
+
+```bash
+grep -E '^\s+image:' /mnt/ssd/config/docker/docker-compose.yml
+```
+
+Attention au piège : un digest n'identifie pas un **contenu** de façon comparable entre
+registres. Voir [comparer les ID d'image, jamais les digests](../securite/roadmap.md).
+:::
+
 ## Architecture Docker (penny)
 
 ```mermaid

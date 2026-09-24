@@ -151,6 +151,21 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 ## Déjà fait
 
+:::note[Ceci est un journal, pas un état des lieux — relu le 2026-09-24]
+Les blocs ci-dessous enregistrent ce qui a été fait **au moment où ça a été fait**. Ils ne
+sont pas maintenus au présent, et trois d'entre eux induiraient en erreur aujourd'hui :
+
+- « Pinning digests sur Vaultwarden, Authelia, Traefik » : ce sont désormais **les 22
+  images** qui sont épinglées, `pulse` ayant été la dernière le 2026-09-02.
+- « Healthchecks Beszel + Portainer + beszel-agent : non applicable » : les trois en ont
+  un aujourd'hui. Le relevé du jour donne 12 conteneurs sur 22 avec healthcheck, voir
+  [optimisations OS](../architecture/os.md).
+- Toute mention de **Watchtower** : le conteneur est retiré depuis le 2026-07-06.
+
+Pour l'état réel, lire [hardening](hardening.md) et [services](../services/index.md),
+pas cette section.
+:::
+
 <details>
 <summary>Observabilite / documentation</summary>
 

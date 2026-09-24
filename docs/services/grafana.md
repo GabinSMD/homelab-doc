@@ -10,8 +10,8 @@ Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Bes
 | Host | LXC 101 `logs` sur lancelot (192.168.1.31) |
 | Port interne | 3000 |
 | Image | `grafana/grafana:latest` |
-| Source compose | `/opt/logs/docker-compose.yml` |
-| Versioned | `homelab-config/logs/docker-compose.yml` (GitHub) |
+| Source compose | `/opt/logs/docker-compose.yml` (sur la LXC 101, non git) |
+| Versioned | `homelab-config/logs/logs-prod-1/docker-compose.yml` |
 
 ## Authentification
 
@@ -51,56 +51,33 @@ Provisionnee via `/opt/logs/grafana-provisioning/datasources/loki.yml` avec `uid
 
 ## Dashboards
 
-Quatre dashboards provisionnes via `/opt/logs/dashboards/*.json` (read-only), folder Grafana `Homelab`. Tous les KPI stats utilisent `[$__range]` et suivent le selecteur de temps Grafana.
+**Cinq** tableaux provisionnés via `/opt/logs/dashboards/*.json` (read-only), folder
+Grafana `Homelab`. Relevé le 2026-09-24, après la refonte des 22-24/09 : les anciens
+`homelab-overview` et `logs-explorer` n'existent plus.
 
-### Homelab Overview (`homelab-overview`)
+Tous suivent la même grammaire, et l'ordre des lignes est le propos :
 
-Le dashboard du matin — 5 secondes pour savoir si tout va bien.
-
-| Ligne | Panneaux |
+| Ligne | Ce qu'elle répond |
 |---|---|
-| KPIs sante | Erreurs, Container restarts, Autoheal, Events SSD |
-| KPIs conscience | Logins echoues, Bans fail2ban, Sessions SSH |
-| Graphes | Erreurs par service, Monitoring alerts (homelab_monitor.sh) |
-| Logs événements | SSD / Power / Certificats TLS |
-| Logs erreurs | Erreurs recentes tous services |
+| **Fiabilité des sources** | *Est-ce que je regarde des données ?* Nombre de journaux reçus, d'exportateurs actifs. Zéro ici invalide tout ce qui suit |
+| **Verdict** | *Est-ce que ça va ?* Quelques compteurs, lisibles en cinq secondes |
+| Détail | Les séries et les journaux, pour quand la réponse est non |
 
-:::warning[Panneau `Watchtower` mort à retirer du dashboard]
-`homelab-overview.json` contient encore un panneau `Watchtower` alors que le
-conteneur est retiré depuis le 2026-07-06 : il n'affichera plus jamais rien.
-Un panneau vide se lit « aucune mise à jour » et non « plus de source », donc
-il vaut mieux le supprimer que le laisser rassurer à tort. Le fichier vit
-dans `/opt/logs/dashboards/` sur le LXC 101 (non versionné).
+:::tip[Pourquoi « Fiabilité des sources » vient en premier]
+Un panneau vide se lit « rien à signaler » alors qu'il veut souvent dire « plus de
+source ». Mettre le compte des sources **avant** le verdict évite de lire un silence
+comme une bonne nouvelle. C'est le même raisonnement que le
+[dead-man-switch](../operations/monitoring.md#dead-man-switch-negative-space-alerting) et
+que `guardrail-liveness`.
 :::
 
-### Sécurité (`auth-security`)
-
-Deep dive quand un signal sécurité clignote sur l'overview.
-
-| Ligne | Panneaux |
-|---|---|
-| KPIs | Logins reussis, Logins echoues, Bans fail2ban, Sudo commands |
-| Graphes | Authelia logins, fail2ban bans par host, SSH sessions par host, Sudo par host |
-| Logs | Authelia échecs + IP, WebAuthn/TOTP, SSH connexions, auditd |
-
-### Trafic (`traefik-access`)
-
-Deep dive sur le trafic HTTP via Traefik.
-
-| Ligne | Panneaux |
-|---|---|
-| KPIs | Requêtes, 4xx, 5xx, Taux erreur |
-| Graphes | Codes HTTP par classe (stacked), Volume par service backend |
-| Logs | 4xx/5xx recents avec URL |
-
-### Logs Explorer (`logs-explorer`)
-
-Recherche libre avec filtres. Variables : Host, Job, Container, Recherche texte.
-
-| Ligne | Panneaux |
-|---|---|
-| Graphes | Volume par host, Volume par container, Volume par job |
-| Logs | Recherche libre (répond aux filtres variables) |
+| Fichier | Titre | Panneaux | À quoi il sert |
+|---|---|---|---|
+| `poste-commande.json` | Poste de commande | 15 | Le tableau du matin. Registre des garde-fous, combien sont muets, dernier verdict de chacun, erreurs et redémarrages |
+| `hosts-capacity.json` | Hôtes / Capacité | 18 | Remplissage, mémoire, température, latence et débit disque, santé SMART du SSD |
+| `auth-security.json` | Sécurité | 17 | Échecs d'authentification, refus de comptes connus, bans fail2ban, connexions SSH par hôte |
+| `traefik-access.json` | Traefik — erreurs | 10 | 4xx, 5xx, erreurs par code et par service, plus une ligne « bruit connu » |
+| `investigation.json` | Investigation | 15 | Fouille : volume par sévérité, hôte, conteneur, source ; unités et conteneurs les plus bavards ; recherche libre |
 
 ## Architecture
 
@@ -124,11 +101,15 @@ graph LR
 
 ## Sources des logs (Alloy)
 
-| Host | Sources |
+| Host | `job` collectés |
 |---|---|
-| penny | journald, Docker containers, fail2ban, `homelab_monitor.sh` |
-| galahad | journald, `/var/log/audit/audit.log`, Proxmox logs, fail2ban |
-| lancelot | journald, Proxmox logs, LXC stdout/stderr |
+| penny | `journald`, `docker`, `audit`, `fail2ban`, `monitor`, `watchdog` |
+| galahad | `journald`, `audit`, `fail2ban`, `proxmox` |
+| lancelot | `journald`, `audit`, `fail2ban`, `proxmox` |
+
+Neuf des dix LXC expédient aussi. La **LXC 110 `securo` n'a pas d'Alloy** et n'apparaît
+donc dans aucun tableau ni aucune alerte. L'inventaire complet par LXC est sur
+[Alloy + Loki HA](alloy-loki-ha.md) — cette page ne le duplique pas.
 
 Retention Loki : 30 jours.
 
@@ -136,14 +117,19 @@ Retention Loki : 30 jours.
 
 ### Ajouter un dashboard
 
-Depose le JSON dans `/mnt/ssd/config/logs/dashboards/` (source sur penny), puis déploie via Tailscale SSH + `pct push` :
+Depose le JSON dans `/mnt/ssd/config/logs/logs-prod-1/dashboards/` (source sur penny), puis déploie :
 
 ```bash
-# Deployer chaque dashboard sur le LXC 101 (logs sur lancelot)
-for f in /mnt/ssd/config/logs/dashboards/*.json; do
+logs/logs-prod-1/deploy-to-lxc101.sh
+```
+
+Le script pousse les fichiers, redémarre Grafana et contrôle les règles orphelines. À la
+main, si besoin :
+
+```bash
+for f in /mnt/ssd/config/logs/logs-prod-1/dashboards/*.json; do
     tailscale ssh root@lancelot "pct push 101 /dev/stdin /opt/logs/dashboards/$(basename $f)" < "$f"
 done
-echo "Deploye — Grafana recharge automatiquement (updateIntervalSeconds: 60)"
 ```
 
 :::info[Pas besoin de restart Grafana]
@@ -182,7 +168,7 @@ Puis déployer et vérifier que la **base** reflète le changement — c'est la 
 que le provisioning a bien agi, pas le fichier :
 
 ```bash
-logs/deploy-to-lxc101.sh    # push + restart grafana + controle des orphelines
+logs/logs-prod-1/deploy-to-lxc101.sh   # push + restart grafana + controle des orphelines
 ```
 
 Ce script compare depuis le 2026-08-26 les `uid` de `rules.yml` à ceux de la table

@@ -28,13 +28,22 @@ flowchart LR
 
 ## Hosts avec Alloy
 
-| Host | Paquet | Config | Sources collectees |
-|------|--------|--------|-------------------|
-| penny | `alloy` apt | `/etc/alloy/config.alloy` | journald + docker sockets + Traefik access.log + autres fichiers |
-| galahad | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si présent) |
-| lancelot | `alloy` apt | `/etc/alloy/config.alloy` | journald + auditd (si présent) |
+Les valeurs de `job` ci-dessous sont celles réellement déclarées dans les fichiers
+`.alloy`, relevées le 2026-09-24. Elles comptent, parce que les règles d'alerte
+sélectionnent dessus.
 
-### Les dix LXC, depuis le 2026-09-02
+| Host | Paquet | Config | `job` collectés |
+|------|--------|--------|-------------------|
+| penny | `alloy` apt | `/etc/alloy/config.alloy` | `journald`, `docker`, `audit`, `fail2ban`, `monitor`, `watchdog` |
+| galahad | `alloy` apt | `/etc/alloy/config.alloy` | `journald`, `audit`, `fail2ban`, `proxmox` |
+| lancelot | `alloy` apt | `/etc/alloy/config.alloy` | `journald`, `audit`, `fail2ban`, `proxmox` |
+
+Les sources versionnées sont dans `homelab-config/system/alloy/<hôte>.alloy`, un fichier
+par machine.
+
+### Les LXC, depuis le 2026-09-02
+
+Neuf sur dix expédient. Relevé par `pct exec <id> -- systemctl is-active alloy`.
 
 | LXC | Hôte | Sources |
 |---|---|---|
@@ -47,6 +56,20 @@ flowchart LR
 | 106 pulse | galahad | journald + Docker (`pulse`, filtré) |
 | 107 waterline | galahad | journald |
 | 108 ci-runner | lancelot | journald seulement |
+| **110 securo** | lancelot | **aucune — Alloy n'y est pas installé** |
+
+:::warning[La LXC 110 `securo` n'expédie rien, constaté le 2026-09-24]
+Alloy n'y est pas installé : `/etc/alloy/` n'existe pas, l'unité est `inactive`, et aucun
+`securo.alloy` ne figure dans `homelab-config/system/alloy/`. Ses **six** conteneurs —
+backend, frontend, deux workers Celery, Redis, Postgres — sont invisibles dans Loki.
+
+Ce n'est pas un détail pour un service qui traite des données financières : une boucle de
+redémarrage, un échec d'authentification ou un import raté n'y laisseront aucune trace
+consultable, et aucune règle d'alerte ne peut porter sur ce qui n'arrive jamais.
+
+Le raisonnement qui a fait installer Alloy dans `vault` le 2026-09-02 s'applique mot pour
+mot : **un backup n'est pas une observation.**
+:::
 
 :::note[Cette page disait le contraire jusqu'au 2026-09-02 — voici pourquoi il a changé]
 La version précédente actait : « LXC 100/102/103 : pas d'Alloy. Trade-off
