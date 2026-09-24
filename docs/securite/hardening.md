@@ -10,13 +10,38 @@ Pour la roadmap des actions restantes, voir [roadmap.md](roadmap.md).
 
 ## Scores Lynis
 
-| Machine | Score | Date | Δ | Notes |
-|---|---|---|---|---|
-| penny | **77/100** | 2026-04-13 (re-run) | +1 | Debian 12 / DietPi / RPi4 — kptr_restrict + read_only Beszel/Watchtower |
-| galahad | **68/100** | 2026-04-13 (re-run) | 0 | Debian 13 / Proxmox 9 |
-| lancelot | **70/100** | 2026-04-13 (re-run) | +1 | Debian 13 / Proxmox 9 — auditd reactive |
+Relevé le **2026-09-24** dans les rapports du dernier audit (2026-09-20). Les valeurs
+précédentes sur cette page dataient du 2026-04-13 : cinq mois d'écart, et six à huit
+points de retard — dans le bon sens.
 
-Lynis weekly cron : dimanche 5h, push ntfy avec priorité variable selon le score.
+| Machine | Score | Audit du | Au 13/04 | Notes |
+|---|---|---|---|---|
+| penny | **82/100** | 2026-09-20 | 77 | Debian 12 / DietPi / RPi4 |
+| lancelot | **77/100** | 2026-09-20 | 70 | Debian 13 / Proxmox 9 |
+| galahad | **76/100** | 2026-09-20 | 68 | Debian 13 / Proxmox 9 |
+
+Pour les redériver plutôt que les croire :
+
+```bash
+grep -a hardening_index /var/lib/lynis/lynis-report.dat                    # penny
+grep -a hardening_index /mnt/ssd/log-homelab/lynis-report-{galahad,lancelot}.dat
+```
+
+Deux **timers** systemd, pas du cron : `lynis-notify` (penny, dimanche **07:15**) et
+`lynis-remote-audit` (les deux nœuds PVE en pull depuis penny, dimanche **07:45**). Push
+ntfy avec priorité variable selon le score.
+
+:::warning[Le témoin de penny n'est pas au même endroit que celui des nœuds]
+`lynis-notify.sh` écrit sa source de vérité sur la **carte SD**
+(`/var/lib/lynis/lynis-report.dat`). La copie sur le SSD est qualifiée par hôte
+(`lynis-report-<hôte>.dat`) depuis le 2026-08-09, pour que galahad et lancelot cessent
+d'écraser le rapport de penny.
+
+Ce détail a déjà coûté : `guardrail-liveness` surveillait l'ancien chemin non qualifié,
+que plus personne n'écrivait, et a crié « muet depuis 264 h » le 2026-08-20 alors que
+l'audit tournait très bien — en masquant au passage un vrai écart de score pendant
+11 jours.
+:::
 
 ### Suggestions Lynis restantes (commun aux 3 hosts)
 

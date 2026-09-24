@@ -31,14 +31,49 @@ Pour un homelab avec des services internes, le DNS challenge est **la seule opti
 
 ```yaml
 certificatesResolvers:
-  letencrypt:
+  letencrypt:                          # sans le « s », c'est le nom declare
     acme:
       email: acme@gabin-simond.fr
       storage: /certs/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       dnsChallenge:
         provider: cloudflare
+        resolvers:                     # OBLIGATOIRE, voir ci-dessous
+          - "1.1.1.1:53"
+          - "9.9.9.9:53"
+        propagation:
+          delayBeforeChecks: 30s
 ```
+
+:::danger[Sans `resolvers`, le joker AdGuard avale `_acme-challenge` et TOUT échoue]
+C'est la panne la plus coûteuse qu'ait connue ce homelab côté TLS, et elle est
+**entièrement silencieuse**.
+
+Sans cette liste, `lego` vérifie la propagation du défi via le résolveur du conteneur :
+Docker (`127.0.0.11`) puis AdGuard. Or AdGuard porte une réécriture **joker**
+`*.home.gabin-simond.fr → 192.168.1.28`, qui capture aussi
+`_acme-challenge.<service>.home.gabin-simond.fr`. La requête A répond `192.168.1.28`,
+et la requête TXT ne répond **rien**.
+
+L'enregistrement est pourtant bien publié chez Cloudflare. C'est la **vérification** qui
+est aveugle, jamais l'émission — d'où l'absence de tout signal.
+
+Constaté le **2026-08-15** : tous les renouvellements échouaient depuis un moment.
+`pulse` était expiré depuis 4 jours **et servait quand même**, et 20 autres certificats
+tombaient le 07/09. Interroger des résolveurs publics contourne AdGuard pour ce seul
+usage, sans toucher au joker, qui lui est voulu.
+
+`delayBeforeChecks: 30s` répond à la suite : résolveurs corrigés, l'émission redevenait
+possible mais restait **intermittente**. Une vingtaine de renouvellements en retard se
+déclenchent ensemble et `lego` vérifie plus vite que Cloudflare ne propage. Les 30 s
+absorbent l'écart.
+:::
+
+:::warning[Rien ne surveille l'échéance des certificats]
+Le corollaire : c'est une expiration **servie en silence** qui a révélé la panne, pas une
+alerte. Un certificat expiré ne fait pas tomber Traefik — il sert simplement un
+certificat que le navigateur refuse. Piste ouverte.
+:::
 
 ### Variables d'environnement
 
