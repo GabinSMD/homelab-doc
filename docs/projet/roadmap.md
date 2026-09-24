@@ -120,9 +120,11 @@
   `bootstrap-stack`, `bootstrap-pi`) et un juge (`verify.yml`) qui demande aux
   services de SERVIR, controle negatif compris. Cycle complet
   detruire-recreer-reconstruire-juger sur LXC 111 : **490 s**, rejeu idempotent,
-  `ok=11 failed=0`. S'y ajoutent le manifeste de 109 paires source -> copie live
-  sur les trois hotes (45 scripts + 51 units + 3 udev sur penny, 5 scripts sur
-  chacun des deux noeuds ; compte du 2026-09-06) et les 10 LXC declares en OpenTofu. Voir
+  `ok=11 failed=0`. S'y ajoutent le manifeste de **113 paires** source -> copie live
+  sur les trois hotes (45 scripts + 60 units + 3 udev sur penny, 5 scripts sur
+  chacun des deux noeuds ; recompte du 2026-09-24 — c'etait 109 le 06/09, les
+  neuf units de plus sont les sondes posees depuis) et les 10 LXC declares en
+  OpenTofu. Voir
   [Derive de configuration](../operations/derive-configuration.md).
 
   **Portee exacte — ce qui n'est PAS couvert, et ne le sera pas :** flasher la

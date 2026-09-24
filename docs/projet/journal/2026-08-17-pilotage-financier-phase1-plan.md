@@ -1,9 +1,20 @@
 # Pilotage financier — plan d'implémentation, phase 1 (socle)
 
-> **Pour un agent exécutant :** SOUS-SKILL REQUISE — utiliser
-> `superpowers:subagent-driven-development` (recommandé) ou
-> `superpowers:executing-plans` pour dérouler ce plan tâche par tâche. Les
-> étapes utilisent des cases à cocher (`- [ ]`).
+:::danger[NE PAS EXÉCUTER — Firefly III a été retiré le 2026-09-19]
+Ce plan a été exécuté, puis **défait**. Le service qu'il déploie n'existe plus : la
+LXC 109 a été supprimée, l'IP `192.168.1.37` ne répond plus, et il n'y a plus de client
+OIDC `firefly` chez Authelia.
+
+Il est conservé comme **archive datée** — la démarche et les pièges rencontrés gardent
+de la valeur. Il ne décrit pas l'état du homelab.
+
+Ce qui l'a remplacé est **Securo** (LXC 110), en évaluation — voir
+l'[inventaire des services](../../services/index.md).
+:::
+
+> **Pour un agent exécutant :** consigne **caduque**, voir l'encadré ci-dessus. Elle
+> disait : SOUS-SKILL REQUISE — utiliser `superpowers:subagent-driven-development`
+> (recommandé) ou `superpowers:executing-plans` pour dérouler ce plan tâche par tâche.
 
 **Objectif** : disposer d'un Firefly III auto-hébergé, joignable en HTTPS
 derrière Authelia, sauvegardé et restaurable — utilisable immédiatement en

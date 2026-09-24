@@ -74,6 +74,71 @@ RETIRES = [
         "a_la_place": "/mnt/ssd/config",
         "autorise": set(),
     },
+    # ----- Ajoutes le 2026-09-24, par la revue page par page -------------------
+    # Le controle passait au VERT pendant que quatre de ces termes trainaient
+    # dans des pages operationnelles. Sa liste s'arretait au 2026-08-26 : un
+    # garde-fou ne voit que ce qu'on lui a appris a voir, et celui-ci n'avait
+    # rien appris depuis un mois. C'est le motif du temoin orphelin.
+    {
+        "motif": r"\bkroki\b|kroki-mermaid",
+        "quoi": "les conteneurs Kroki de rendu de diagrammes",
+        "retire": "2026-08-31",
+        "a_la_place": "Mermaid natif de Docusaurus, rien a deployer",
+        "autorise": {
+            # L'encadre d'inventaire explique la baisse de 24 a 22 conteneurs.
+            "docs/services/index.md",
+        },
+    },
+    {
+        "motif": r"[Ff]irefly",
+        "quoi": "Firefly III et sa LXC 109",
+        "retire": "2026-09-19",
+        "a_la_place": "Securo (LXC 110), en evaluation — voir services/index.md",
+        "autorise": {
+            # Nomme la LXC 109 pour expliquer que le compte de LXC n'a pas bouge.
+            "docs/services/index.md",
+            # Recense les secrets a purger, dont ceux de Firefly : c'est son role.
+            "docs/operations/derive-configuration.md",
+            # Post-mortem d'une nuit de notifications ou Firefly etait en cause.
+            "docs/operations/depannage.md",
+        },
+    },
+    {
+        "motif": r"homelab-overview|logs-explorer",
+        "quoi": "deux tableaux de bord Grafana",
+        "retire": "2026-09-22 (refonte : poste-commande, hotes/capacite, securite, traefik, investigation)",
+        "a_la_place": "voir services/grafana.md, section Dashboards",
+        "autorise": {
+            # Nomme les deux anciens precisement pour dire qu'ils n'existent plus.
+            "docs/services/grafana.md",
+        },
+    },
+    {
+        "motif": r"config/logs/dashboards|homelab-config/logs/docker-compose",
+        "quoi": "les chemins du LXC logs avant le renommage logs-prod-1",
+        "retire": "2026-09 (logs/ -> logs/logs-prod-1/)",
+        "a_la_place": "logs/logs-prod-1/…  — le chemin sans le sous-repertoire n'existe pas, "
+                      "donc une boucle for sur *.json n'y trouve aucun fichier",
+        "autorise": set(),
+    },
+    {
+        "motif": r"[Ww]atchtower",
+        "quoi": "le conteneur d'auto-mise a jour Watchtower",
+        "retire": "2026-07-06",
+        "a_la_place": "plus d'auto-update ; digest-drift-check signale l'ecart amont",
+        "autorise": {
+            # Decrit precisement l'absence de mise a jour DEPUIS son retrait.
+            "docs/operations/depannage.md",
+            # Journal des menaces : la ligne dit  depuis le retrait de Watchtower .
+            "docs/securite/politique.md",
+            # Section  Deja fait  = journal date, avec son encadre d'avertissement.
+            "docs/securite/roadmap.md",
+            # Catalogue d'incidents : entree historique.
+            "docs/operations/incidents-recurrents.md",
+            # Tableau de scores lynis historiques.
+            "docs/securite/hardening.md",
+        },
+    },
 ]
 
 FENCE = re.compile(r"^\s*(```|~~~)")

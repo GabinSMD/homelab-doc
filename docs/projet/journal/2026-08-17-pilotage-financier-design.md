@@ -1,7 +1,16 @@
 # Pilotage financier personnel — design
 
 **Date** : 2026-08-17
-**Statut** : design validé, spec en attente de relecture
+**Statut** : **archive**. Construit, puis retiré le 2026-09-19.
+
+:::warning[Le service décrit ici n'existe plus]
+Firefly III a tourné en LXC 109 du 2026-08-17 au 2026-09-19, puis a été retiré. Cette
+page reste comme trace du raisonnement de conception ; elle ne décrit pas l'état du
+homelab. Son [plan d'exécution](2026-08-17-pilotage-financier-phase1-plan.md) porte un
+avertissement plus explicite, parce qu'il s'adresse à un agent.
+
+Ce qui l'a remplacé est **Securo** (LXC 110), en évaluation.
+:::
 **Portée** : un nouveau service auto-hébergé (LXC sur galahad), une couche de
 dashboards Grafana, un fichier de configuration versionné dans `homelab-config`
 

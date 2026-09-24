@@ -384,8 +384,10 @@ ete applique a l'autre.
 
 **Declarer ce qui EST, et seulement le declarer.**
 
-- **Un manifeste Ansible explicite**, jamais un glob : 109 paires (compte du 2026-09-06)
-  source -> destination nommees une par une. `scripts/` contient aussi des
+- **Un manifeste Ansible explicite**, jamais un glob : **113 paires** (recompte du
+  2026-09-24 ; 109 le 06/09) source -> destination nommees une par une. Le compte se
+  redirive plutot que se croire :
+  `grep -c 'src:' ansible/inventory/group_vars/{penny,pve_nodes}.yml`. `scripts/` contient aussi des
   tests, des migrations a usage unique et des scripts de noeud ou de LXC, qui
   n'ont rien a faire sur un hote donne.
 - **OpenTofu plutot que Terraform** : licence MPL, meme provider
