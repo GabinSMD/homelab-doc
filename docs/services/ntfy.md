@@ -75,3 +75,48 @@ ntfy tourne **dans le stack qu'il surveille**. Quand le stack tombe, la livraiso
 tombe avec lui : 57 minutes de silence le 2026-08-06. Le contournement est un
 basculement vers Healthchecks (`/fail`) quand la livraison locale échoue — un
 canal qui ne partage pas le destin de ce qu'il annonce.
+
+## Surveiller le chemin public (`funnel-public-check`)
+
+Timer horaire sur penny depuis le **2026-09-21**. Il ferme un angle mort qui s'était
+ouvert trois fois pour trois causes différentes.
+
+L'iPhone reçoit ses notifications **en deux temps** :
+
+1. ntfy publie une demande de réveil vers `ntfy.sh` — **en sortant**. Ne passe pas par le
+   Funnel, marche même si l'ingress est mort.
+2. le téléphone vient **chercher** le contenu sur `https://penny.<tailnet>.ts.net`, donc
+   par l'anycast public de Tailscale.
+
+Quand l'étape 2 casse, l'utilisateur voit « New message » sans contenu — le symptôme
+détaillé dans [ntfy iOS n'affiche que « New message »](../operations/incidents-recurrents.md#ntfy-new-message).
+Rien ne le signalait : on l'apprenait en n'arrivant plus à lire une notification. Trois
+occurrences, trois causes : fetch anonyme (05/08), NXDOMAIN public (01/09), ingress
+décroché (21/09) — et à chaque fois **le canal d'alerte lui-même était la victime**.
+
+### Deux particularités qui changent la conception
+
+**Le Funnel est en anycast.** Le nom rend plusieurs A et le téléphone en tire un au sort.
+Le 21/09, `.63` et `.145` rendaient 200 pendant que `.46` échouait systématiquement :
+panne **partielle**, chez Tailscale. La sonde teste donc **toutes** les adresses et
+n'alerte que si **elles échouent toutes**. Une panne partielle est journalisée, pas
+notifiée : elle dégrade sans empêcher, et le bruit quotidien est ce qui tue un canal
+d'alerte.
+
+**Il faut résoudre par un résolveur public** (`1.1.1.1` par défaut). En local, MagicDNS
+rend l'adresse du tailnet et on mesurerait le chemin interne — qui marche toujours. Deux
+diagnostics ont déjà été invalidés par cette erreur.
+
+### Ce qu'est une réponse saine
+
+`200`, `401` et `403` valent tous **succès** : la requête a traversé le Funnel et ntfy a
+répondu. Le `403` (code `40301`) est même la réponse **normale** à une sonde sans
+identifiants. L'échec, c'est `000` — TLS ou TCP mort avant toute réponse.
+
+:::note[Limite assumée]
+Si le Funnel est totalement mort, la notification que cette sonde envoie arrivera elle
+aussi en « New message » illisible. C'est inévitable : ce canal **est** l'objet surveillé.
+Elle reste utile pour deux raisons — la bannière seule est déjà un signal (tu sais
+désormais ce qu'elle veut dire), et le journal donne la cause immédiatement au lieu d'une
+heure d'enquête.
+:::

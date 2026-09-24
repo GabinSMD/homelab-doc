@@ -83,6 +83,45 @@ fabriquant sa condition à la main (`touch le_fichier_attendu`) mais en
 qu'on lit un fichier ; seul le second prouve qu'on lit le bon.
 :::
 
+### Fenêtre de maintenance {#fenetre-maintenance}
+
+Avant de travailler physiquement sur la machine, ouvre une fenêtre de silence :
+
+```bash
+homelab-maintenance.sh 20      # silence 20 minutes
+homelab-maintenance.sh off     # lève la fenêtre immédiatement
+homelab-maintenance.sh         # affiche l'état courant
+```
+
+Le marqueur vit dans `/run/homelab/maintenance-until`, donc sur **tmpfs, à dessein** : un
+mode maintenance oublié ne survit pas à un redémarrage.
+
+**Le périmètre est délibérément étroit.** La fenêtre ne tait que l'**indisponibilité de
+service** — `silence loki`, `node_exporter muet`, `crash-loop`, `autoheal`, `5xx spike`
+(liste `MAINT_SILENCEABLE`). Jamais le matériel, jamais la sécurité. Une panne disque, une
+température ou une tentative d'intrusion pendant une maintenance doivent s'entendre : la
+maintenance explique qu'un service redémarre, elle n'explique pas qu'un disque meurt.
+
+:::info[Depuis le 2026-09-22, la fenêtre atteint aussi Grafana]
+Elle n'était lue que par `homelab_monitor.sh`. Grafana vit sur un autre hôte (LXC 101) et
+l'ignorait totalement : le **2026-09-21**, pendant une fenêtre ouverte pour remplacer le
+pontet USB-SATA, Grafana a émis « [FIRING] SSD — évènement hardware » pour un débranchement
+parfaitement volontaire.
+
+Le chemin est maintenant : `homelab_monitor.sh` publie `homelab_maintenance_active` via le
+collecteur textfile de node_exporter (écriture atomique, à chaque passage) → Prometheus le
+scrute déjà → le relais ntfy l'interroge avant de livrer. Pas de nouveau chemin réseau, pas
+de nouveau secret.
+
+Deux choix de conception à retenir :
+
+- **En cas de doute on livre.** Prometheus injoignable, JSON inattendu, timeout : la
+  fonction rend `False` et la notification part. Un relais qui se tait sur une incertitude
+  serait pire que le bruit qu'il évite.
+- **Le relais répond `200` quand il tait.** Rendre une erreur ferait réessayer Grafana, puis
+  marquer le point de contact en échec : on transformerait un silence **voulu** en panne.
+:::
+
 ### Reprise du stack après un décrochage SSD {#reprise-ssd}
 
 Deux mécanismes ajoutés le 2026-08-30, après un incident où le SSD a décroché
@@ -187,36 +226,59 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 ## Contrôles planifiés (timers penny)
 
-Inventaire relevé sur la machine le **2026-08-29** (`systemctl list-timers`). Tout ce qui
-tourne en planifié sur penny est ici ; les entrées sans lien n'ont pas de page dédiée et
-le tableau fait référence.
+Inventaire relevé sur la machine le **2026-09-24**. Tout ce qui tourne en planifié sur
+penny est ici ; les entrées sans lien n'ont pas de page dédiée et le tableau fait
+référence.
 
 | Timer | Cadence | Ce qu'il fait |
 |---|---|---|
+| `claude-remote-watch` | chaque minute | Scrape les évènements de session — voir [claude-remote](../services/claude-remote.md) |
+| `smart-textfile-exporter` | toutes les 15 min | Expose la santé SMART du SSD à Prometheus (collecteur textfile) |
+| `ci-health-check` | toutes les 30 min | Témoin sur l'état de la CI des dépôts homelab — voir [ci-runner](../services/ci-runner.md) |
+| `outillage-health-check` | toutes les 30 min | Disponibilité de l'outillage (Pulse, Grafana, PBS, Portainer…) |
+| `apt-listbugs` | horaire (:20) | Nettoie les préférences apt-listbugs qui bloquaient unattended-upgrades |
+| `funnel-public-check` | horaire | Le chemin **public** de ntfy est-il joignable ? — voir [ntfy](../services/ntfy.md) |
+| `mirror-drift-check` | horaire | Le miroir Forgejo → GitHub prend-il du retard ? — voir [dérive de configuration](derive-configuration.md) |
+| `pz-disk-check` | horaire | Espace disque du serveur Project Zomboid |
+| `control-drift-check` | toutes les 6 h (00:00) | Vérifie que les contrôles homelab sont réellement en place sur les 3 hôtes |
+| `guardrail-liveness` | toutes les 6 h (00:30) | Vérifie que chaque garde-fou a parlé récemment (un garde-fou muet ne se distingue pas d'un garde-fou content) |
+| `pz-backup` | toutes les 6 h (00:00) | Sauvegarde de la save Project Zomboid — voir [zomboid](../services/zomboid.md) |
+| `lxc-disk-check` | toutes les 6 h (02:00) | Remplissage des rootfs LXC sur les deux nœuds PVE |
 | `homelab-backup` | 03:00 | Sauvegarde restic vers R2 — voir [backups](backups.md) |
 | `pbs-datastore-sync` | 03:30 | Sync du datastore PBS vers R2 via rclone — voir [backups](backups.md) |
+| `ansible-drift-check` | 03:40 | Les deux playbooks en `--check` sur les 3 hôtes : le déployé diverge-t-il du manifeste ? |
+| `pbs-snapshot-integrity` | 04:05 | Les snapshots PBS sont-ils **utilisables** (manifeste présent, pas de `.tmp_didx`) — voir [backups](backups.md) |
 | `aide-check` | 04:30 | Intégrité des fichiers système (AIDE) — voir [roadmap sécurité](../securite/roadmap.md) |
 | `security-updates` | 05:40 | Applique les mises à jour de sécurité (politique unattended-upgrades) |
 | `backup-coverage-check` | 06:45 | Quels invités Proxmox n'ont **pas** de sauvegarde récente |
 | `repo-drift-check` | 07:10 | Vérifie que le déployé dans la LXC 101 correspond encore au dépôt |
+| `argon-evidence-archive` | 07:20 | Archive les évènements de lien USB du SSD (dossier de réclamation Argon 20511) |
+| `break-glass-fraicheur` | 09:20 | La copie hors-ligne du coffre est-elle à jour ? — voir [break-glass](break-glass.mdx) |
 | `backup-freshness-check` | 09:30 | Dead-man-switch sur la fraîcheur des dépôts restic |
-| `control-drift-check` | toutes les 6 h (00:09) | Vérifie que les contrôles homelab sont réellement en place sur les 3 hôtes |
-| `guardrail-liveness` | toutes les 6 h (00:34) | Vérifie que chaque garde-fou a parlé récemment (un garde-fou muet ne se distingue pas d'un garde-fou content) |
-| `lxc-disk-check` | toutes les 6 h (02:06) | Remplissage des rootfs LXC sur les deux nœuds PVE |
-| `pz-backup` | toutes les 6 h | Sauvegarde de la save Project Zomboid — voir [zomboid](../services/zomboid.md) |
-| `ci-health-check` | toutes les 30 min | Témoin sur l'état de la CI des dépôts homelab — voir [ci-runner](../services/ci-runner.md) |
-| `outillage-health-check` | toutes les 30 min | Disponibilité de l'outillage (Pulse, Grafana, PBS, Portainer…) |
-| `pz-disk-check` | horaire | Espace disque du serveur Project Zomboid |
-| `apt-listbugs` | horaire | Nettoie les préférences apt-listbugs qui bloquaient unattended-upgrades |
-| `lynis-notify` | dimanche 05:00 | Audit lynis de penny + notification ntfy zéro-bruit |
-| `lynis-remote-audit` | dimanche 06:00 | Audit lynis des nœuds PVE, en pull depuis penny |
+| `rotate-logs-ssd` | dimanche 05:40 | Rotation des journaux applicatifs posés sur le SSD (copie + troncature, jamais renommage) |
 | `trivy-scan` | dimanche 06:00 | Scan de vulnérabilités des images Docker qui tournent |
-| `restic-check-monthly` | le 1er, 04:00 | Contrôle d'intégrité des dépôts restic (multi-repo R2) |
+| `lynis-notify` | dimanche 07:15 | Audit lynis de penny + notification ntfy zéro-bruit |
+| `lynis-remote-audit` | dimanche 07:45 | Audit lynis des nœuds PVE, en pull depuis penny |
+| `restic-check-monthly` | le 1er, 04:20 | Contrôle d'intégrité des dépôts restic (multi-repo R2) |
 | `digest-drift-check` | le 1er, 05:00 | Écart entre `:latest` amont et le digest épinglé — voir [décisions](../projet/decisions.md) |
-| `restic-drill-monthly` | le 1er, 05:00 | Drill de restauration (4 dépôts + datastore PBS) — voir [DR drill](dr-drill-scenario-1.md) |
+| `restic-drill-monthly` | le 1er, 05:20 | Drill de restauration (4 dépôts + datastore PBS) — voir [DR drill](dr-drill-scenario-1.md) |
 
 `homelab_monitor.sh` n'est pas dans ce tableau : il tourne en **cron chaque minute**, pas en
 timer. Les timers ci-dessus sont les contrôles qui coûtent trop cher pour tourner à la minute.
+
+:::tip[Ce tableau est daté à la main, donc il pourrit par défaut]
+Entre le relevé du 2026-08-29 et celui-ci, **neuf** timers ont été posés sans que la page
+bouge. Plutôt que de croire la date, redérive-la :
+
+```bash
+systemctl list-timers --all --no-pager
+```
+
+Ce qui garde réellement l'inventaire honnête n'est pas cette page mais
+`guardrail-liveness` : un timer absent de son registre peut mourir sans bruit. Le registre
+est passé de 14 à 26 entrées les 22 et 24/09 — **dix garde-fous vivaient sans personne pour
+constater leur mort**, dont `funnel-public-check`, posé la veille et jamais inscrit.
+:::
 
 :::note[Pourquoi des timers et pas du cron]
 `Persistent=true` rattrape un passage manqué après une coupure ou un redémarrage. Le drill

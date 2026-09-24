@@ -121,13 +121,50 @@ Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas d
 
 ### Intégrité : restic-check-monthly.sh multi-repo
 
-Systemd timer penny `1er de chaque mois 04:00` (`restic-check-monthly.timer`) : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
+Systemd timer penny `1er de chaque mois 04:20` (`restic-check-monthly.timer`) : `restic check` (structure) + `restic check --read-data-subset=10%` (bit rot détection 10% random packs) sur les **4 repos**. Sur 10 mois, couvre ~100% de chaque repo.
 
 Alerte ntfy haute si UN repo échoué (les autres continuent). Script : `scripts/restic-check-monthly.sh`.
 
 ### Restauration : restic-drill-monthly.sh (restic + pbs-datastore)
 
-Systemd timer penny `1er de chaque mois 05:00` (`restic-drill-monthly.timer`) : restore réel d'un fichier du dernier snapshot de **chaque repo restic** (lisibilité vérifiée), puis **pbs-datastore** : `rclone check --one-way` R2→local (hash, ~11 min dominées par le hash local des ~10 GiB) + restore témoin d'un fichier avec comparaison md5. Détecte une corruption qui passerait `check`, et couvre le datastore PBS qui est hors restic (sync rclone direct).
+Systemd timer penny `1er de chaque mois 05:20` (`restic-drill-monthly.timer`) : restore réel d'un fichier du dernier snapshot de **chaque repo restic** (lisibilité vérifiée), puis **pbs-datastore** : `rclone check --one-way` R2→local (hash, ~11 min dominées par le hash local des ~10 GiB) + restore témoin d'un fichier avec comparaison md5. Détecte une corruption qui passerait `check`, et couvre le datastore PBS qui est hors restic (sync rclone direct).
+
+### Utilisabilité : pbs-snapshot-integrity.sh {#pbs-snapshot-integrity}
+
+Systemd timer penny **quotidien à 04:05** (`pbs-snapshot-integrity.timer`), depuis le
+2026-09-24. Il répond à une question que rien d'autre ne posait : une sauvegarde qui
+**existe** est-elle **utilisable** ?
+
+Trois contrôles sur le datastore monté localement (`/mnt/ssd/pbs-datastore`) :
+
+| Contrôle | Ce que ça révèle |
+|---|---|
+| `*.tmp_didx` résiduel | Écriture interrompue — snapshot inutilisable |
+| Pas de `index.json.blob` | Pas de manifeste : PBS refusera la restauration |
+| Un groupe `ct/<id>` sans **aucun** snapshot valide | Plus rien à restaurer pour cet invité |
+
+Le troisième est le plus grave et le moins visible : les deux premiers laissent au moins
+les sauvegardes précédentes debout.
+
+:::danger[Deux contrôles verts sur une sauvegarde irrécupérable]
+Le 2026-09-24, la panique noyau de lancelot à 02:02 a interrompu une sauvegarde en cours.
+Le répertoire du snapshot est resté en place, **daté du jour**, contenant deux fichiers
+`.tmp_didx` à zéro octet et aucun manifeste.
+
+Pendant ce temps le moniteur annonçait « PBS SYNC FRESHNESS: OK » **et** « PBS HEALTH: OK ».
+Les deux disaient vrai dans leur périmètre :
+
+- la **fraîcheur** voit un répertoire daté d'aujourd'hui et se déclare satisfaite ;
+- la **santé** voit un HTTP 200 et se déclare satisfaite.
+
+Aucune des deux ne regarde le **contenu**. Une sauvegarde qui démarre et échoue passe les
+deux contrôles — et c'est le pire cas possible, parce qu'on ne découvre le trou qu'au
+moment de restaurer.
+:::
+
+La sonde refuse d'être aveugle : si le datastore est absent ou illisible, elle **alerte**
+au lieu de rendre « aucun problème ». C'est explicitement la leçon de la
+[sonde SMART muette](incidents-recurrents.md#sonde-smart-aveugle).
 
 :::warning[Pourquoi des timers systemd et plus des crons (2026-06-11)]
 Cron ne rattrape jamais un run manqué : le drill du 2026-06-01 (05:00) est tombé

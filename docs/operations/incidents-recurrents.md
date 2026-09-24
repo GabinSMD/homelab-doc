@@ -936,3 +936,57 @@ doit avancer.
 ```bash
 docker exec ntfy ntfy token list | grep -A1 'user phone'
 ```
+
+---
+
+## Une sonde qui affirmait « tout va bien » sans rien lire {#sonde-smart-aveugle}
+
+Découvert le **2026-09-23**. La sonde SMART de `homelab_monitor.sh` a interrogé un
+périphérique inexistant **du 2026-08-03 au 2026-09-21 11h03**, soit sept semaines, sans
+jamais le signaler. Deux défauts qui se couvraient l'un l'autre.
+
+**1. Le périphérique était écrit en dur** : `smartctl -A /dev/sda`. Le SSD s'est
+ré-énuméré en `sdb` le 2026-08-03 après un décrochage USB. La sonde a donc lu un nom qui
+ne désignait plus rien — et elle n'a guéri que par accident, le remplacement du pontet du
+21/09 ayant rendu au disque son nom d'origine. Le périphérique est désormais **résolu
+depuis le point de montage**.
+
+**2. Le garde jugeait la présence de SORTIE, pas de DONNÉES.** C'est le défaut vicieux :
+
+```console
+$ smartctl -A /dev/inexistant | wc -c
+210        # la banniere de copyright, ecrite meme en echec
+```
+
+Le test `[ -z "$attrs" ]` était donc **toujours faux**. En chaîne : `awk` ne trouvait
+aucune ligne d'attribut, tout sortait en `crc=? realloc=? pending=?`, aucune alerte ne
+partait — et la sonde appelait `clear_alert` à chaque passage, **affirmant activement que
+tout allait bien**. 66 exécutions aveugles dans la seule archive conservée.
+
+Le garde exige maintenant l'attribut `199` (`UDMA_CRC_Error_Count`), celui qu'on vient
+précisément chercher.
+
+| Entrée | Ancien garde | Nouveau garde |
+|---|---|---|
+| Disque réel (37 lignes) | passe | passe |
+| Périphérique **inexistant** (210 o) | passe | **tombe** |
+| Sortie vide (`smartctl` absent) | tombe | tombe |
+
+:::danger[Le commentaire disait juste, le code testait autre chose]
+Au-dessus de ce garde, le commentaire affirmait déjà « une sonde qui ne peut pas lire son
+entrée doit le déclarer ». Il le disait ; le code mesurait la longueur de la sortie.
+
+C'est la **deuxième** mort silencieuse de cette même sonde : le `PATH` de cron
+(`/usr/bin:/bin`, sans `/usr/sbin`) l'avait déjà tuée pendant 114 exécutions, en rendant
+`smartctl` introuvable. Même famille à chaque fois : **mesurer une quantité disponible au
+moment du contrôle plutôt que le travail réellement accompli.**
+
+Le test qui aurait attrapé les deux tient en une ligne : faire lire à la sonde une entrée
+que l'on sait mauvaise, et exiger qu'elle tombe.
+:::
+
+Depuis le 2026-09-24, `UDMA_CRC_Error_Count` est en plus historisé dans Prometheus
+(`smart-textfile-exporter`, toutes les 15 min) : le compteur est cumulatif et ne se remet
+jamais à zéro, donc tout incrément au-delà de **33** signifie que le pontet neuf posé le
+2026-09-21 faute à son tour. Une hausse sans historique ne répondait pas à « depuis
+quand ? ».
