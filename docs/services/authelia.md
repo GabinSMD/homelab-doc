@@ -25,14 +25,35 @@ graph LR
 
 ## Clients OIDC configurés
 
-| Service | Client ID | Policy | PKCE | Consent |
-|---|---|---|---|---|
-| Proxmox VE (galahad + lancelot) | `proxmox` | `two_factor` | — | `pre-configured` (1y) |
-| Portainer | `portainer` | `two_factor` | — | `pre-configured` (1y) |
-| Grafana | `grafana` | `two_factor` | S256 | `pre-configured` (1y) |
-| Beszel | `beszel` | `one_factor` | auto | `pre-configured` (1y) |
+Relevé le 2026-09-24 dans `authelia/configuration.yml`. **Dix** clients — cette page n'en
+listait que quatre.
 
-`consent_mode: pre-configured` évite le consent screen a chaque login (1 acceptation = 1 an de validite).
+| Service | Client ID | Policy | PKCE | `token_endpoint_auth_method` |
+|---|---|---|---|---|
+| Proxmox VE (galahad + lancelot) | `proxmox` | `two_factor` | — | défaut (`basic`) |
+| Portainer | `portainer` | `two_factor` | — | défaut (`basic`) |
+| Grafana | `grafana` | `two_factor` | S256 | `client_secret_basic` |
+| PBS | `pbs` | `two_factor` | — | défaut (`basic`) |
+| Homelable | `homelable` | `two_factor` | — | défaut (`basic`) |
+| Beszel | `beszel` | `two_factor` | — | défaut (`basic`) |
+| Pulse | `pulse` | `two_factor` | — | `client_secret_basic` |
+| Forgejo | `forgejo` | `two_factor` | — | `client_secret_basic` |
+| Outline | `outline` | `two_factor` | — | `client_secret_post` |
+| Securo | `securo` | `two_factor` | S256 | `client_secret_post` |
+
+Tous en `consent_mode: pre-configured`, ce qui évite l'écran de consentement à chaque
+login (1 acceptation = 1 an de validité). Beszel était donné en `one_factor` sur cette
+page : il est en `two_factor` comme les neuf autres.
+
+:::warning[`invalid_client` veut dire « méthode refusée », pas « mauvais secret »]
+La colonne `token_endpoint_auth_method` est celle qui coûte le plus de temps quand on
+ajoute un client. Le défaut d'Authelia est `client_secret_basic` ; plusieurs applications
+envoient leurs identifiants **dans le corps** de la requête (`client_secret_post`). Le
+serveur répond alors `invalid_client` — et on part chercher une faute de frappe dans un
+secret parfaitement correct.
+
+Deux des dix clients sont en `post` : Outline et Securo.
+:::
 
 :::warning[Beszel OIDC — pre-requis]
 L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS spécifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [dépannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
@@ -40,12 +61,37 @@ L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl
 
 ## ForwardAuth middleware
 
-Pour les services sans OIDC natif :
+Relevé le 2026-09-24 : les routers portant `authelia@docker`.
 
-- Traefik dashboard (`traefik.home.gabin-simond.fr`)
-- AdGuard primaire (`adguard.home.gabin-simond.fr`)
-- AdGuard secondaire dns-failover (`dns-failover.home.gabin-simond.fr`)
-- Homepage (`home.gabin-simond.fr`)
+| Router | Hôte | OIDC aussi ? |
+|---|---|---|
+| Traefik dashboard | `traefik.home…` | non |
+| AdGuard primaire | `dns.home…` | non |
+| AdGuard secondaire | `dns-failover.home…` | non |
+| Homepage | `home.gabin-simond.fr` | non |
+| CyberChef | `cyberchef.home…` | non |
+| Dozzle | `dozzle.home…` | non |
+| Stirling PDF | `pdf.home…` | non |
+| Portainer | `portainer.home…` | **oui** |
+| Beszel | `monitor.home…` | **oui** |
+| Homelable | `homelable.home…` | **oui** |
+
+Trois services portent **les deux couches** : le middleware ForwardAuth devant, et OIDC
+dans l'application. Le premier ferme la porte à un non-authentifié avant que la requête
+atteigne le backend ; le second donne l'identité à l'application.
+
+:::note[AdGuard répond sur `dns.home…`, pas `adguard.home…`]
+Cette page nommait `adguard.home.gabin-simond.fr`. Ce nom n'existe dans aucune règle
+`Host()` — le router s'appelle `dns`. Un nom d'hôte faux dans une doc d'authentification
+envoie chercher une panne là où il n'y a pas de service.
+:::
+
+**Deux exclusions délibérées**, écrites en clair dans le compose :
+
+- **Forgejo** — un `forwardAuth` casserait `git` en ligne de commande et l'API. Il
+  consomme Authelia en OIDC interne à la place.
+- **Outline** — même raison : il **consomme** Authelia en OIDC, le doubler d'un
+  ForwardAuth casserait le flux.
 
 Middleware déclaré via label sur le container Authelia :
 ```text

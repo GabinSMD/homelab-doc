@@ -144,12 +144,13 @@ dans `homelab-config` :
 ```
 
 Elle contient un `git bundle --all` des **deux** dépôts (donc toute l'histoire,
-`.env.enc` et `system/secrets/` compris) plus un manifeste avec les SHA de HEAD
-et les commandes de reprise. Chiffrée avec `age` vers les **trois mêmes
-destinataires que sops** : clé logicielle de penny, YK1, YK2 — chacun ouvre
+`.env.enc` et `system/secrets/` compris), un répertoire `hors-git/` avec les deux
+fichiers Authelia que `.gitignore` exclut (depuis le 2026-09-23, voir plus bas), et un
+manifeste avec les SHA de HEAD et les commandes de reprise. Chiffrée avec `age` vers les
+**trois mêmes destinataires que sops** : clé logicielle de penny, YK1, YK2 — chacun ouvre
 seul, donc **YK2, qui est déjà dans ce coffre, suffit**.
 
-**Taille réelle : 3,9 Mo**, pas les 285 Mo estimés pendant le drill — un `git
+**Taille réelle : 4,6 Mo** au 2026-09-24 (3,9 Mo au drill du 26/08), pas les 285 Mo estimés pendant le drill — un `git
 bundle` ne transporte que l'historique versionné, pas les 264 Mo de données
 d'exécution non suivies qui traînent dans l'arborescence (`sucre/`, base
 SQLite d'Authelia, journaux). Le script vérifie son propre produit avant de
@@ -423,7 +424,7 @@ l'archive. Aucun playbook ne peut le faire a votre place.
 # YK2 est dans le meme coffre ; -i peut aussi pointer une cle age logicielle.
 cd /mnt/ssd
 age -d -i <cle-ou-yubikey> /media/cle-usb/homelab-break-glass-<date>.tar.age > bg.tar
-tar xf bg.tar                       # -> homelab-config.bundle, homelab-doc.bundle, MANIFESTE.txt
+tar xf bg.tar     # -> homelab-config.bundle, homelab-doc.bundle, MANIFESTE.txt, hors-git/
 
 # LE CHEMIN COMPTE : les playbooks exigent le depot a /mnt/ssd/config
 # (`repo_root`), pas dans un repertoire de travail voisin.
@@ -459,23 +460,41 @@ chmod 600 /root/.config/sops/age/keys.txt
 /mnt/ssd/config/scripts/homelab-unseal.sh          # -> /run/homelab/.env (+ authelia, crowdsec)
 ```
 
-:::danger[Trou connu du coffre hors-ligne : Authelia n'a pas de configuration]
-`authelia/configuration.yml` et `authelia/users_database.yml` sont exclus par
-`.gitignore` (lignes 15-16). `break-glass-bundle.sh` produit un
-`git bundle --all` : il n'embarque donc **que du suivi git**. Une Pi
-reconstruite depuis la seule cle du coffre n'a **aucune configuration
-Authelia**, donc aucune authentification — ni les utilisateurs, ni les clients
-OIDC, ni les regles d'acces.
+:::tip[La configuration Authelia EST dans le coffre depuis le 2026-09-23]
+Ce bloc avertissait du contraire jusqu'au 2026-09-24. Il etait perime — et
+c'etait le pire endroit pour l'etre, puisqu'on ne lit cette page qu'en
+situation, ou elle aurait envoye sur un contournement devenu inutile.
 
-**Ce n'est pas une perte de donnees** : `/mnt/ssd/config/authelia` fait partie
-des `CONFIG_PATHS` de `homelab_backup.sh`, les deux fichiers sont donc dans
-restic vers R2 et se restaurent normalement (phase 5 ci-dessous). C'est un trou
-du **coffre hors-ligne** : le seul scenario ou il mord est celui ou l'archive
-du coffre est la seule source disponible — pas d'Internet, pas de R2.
+**Le probleme, tel qu'il etait.** `authelia/configuration.yml` (les 10 clients
+OIDC) et `authelia/users_database.yml` (le compte) sont exclus par
+`.gitignore` lignes 15-16, parce qu'ils portent des empreintes de secrets.
+`break-glass-bundle.sh` ne produisait que des `git bundle --all` : il
+n'embarquait donc **que du suivi git**. Une Pi reconstruite depuis la seule cle
+du coffre n'avait aucune authentification, donc aucun service joignable.
 
-Repli immediat, sans attendre un correctif du script : deposer sur la cle du
-coffre, a cote de l'archive, une copie `age`-chiffree de ces deux fichiers.
-Constate le 2026-09-06 ; non corrige a cette date.
+**Ce qui a change.** Le script copie desormais ces deux fichiers dans un
+repertoire `hors-git/` de l'archive. Ils ne voyagent pas en clair : l'archive
+entiere est scellee par `age`, exactement comme les bundles et `.env.enc`.
+
+Apres `tar xf bg.tar`, ils sont donc la :
+
+```bash
+ls hors-git/authelia/          # configuration.yml  users_database.yml
+cp -a hors-git/authelia/*.yml /mnt/ssd/config/authelia/
+```
+
+Trois gardes protegent cette promesse, et toutes jugent le **travail accompli**
+plutot que l'intention :
+
+| Garde | Ce qu'elle exige |
+|---|---|
+| Etape 2b | un fichier declare mais illisible **arrete** le script |
+| Etape 4 | on relit le tar et on exige que chaque fichier annonce y soit — compter les entrees de la liste reviendrait a se comparer a soi-meme, et vider la liste rendrait vert |
+| Etape 5 | l'aller-retour `age` compare les **empreintes** apres dechiffrement, pas la simple presence : un fichier tronque existe |
+
+Le defaut avait ete trouve le 2026-09-06. Le drill du 26/08 ne l'avait pas vu
+parce qu'il prouvait la restauration des **donnees**, pas celle de la pile de
+configuration.
 :::
 
 #### Phases 4 a 6 — le playbook, et ce qu'il ne fait pas encore sur penny
@@ -825,7 +844,8 @@ else
     openssl rand -hex 32  # hmac_secret
     openssl genrsa -out /mnt/ssd/config/authelia/oidc.pem 4096
     # ATTENTION : si on regenere oidc.pem, il faut reconfigurer
-    # tous les clients OIDC (Proxmox, Portainer, Grafana, Beszel)
+    # les 10 clients OIDC (Proxmox, Portainer, Grafana, PBS, Homelable,
+    # Beszel, Pulse, Forgejo, Outline, Securo)
     echo "SECRETS REGENERES — mettre a jour configuration.yml manuellement"
 fi
 ```
