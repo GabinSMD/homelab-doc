@@ -24,6 +24,39 @@ flowchart LR
 
 **Règle d'or** : si un humain se connecte, c'est `gabins`. Si une machine se connecte, c'est `svc-<consumer>`. Root ne sert qu'en urgence.
 
+:::warning Dérogations en cours — relevé du 2026-09-25
+
+La règle était documentée et appliquée **à moitié**. Mesure du jour :
+
+| Système | Comptes de service | Conformes |
+|---|---|---|
+| Proxmox VE | 5 | **0** |
+| PBS | 4 | 2 (`svc-pve-backup`, `svc-homepage-monitor`) |
+| Unix (penny, galahad, lancelot) | 0 | — (l'automatisation tourne en `root`) |
+
+Les sept comptes non conformes sont **déclarés en dérogation datée** dans
+`scripts/comptes-convention-check.sh` : `homepage@pve`, `homelable@pve`,
+`terraform@pve`, `pulse@pve`, `pulse-monitor@pam`, `pulse@pbs`,
+`pulse-monitor@pbs`.
+
+Ils ne sont pas renommés tout de suite, et c'est délibéré : chaque renommage
+oblige à régénérer un jeton et à mettre à jour son consommateur. Un jeton
+changé et un consommateur oublié ne produisent **aucune erreur** — juste un
+widget vide ou un plan Terraform qui ment. On migre au fil de l'eau, quand on
+touche déjà au consommateur.
+
+Deux points à revoir en priorité : `pulse` possède **deux comptes pour un seul
+consommateur** (`pulse@pve` et `pulse-monitor@pam`), et le second vit dans le
+royaume `pam` — donc adossé à un compte Unix sur les nœuds — alors qu'un jeton
+API suffirait.
+
+**Une sonde quotidienne vérifie désormais la règle** (`comptes-convention-check`,
+04:10). Elle ne crie pas sur les dérogations déclarées : elle crie sur ce qui
+apparaît **en plus**. Une règle que rien ne vérifie n'est pas une règle, c'est
+un souhait — la dérive y est invisible et gratuite, et c'est ainsi que
+`homepage@pve` a traîné « à migrer » sans que personne sache depuis quand.
+:::
+
 ---
 
 ## Matrice par type de système
