@@ -990,3 +990,96 @@ Depuis le 2026-09-24, `UDMA_CRC_Error_Count` est en plus historisé dans Prometh
 jamais à zéro, donc tout incrément au-delà de **33** signifie que le pontet neuf posé le
 2026-09-21 faute à son tour. Une hausse sans historique ne répondait pas à « depuis
 quand ? ».
+
+---
+
+## Supprimer un dossier Grafana emporte toutes ses règles d'alerte {#dossier-grafana-supprime}
+
+Constaté le **2026-09-25**. Grafana s'est retrouvé avec **zéro règle d'alerte** pendant
+**3 h 30**, sans que rien ne le signale — l'outil qui prévient était précisément l'outil
+tombé.
+
+### Ce que disent les journaux
+
+```
+07:24:47  folder-service    "deleting folder with descendants" org_id=1 uid=afizr819v9dkwb
+07:24:50  ngalert.scheduler "Stopping alert rule routine" reason="rule deleted"   × 19
+```
+
+Trois secondes séparent la suppression du dossier de la disparition des règles. **Les
+règles d'alerte vivent dans un dossier** : le supprimer « avec ses descendants » les
+emporte, y compris quand on croyait ne ranger que des tableaux de bord.
+
+### Pourquoi le provisioning ne les a pas remises
+
+C'est le contre-pied exact du piège déjà documenté
+([retirer une règle du fichier ne la supprime pas](../services/grafana.md#retirer-une-règle-dalerte)) :
+
+| Action | Effet du provisioning |
+|---|---|
+| Retirer une règle de `rules.yml` | elle **survit** en base — il faut un bloc `deleteRules` |
+| Supprimer la règle en base | elle **ne revient pas** avant un redémarrage de Grafana |
+
+Le provisioning de fichiers ne s'applique qu'**au démarrage**. Grafana tournait depuis
+12 heures : il n'avait aucune raison de relire `rules.yml`, resté intact avec ses
+1225 lignes. Le fichier était juste, la base était vide, et les deux pouvaient coexister
+indéfiniment.
+
+### Diagnostic
+
+Ne pas se fier au fichier ni à l'interface — interroger la base, qui est l'autorité :
+
+```bash
+tailscale ssh root@lancelot \
+  "pct exec 101 -- sqlite3 /opt/logs/grafana/grafana.db 'SELECT COUNT(*) FROM alert_rule;'"
+```
+
+`0` sur un parc qui en déclare dix-neuf est sans ambiguïté.
+
+### Remède
+
+```bash
+tailscale ssh root@lancelot "pct exec 101 -- docker restart grafana"
+```
+
+Le provisioning recrée le dossier `Homelab` et les 19 règles. Vérifié le 2026-09-25 :
+`alert_rule` repasse de 0 à 19 en moins d'une minute.
+
+:::warning[Le redémarrage déclenche un à-coup qui fait peur]
+Les 19 règles reprennent leur évaluation **en même temps**, et chacune interroge Loki sur
+sa fenêtre. Pendant deux à trois minutes, lancelot est monté à **29 de charge** et toutes
+les règles ont échoué en `DeadlineExceeded`.
+
+Ce n'est pas une panne, c'est un troupeau. Ça retombe seul — 9 de charge et zéro erreur
+d'évaluation après trois minutes. Ne pas conclure à l'échec du correctif sur les
+premières lignes de journal.
+:::
+
+### Vérifier l'effet, pas l'intention
+
+Compter les règles prouve qu'elles existent, pas qu'elles évaluent. Trois contrôles, du
+plus faible au plus fort :
+
+1. `SELECT COUNT(*) FROM alert_rule` → elles existent
+2. Aucun `Failed to evaluate rule` dans les journaux récents → elles s'exécutent
+3. La règle dead-man voit vraiment des données :
+
+```bash
+tailscale ssh root@lancelot "pct exec 101 -- curl -s -G \
+  'http://localhost:3100/loki/api/v1/query' \
+  --data-urlencode 'query=sum(count_over_time({host=\"penny\"}[10m]))'"
+```
+
+Au 2026-09-25 : **1784 lignes sur 10 minutes** pour un seuil à 5 — la règle est
+légitimement au repos, et non muette faute d'entrée.
+
+:::danger[Ce qui a couvert pendant les 3 h 30]
+Pas rien, et c'est le mérite d'avoir deux chemins d'alerte indépendants :
+`homelab_monitor.sh` (cron sur penny, ntfy en direct), les sondes systemd et
+`guardrail-liveness` ont continué. Ce qui est tombé, c'est toute la couche qui dépend de
+Loki et Prometheus — dont les trois dead-man-switch de silence d'hôte, le système de
+fichiers en lecture seule, la température et `node_exporter` muet.
+
+Autrement dit : les pannes **bruyantes** restaient couvertes, les pannes **silencieuses**
+ne l'étaient plus. C'est exactement l'inverse de ce qu'on veut perdre en premier.
+:::

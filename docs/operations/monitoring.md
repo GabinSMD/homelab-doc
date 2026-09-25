@@ -339,9 +339,31 @@ execErrState: OK
 | `alert-host-penny-silent` | 10min | < 5 logs | critical |
 | `alert-host-galahad-silent` | 10min | < 5 logs | critical |
 | `alert-host-lancelot-silent` | 10min | < 5 logs | critical |
-| `alert-host-sucre-silent` | 15min | < 5 logs | high |
 
-YAML-provisioned dans `logs/grafana-provisioning/alerting/rules.yml`.
+**Trois**, pas quatre : `alert-host-sucre-silent` a ete supprimee le 2026-08-26 via un
+bloc `deleteRules`, apres avoir envoye 38 notifications en 24 h — un dead-man-switch sur
+un service volontairement arrete ne reste pas allume, il **clignote**.
+
+Le motif s'est etendu au-dela du silence d'hote : `alert-node-exporter-down`,
+`alert-lynis-silent` et `alert-fs-readonly` relevent de la meme logique d'espace negatif.
+Au total **19 regles** sont provisionnees dans
+`logs/logs-prod-1/grafana-provisioning/alerting/rules.yml`.
+
+:::danger[Le fichier n'est pas la preuve — la base l'est]
+Le 2026-09-25, la base a porte **zero** regle pendant 3 h 30 avec ce fichier intact :
+la suppression d'un dossier Grafana avait emporte les dix-neuf. Le provisioning ne
+s'applique qu'au demarrage, donc rien ne les a remises.
+
+Compter les regles dans `rules.yml` ne prouve donc rien sur ce qui s'evalue :
+
+```bash
+tailscale ssh root@lancelot \
+  "pct exec 101 -- sqlite3 /opt/logs/grafana/grafana.db 'SELECT COUNT(*) FROM alert_rule;'"
+```
+
+Procedure complete : [supprimer un dossier Grafana emporte ses
+regles](incidents-recurrents.md#dossier-grafana-supprime).
+:::
 
 ### Limite : Loki sur lancelot
 
