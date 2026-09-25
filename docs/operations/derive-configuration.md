@@ -62,10 +62,18 @@ relançant le `--check` juste après : il doit rendre `changed=0`.
 
 ### Ce que ça couvre
 
+Recompté le **2026-09-25** :
+`grep -c 'src:' ansible/inventory/group_vars/{penny,pve_nodes}.yml`.
+
 | Manifeste | Portée |
 |---|---|
-| `ansible/inventory/group_vars/penny.yml` | 45 scripts + 51 units systemd + 3 regles udev sur la Pi |
+| `ansible/inventory/group_vars/penny.yml` | **108 paires** : 45 scripts + 60 units systemd + 3 règles udev sur la Pi |
 | `ansible/inventory/group_vars/pve_nodes.yml` | 5 scripts sur `galahad` et `lancelot`, soit 10 paires |
+
+La page annonçait **51** units au lieu de 60. Les neuf de plus sont les sondes posées
+entre le 06/09 et le 24/09 — le manifeste, lui, les avait bien suivies. C'est le même
+écart que celui du [tableau des timers](monitoring.md), vu par un autre bout : ce qui
+pourrit, ce sont les comptes recopiés à la main, pas les déclarations.
 
 Le manifeste est **explicite**, jamais un glob : `scripts/` contient aussi des
 tests, des migrations à usage unique et des scripts destinés aux LXC, qui n'ont
@@ -105,10 +113,11 @@ tofu plan
 
 :::warning[N'exportez que les trois variables du provider]
 Un `set -a; . /run/homelab/.env; set +a` — la forme qui figurait ici jusqu'au
-2026-09-04 — met les **37 secrets** du homelab dans l'environnement du shell,
+2026-09-04 — met **tous** les secrets du homelab dans l'environnement du shell,
 de tous ses enfants et de `/proc/<pid>/environ` : token Cloudflare, clef
-Tailscale, secrets Outline, Forgejo, Firefly. Pour un `plan` qui en a besoin de
-trois.
+Tailscale, secrets Outline, Forgejo. Ils étaient 37 à l'époque, ils sont **35**
+au 2026-09-25 (ceux de Firefly ont été purgés avec le service). Pour un `plan`
+qui en a besoin de trois.
 
 C'est le même raisonnement que « un secret qui passe par un terminal atterrit
 dans un historique, une transcription et un scrollback », appliqué une ligne
@@ -128,6 +137,10 @@ Terraform ne compare que ce qu'il connaît — un conteneur créé à la main lu
 Mesuré le 2026-09-04 : le LXC 110 « securo » tournait sur lancelot, aucune
 déclaration ne le mentionnait, et `tofu plan` répondait « No changes ». La page
 que vous lisez affirmait le contraire ; c'était faux.
+
+*(Ce cas précis est refermé : `110-lxc-securo.tf` existe depuis, et les dix LXC sont
+déclarés au 2026-09-25. L'exemple reste parce que le défaut qu'il illustre, lui, est
+permanent — la prochaine création manuelle sera tout aussi invisible.)*
 
 La moitié manquante vient de `control-drift-check.sh`, qui compare la liste des
 invités de chaque nœud aux fichiers de déclaration présents et signale les

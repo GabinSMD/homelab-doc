@@ -126,14 +126,6 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Mentions',
-      items: [
-        { type: 'doc', id: 'confidentialite', label: 'Confidentialite' },
-        { type: 'doc', id: 'conditions', label: "Conditions d'utilisation" },
-      ],
-    },
-    {
-      type: 'category',
       label: 'Guides',
       link: { type: 'doc', id: 'guides/index' },
       items: [

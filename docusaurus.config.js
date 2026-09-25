@@ -71,6 +71,21 @@ const config = {
             { from: '/projet/2026-08-26-audit-fraicheur-doc/', to: '/projet/journal/2026-08-26-audit-fraicheur-doc/' },
             { from: '/projet/roadmap-2026-05/', to: '/projet/journal/2026-05-11-roadmap-consolidee/' },
             { from: '/securite/egress-phase2-plan/', to: '/projet/journal/2026-04-19-egress-phase2/' },
+
+            // 2026-09-25 — Firefly III retire le 19/09, Securo (LXC 110) le
+            // remplace et reste en beta interne. Ces deux pages etaient SES
+            // mentions legales : elles decrivaient un service qui n'existe
+            // plus, sur un site public.
+            //
+            // Elles sont supprimees, pas conservees avec un bandeau : une page
+            // legale ne se corrige pas par un encadre, elle vaut ou elle ne
+            // vaut pas. Mais leurs URL ont ete publiees, donc elles continuent
+            // de repondre — vers la racine, faute de remplaçant.
+            //
+            // Si Securo sort de beta et fait de l'agregation bancaire, il lui
+            // faudra SES propres pages : ne pas ressusciter celles-ci.
+            { from: '/conditions/', to: '/' },
+            { from: '/confidentialite/', to: '/' },
         ],
       },
     ],
@@ -124,17 +139,14 @@ const config = {
           { href: 'https://github.com/GabinSMD/homelab-doc', label: 'GitHub', position: 'right' },
         ],
       },
+      // Le pied de page ne porte plus de rubrique « Mentions » : les deux pages
+      // qu'elle listait etaient les CGU et la politique de confidentialite de
+      // Firefly III, retire le 2026-09-19. Leurs URL restent servies par une
+      // redirection (voir le bloc `redirects`), conformement au principe zero
+      // URL cassee — mais plus rien ne pointe dessus.
       footer: {
         style: 'dark',
-        links: [
-          {
-            title: 'Mentions',
-            items: [
-              { label: 'Confidentialite', to: '/confidentialite/' },
-              { label: "Conditions d'utilisation", to: '/conditions/' },
-            ],
-          },
-        ],
+        links: [],
         copyright: `Homelab — GabinSMD`,
       },
       prism: {
