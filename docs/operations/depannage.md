@@ -995,8 +995,31 @@ docker ps -a                              # Etat de tous les conteneurs
 docker logs <container_name> --tail 50    # Derniers logs
 docker compose up -d <service_name>       # Relancer un service specifique
 docker system df                          # Espace utilise par Docker
-docker system prune -f                    # Nettoyer images/volumes inutilises
+docker system prune -f                    # voir l'avertissement ci-dessous
 ```
+
+:::warning[`prune` jette le cache qui sert au retour arrière]
+Au 2026-09-25, penny porte **139 images pour 31 Go, dont 26 Go récupérables**. C'est
+beaucoup, et la tentation de nettoyer est légitime — le SSD n'est qu'à 17 %, donc rien
+ne presse.
+
+Mais toutes les images de ce parc sont **épinglées par digest** et rien ne se met à jour
+tout seul. Ces 26 Go, ce sont en grande partie les digests *précédents*. Les jeter
+transforme un retour arrière — remettre l'ancien digest dans le compose et relancer — en
+opération qui **dépend d'Internet et du registre amont**. Sur une machine qu'on répare
+justement parce que quelque chose vient de casser, ce n'est pas le moment de découvrir
+qu'il faut retélécharger.
+
+Si l'espace manque vraiment, viser plutôt que balayer :
+
+```bash
+docker image prune -a --filter "until=720h"   # non utilisees depuis 30 jours
+```
+
+Et **jamais `--volumes` sans regarder d'abord** : `docker volume ls` rend les mêmes noms
+sous deux préfixes, `config_` et `docker_`, et CrowdSec est la seule exception qui vit
+sur un `docker_*`. Voir [l'inventaire des services](../services/index.md).
+:::
 
 ### Temperature et alimentation
 

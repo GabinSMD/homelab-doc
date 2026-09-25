@@ -268,6 +268,37 @@ logs sporadiques frôlaient le seuil dans les deux sens. Un dead-man-switch sur 
 machine allumée mais vidée de son service ne reste pas allumé, **il clignote** —
 et chaque transition est une notification.
 
+### Ce qui reste armé, un mois après — relevé le 2026-09-25
+
+Les trois témoins étaient la partie visible. La revue de documentation du 2026-09-25 a
+trouvé que **les accès, eux, n'ont pas été coupés**. `sucre.service` est bien `disabled`,
+mais autour de lui :
+
+| Vestige | Où | État |
+|---|---|---|
+| `sucre-unseal.service` | LXC 105 | **`enabled` et actif** — déchiffre les secrets sops vers `/run/sucre/`, `ssh_keys/` compris. Dernier passage : au démarrage du jour |
+| Utilisateur `sucre` (uid 999) | penny | existe, `/home/sucre`, **une clé dans `authorized_keys`** |
+| `/etc/sudoers.d/sucre` | penny | `sucre ALL=(root) NOPASSWD: /usr/local/bin/sucre-wrapper` |
+| Utilisateur ntfy `fish` | conteneur ntfy | jeton `fish-lxc105`, **n'expire jamais**, écriture sur le topic `homelab` |
+
+Le périmètre reste **borné**, et c'est le mérite de la conception d'origine : le wrapper
+n'accepte que les verbes `run|verify|rollback`, et exige un `pattern_id` présent dans
+`/etc/sucre/allowed-patterns`, qui n'en contient que deux
+(`docker-compose-stopped-post-reboot`, `traefik-docker-provider-eof`).
+
+Ce n'est donc pas un accès root général. C'est quand même un chemin privilégié vivant,
+**réarmé à chaque démarrage**, pour un service arrêté depuis un mois — et l'un des deux
+patterns relance toute la pile Docker.
+
+:::note[Le motif : on décommissionne ce qui fait du bruit, pas ce qui se tait]
+Les trois témoins ont été coupés parce qu'ils **envoyaient des notifications**. Le compte
+système, la clé SSH, la ligne sudoers et le jeton ntfy n'en envoient aucune : rien ne
+rappelait leur existence.
+
+C'est le miroir exact de `guardrail-liveness`, qui sait repérer un garde-fou devenu muet.
+Personne ne surveille l'inverse — une capacité qui survit à son usage.
+:::
+
 ### Le remplaçant coûte plus cher que l'original
 
 Mesuré sur `/opt/pulse/data/ai_usage_history.json`, sur les 17 heures qui ont

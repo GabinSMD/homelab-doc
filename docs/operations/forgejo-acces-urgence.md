@@ -67,9 +67,23 @@ git ls-remote origin main | cut -c1-7
 git ls-remote github main | cut -c1-7
 ```
 
-Un écart durable au-delà de 8 heures signifie que le miroir est cassé — regarder
-les paramètres du dépôt dans Forgejo, onglet *Settings > Repository*, section
-*Mirror Settings*.
+:::tip[Une sonde le fait déjà, toutes les heures]
+Depuis le 2026-09-04, `mirror-drift-check` compare `refs/heads/main` chez `origin` et
+chez `github` sur les **deux** dépôts, avec un délai de grâce de **20 minutes** — le
+miroir est asynchrone, un écart de quelques minutes est normal. Au-delà, il alerte.
+
+La vérification manuelle ci-dessus reste utile juste après un push, quand on veut la
+confirmation tout de suite plutôt qu'au prochain passage horaire. Mais **le seuil qui
+fait foi est 20 minutes, pas 8 heures** : si rien n'a sonné, c'est que le miroir suit.
+
+Deux choses en dépendaient sans filet avant cette sonde. `homelab-doc` alimente GitHub
+Pages : un miroir mort gèle le site public sans qu'aucune page n'affiche d'erreur. Et
+`ci-health-check` interroge GitHub faute de jeton Forgejo : il lirait des runs périmés
+et rendrait **vert** sur de vieux commits. Un garde-fou en portait déjà un autre.
+:::
+
+Si l'écart persiste, regarder les paramètres du dépôt dans Forgejo, onglet
+*Settings > Repository*, section *Mirror Settings*.
 
 ## Ce qui n'a pas change en phase 1
 

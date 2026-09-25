@@ -1,7 +1,12 @@
 # Boîte à outils
 
-Quatre utilitaires web sans état, plus une page d'état statique. Tous derrière
-Authelia, tous en `cap_drop: ALL`, plusieurs en `read_only`.
+**Trois** utilitaires web sans état, plus une page d'état statique. Tous derrière
+Authelia, tous en `cap_drop: ALL`, plusieurs en `read_only`. Limites mémoire et
+`DOZZLE_AUTH_PROVIDER` revérifiés le 2026-09-25.
+
+La page en annonçait quatre : reliquat de **Kroki**, retiré le
+[2026-08-31](../projet/journal/2026-08-31-retrait-kroki.md). Un compte écrit en tête de
+page survit au retrait de la ligne qu'il comptait.
 
 | Service | URL | Image | Mémoire | À quoi ça sert |
 |---|---|---|---|---|

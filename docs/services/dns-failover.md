@@ -26,6 +26,17 @@ Un garde-fou de comparaison de versions a été ajouté (PR #38). La récupérat
 ça arrive quand même, passe par une installation manuelle du binaire à la bonne
 version — pas par un rollback de la config, qui sera réécrasée à la synchro
 suivante.
+
+Constater l'écart en deux commandes, plutôt que se fier à une valeur écrite ici qui
+vieillirait :
+
+```bash
+docker exec adguard /opt/adguardhome/AdGuardHome --version          # primaire
+tailscale ssh root@galahad \
+  "pct exec 100 -- /opt/AdGuardHome/AdGuardHome --version"          # secondaire
+```
+
+Les deux étaient alignés en `v0.107.79` au 2026-09-25, secondaire `active`.
 :::
 
 ## Le symptôme trompeur

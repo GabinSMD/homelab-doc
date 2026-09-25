@@ -73,6 +73,26 @@ Les deux nodes PVE (galahad + lancelot) envoient leurs LXC directement au PBS vi
 | 102 (vault) | Vaultwarden | galahad | **Critique** |
 | 103 (pbs) | PBS lui-même | lancelot | Moyenne (reconstructible) |
 
+#### Rétention côté PBS
+
+Relevé le 2026-09-25 (`proxmox-backup-manager prune-job list`). Elle n'était documentée
+nulle part, alors qu'elle décide combien de temps on peut remonter :
+
+| Job | Datastore | Planification | Rétention |
+|---|---|---|---|
+| `p-daily` | `main` | 03:30 | 7 quotidiens, 4 hebdomadaires, 3 mensuels |
+
+À comparer au `7d/4w/6m` des dépôts restic : **PBS garde trois mois, restic six.** Pour
+une restauration au-delà de trois mois, c'est donc restic qu'il faut viser, pas PBS.
+
+:::note[Le CLI de PBS se plaint d'un jeton ACID invalide à chaque appel]
+Toute commande `proxmox-backup-manager` préfixe sa sortie de
+`user config - ignore invalid acl token 'pulse@pve!pulse'`. C'est une entrée d'ACL qui
+référence un jeton inexistant, laissée par le raccordement de Pulse. Sans effet sur les
+sauvegardes, mais elle pollue toute sortie qu'on voudrait parser — un script qui lit la
+première ligne lira cet avertissement.
+:::
+
 :::warning[vzdump hook temporaire]
 Les LXC sont backupes en mode `stop` (pas snapshot) car les rootfs sont sur stockage `local` (dir, pas ZFS). Le hook `/usr/local/bin/vzdump-permfix-hook.sh` corrige un bug de permissions sur `pct.conf` pour les LXC unprivileged. A supprimer quand les rootfs seront migres sur ZFS (mode snapshot natif).
 :::

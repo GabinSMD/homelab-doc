@@ -412,7 +412,7 @@ tailscale ssh root@lancelot \
    'SELECT uid, title FROM alert_rule'"
 ```
 
-Depuis le 2026-08-26, `logs/deploy-to-lxc101.sh` fait ce controle a chaque
+Depuis le 2026-08-26, `logs/logs-prod-1/deploy-to-lxc101.sh` fait ce controle a chaque
 deploiement et echoue en affichant le bloc a coller.
 
 **Remede.** Nommer les `uid` dans un bloc `deleteRules` de `rules.yml`, puis

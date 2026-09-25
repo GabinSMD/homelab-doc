@@ -284,7 +284,7 @@ IN ACCEPT -i tailscale0 -log nolog
 | fail2ban | Actif (SSH + Proxmox jails) | Actif (SSH + Proxmox jails) |
 | unattended-upgrades | Actif | Actif |
 | auditd | Actif | Actif (reactive 2026-04-13 — retrait des watch Docker absents host) |
-| lynis weekly | Cron dimanche 5h | Cron dimanche 5h |
+| lynis weekly | Timer `lynis-remote-audit`, dimanche 07:45 | Timer `lynis-remote-audit`, dimanche 07:45 |
 | rpcbind | Disabled + masked | Disabled + masked |
 
 ---

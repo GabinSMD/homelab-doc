@@ -15,8 +15,9 @@ relais ntfy — qui n'avaient pas de page jusqu'ici.
 ## Ce n'est pas un clone git
 
 :::danger[`/opt/logs` est une copie déployée, pas un dépôt]
-`git` n'est pas installé dans la LXC. La configuration est versionnée sous `logs/`
-dans `homelab-config` et poussée par **`logs/deploy-to-lxc101.sh`**. Tout patch
+`git` n'est pas installé dans la LXC. La configuration est versionnée sous
+`logs/logs-prod-1/` dans `homelab-config` et poussée par
+**`logs/logs-prod-1/deploy-to-lxc101.sh`**. Tout patch
 appliqué directement dans `/opt/logs` est une dérive silencieuse — c'est comme ça
 qu'un `loki-config.yml` a vécu en production sans être versionné jusqu'au
 2026-06-25.
@@ -45,8 +46,8 @@ erreurs.
 ## Déployer une modification
 
 ```bash
-logs/deploy-to-lxc101.sh --dry-run   # montre ce qui serait pousse
-logs/deploy-to-lxc101.sh             # pousse, applique, controle les orphelines
+logs/logs-prod-1/deploy-to-lxc101.sh --dry-run   # montre ce qui serait pousse
+logs/logs-prod-1/deploy-to-lxc101.sh             # pousse, applique, controle les orphelines
 ```
 
 Le déploiement ne touche jamais les données runtime (`grafana/`, `loki/`,

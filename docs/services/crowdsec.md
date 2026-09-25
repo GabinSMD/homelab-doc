@@ -7,12 +7,40 @@ niveau du reverse proxy.
 |---|---|
 | Image | `crowdsecurity/crowdsec:latest` |
 | LAPI | `192.168.1.28:6060` |
-| Collections | `traefik`, `http-cve`, `base-http-scenarios` |
+| Collections | **six**, voir ci-dessous |
 | Logs lus | `traefik-data:/var/log/traefik:ro` |
 | Limite mémoire | 256 Mo |
 
+Relevé le 2026-09-25 par `cscli collections list` — la page n'en listait que trois :
+
+| Collection | Ce qu'elle couvre |
+|---|---|
+| `crowdsecurity/traefik` | parser Traefik + scénarios HTTP génériques |
+| `crowdsecurity/http-cve` | exploitation de CVE dans les logs HTTP |
+| `crowdsecurity/base-http-scenarios` | détection de scanners |
+| `crowdsecurity/sshd` | parser sshd + **brute-force SSH** |
+| `crowdsecurity/linux` | socle syslog + geoip + ssh |
+| `crowdsecurity/whitelist-good-actors` | liste blanche des acteurs légitimes |
+
 Le bouncer est un middleware Traefik : une IP bannie est refusée avant d'atteindre
 Authelia, donc avant tout traitement applicatif.
+
+:::note[`cscli bouncers list` accumule des inscriptions fantômes]
+Au 2026-09-25 il en affiche **cinq** alors qu'un seul travaille. Chaque recréation du
+conteneur Traefik lui donne une nouvelle IP sur le réseau `proxy`, et le plugin
+s'enregistre sous `traefik-plugin@<nouvelle-ip>` sans que l'ancienne entrée disparaisse.
+
+Les cinq sont marquées `✔️ Valid`, ce qui ne dit donc **rien** de l'état réel. La colonne
+qui compte est `Last API pull` : l'une d'elles datait du 2026-08-22, soit plus d'un mois.
+
+```bash
+docker exec crowdsec cscli bouncers list    # lire Last API pull, pas Valid
+```
+
+Ne jamais conclure « le bouncer tourne » parce que la liste n'est pas vide. C'est le
+même piège que partout ailleurs ici : la présence d'une entrée n'est pas la preuve d'un
+travail accompli.
+:::
 
 ## Le piège qui coûte un après-midi
 

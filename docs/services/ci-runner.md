@@ -10,6 +10,21 @@ Docusaurus.
 | Architecture | **aarch64** |
 | Enregistré auprès de | `git.home.gabin-simond.fr` |
 
+### Ce qu'on peut mettre dans `runs-on`
+
+Relevé le 2026-09-25 dans `/etc/forgejo-runner/.runner`. Il n'y a que **deux** labels, et
+un `runs-on` qui n'en fait pas partie laisse le job **en attente indéfiniment**, sans
+message d'erreur — la panne la plus déroutante de cette CI.
+
+| Label | Image | Pour quoi |
+|---|---|---|
+| `docker` | `node:22-bookworm` | Le cas courant : build Docusaurus, scripts Node |
+| `ubuntu-latest` | `catthehacker/ubuntu:act-24.04` | Workflows écrits pour GitHub Actions, repris tels quels |
+
+```bash
+tailscale ssh root@lancelot "pct exec 108 -- cat /etc/forgejo-runner/.runner"
+```
+
 :::note[Ce conteneur ne figurait dans aucune page avant le 2026-08-26]
 Il tournait en production, exécutait la CI de tous les dépôts, et n'était
 mentionné **nulle part** dans cette documentation. C'est le cas le plus net de ce

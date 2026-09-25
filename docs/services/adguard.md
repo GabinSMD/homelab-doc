@@ -1,6 +1,7 @@
 # AdGuard Home
 
-DNS et DHCP avec ad-blocking pour tout le réseau.
+Résolveur DNS avec ad-blocking pour tout le réseau. **Pas de DHCP** : c'est la box qui
+le distribue.
 
 ## Acces
 
@@ -15,28 +16,51 @@ DNS et DHCP avec ad-blocking pour tout le réseau.
 
 - **DNS resolver** principal pour le réseau local
 - **Ad-blocking** au niveau DNS (listes de blocage)
-- **DNS-over-TLS** sur le port 853
-- **DHCP** (optionnel, peut être géré par OPNsense a terme)
+- Amont en **DNS-over-HTTPS** vers Cloudflare (voir plus bas)
+
+Ce que la page annonçait et qui n'est **pas** le cas, vérifié le 2026-09-25 : ni
+DNS-over-TLS servi sur 853 (`tls.enabled: false`), ni DHCP (`dhcp.enabled: false`).
+Une fonction listée dans un « rôle » n'est pas une fonction activée.
 
 ## Ports
 
-| Port | Protocole | Usage |
-|---|---|---|
-| 53 | TCP/UDP | DNS standard |
-| 853 | TCP | DNS-over-TLS |
-| 67 | UDP | DHCP |
-| 3000 | TCP | Interface web |
+Relevé le 2026-09-25 dans `AdGuardHome.yaml` et par `ss -tulnp`.
+
+| Port | Protocole | Usage | État réel |
+|---|---|---|---|
+| 53 | TCP/UDP | DNS standard | écoute |
+| 3000 | TCP | Interface web | écoute |
+| 853 | TCP | DNS-over-TLS | **rien n'écoute** — `tls.enabled: false` |
+| 67 | UDP | DHCP | **rien n'écoute** — `dhcp.enabled: false` |
+
+:::warning[Deux ports listés qui ne servent pas]
+La page les donnait comme actifs. Le **853** a même une règle de pare-feu ouverte sur
+penny alors qu'aucun service n'est derrière : un client configuré en DoT échouera, et la
+règle se lira comme justifiée le jour où quelque chose se mettra à écouter. Le **67** est
+inerte — c'est la box qui distribue le DHCP.
+:::
 
 ## DNS upstream
 
-| Serveur | IP |
+| Rôle | Serveur |
 |---|---|
-| Quad9 (principal) | `9.9.9.9` |
-| Quad9 (secondaire) | `149.112.112.112` |
+| **Upstream** | `https://cloudflare-dns.com/dns-query` (DoH) |
+| Bootstrap | `9.9.9.10`, `1.1.1.1` |
+
+:::danger[Ce n'est pas Quad9 — corrigé le 2026-09-25]
+Cette page annonçait Quad9 (`9.9.9.9` / `149.112.112.112`) comme résolveurs amont. C'est
+faux : l'amont est **Cloudflare en DNS-over-HTTPS**. Quad9 n'apparaît que comme
+*bootstrap* — uniquement pour résoudre le nom du résolveur DoH au démarrage, pas pour les
+requêtes courantes.
+
+L'écart n'est pas cosmétique : cette ligne dit **à qui part l'intégralité du trafic DNS
+de la maison**. Se tromper de nom, c'est se tromper sur le destinataire des données.
+:::
 
 ## Stockage
 
-- **Config** : bind mount `/mnt/ssd/config/adguard/` → `/opt/adguardhome/conf`
+- **Config** : bind mount `/mnt/ssd/config/adguard/adguard-prod-1/` → `/opt/adguardhome/conf`
+  (le sous-répertoire compte : `adguard/` porte aussi la config du secondaire)
 - **Données** : Docker volume `adguard-data` → `/opt/adguardhome/work`
 
 ## Instances
@@ -46,7 +70,7 @@ DNS et DHCP avec ad-blocking pour tout le réseau.
 | **Primaire** | RPi 4 (Docker, host network) | `192.168.1.28` | DNS principal, ad-blocking |
 | **Secondaire** | LXC 100 "dns-failover" sur galahad | `192.168.1.30` | DNS de secours, ad-blocking |
 
-Les deux instances ont la même configuration : mêmes upstream (Quad9 DoH), mêmes blocklists, mêmes `user_rules` conditionnelles.
+Les deux instances ont la même configuration : même upstream (**Cloudflare DoH**), mêmes blocklists, mêmes `user_rules` conditionnelles.
 
 ### Synchronisation
 

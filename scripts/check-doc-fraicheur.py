@@ -87,6 +87,8 @@ RETIRES = [
         "autorise": {
             # L'encadre d'inventaire explique la baisse de 24 a 22 conteneurs.
             "docs/services/index.md",
+            # Explique pourquoi la page annonçait quatre outils au lieu de trois.
+            "docs/services/boite-a-outils.md",
         },
     },
     {
@@ -114,7 +116,7 @@ RETIRES = [
         },
     },
     {
-        "motif": r"config/logs/dashboards|homelab-config/logs/docker-compose",
+        "motif": r"config/logs/dashboards|homelab-config/logs/docker-compose|(?<!prod-1/)deploy-to-lxc101",
         "quoi": "les chemins du LXC logs avant le renommage logs-prod-1",
         "retire": "2026-09 (logs/ -> logs/logs-prod-1/)",
         "a_la_place": "logs/logs-prod-1/…  — le chemin sans le sous-repertoire n'existe pas, "

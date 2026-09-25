@@ -7,10 +7,31 @@ Complémentaire de Grafana, qui porte les logs.
 |---|---|
 | Image | `henrygd/beszel:latest` + `beszel-agent` |
 | URL | `monitor.home.gabin-simond.fr` |
-| Auth | OIDC Authelia (`one_factor`) — mot de passe local désactivé |
+| Auth | OIDC Authelia (**`two_factor`**) — mot de passe local désactivé |
 | Agent | réseau `host`, port 45876 |
-| Socket | `/mnt/ssd/data/beszel/beszel_socket` |
+| Données | volume Docker `config_beszel-data` → `/beszel_data` |
+| Socket | répertoire `/mnt/ssd/data/beszel/beszel_socket` → `/beszel_socket` |
 | Limite mémoire | 128 Mo |
+
+Relevé le 2026-09-25. La page annonçait `one_factor` : le client est en `two_factor`
+comme les neuf autres, voir [Authelia](authelia.md).
+
+:::warning[`/mnt/ssd/data/beszel/` est un vestige, sauf son sous-répertoire `beszel_socket`]
+Ce répertoire contient un `data.db`, un `auxiliary.db` et un `storage/` qui **ne sont pas
+montés dans le conteneur**. Leur `data.db` date du **2025-04-14** et pèse 237 Ko.
+
+La base vivante est ailleurs, dans le volume `config_beszel-data` : 2,8 Mo, écrite à la
+minute. Seul `beszel_socket/` — un répertoire, pas un fichier socket — est encore
+bind-monté.
+
+Conséquence avant tout diagnostic : ouvrir `/mnt/ssd/data/beszel/data.db` en croyant lire
+l'état de Beszel donne une photo vieille de dix-sept mois, sans que rien ne le signale.
+Demander au conteneur plutôt que deviner :
+
+```bash
+docker inspect beszel --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'
+```
+:::
 
 L'agent est en réseau `host` parce qu'il doit voir les interfaces et les disques
 réels, pas ceux d'un bridge Docker.

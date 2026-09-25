@@ -41,6 +41,10 @@ Une réécriture trop large a déjà cassé **tous** les renouvellements TLS en
 silence : `_acme-challenge.*` tombait dans le joker au lieu d'aller chez
 Cloudflare. La règle ci-dessus est scopée par client, et les resolvers ACME
 sont forcés sur du DNS public.
+
+Le mécanisme complet — et pourquoi la panne était invisible, l'émission
+fonctionnant alors que seule la *vérification* était aveugle — est détaillé
+dans [TLS et certificats](../guides/tls.md).
 :::
 
 Ensuite, tout entre par **Traefik sur `192.168.1.28:443`** — un seul port, pour

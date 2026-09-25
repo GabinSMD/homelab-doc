@@ -266,8 +266,12 @@ une trace d'un changement de nom de projet Compose. Les volumes vivants sont les
 `config_*` — **sauf CrowdSec**, qui tourne sur `docker_crowdsec-data` pendant que
 `config_crowdsec-data` traîne à vide.
 
-Conséquence : un `docker volume prune` mal ciblé peut supprimer la base CrowdSec en
-croyant nettoyer d'anciens volumes. Toujours vérifier le nom réellement monté :
+Le danger n'est pas `docker volume prune`, qui ne touche que les volumes **inutilisés** et
+laisserait donc `docker_crowdsec-data` tranquille. C'est le ménage **manuel** : quelqu'un
+qui voit deux préfixes, en déduit que les `docker_*` sont l'ancienne série et lance
+`docker volume rm docker_…` détruit la base CrowdSec, seule exception de la série.
+
+Toujours vérifier le nom réellement monté avant de supprimer :
 
 ```bash
 docker inspect crowdsec --format '{{range .Mounts}}{{.Name}} {{end}}'

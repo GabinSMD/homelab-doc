@@ -119,9 +119,37 @@ ls -la /mnt/ssd/log-homelab/
 tail -50 /mnt/ssd/log-homelab/homelab_monitor.log | grep ALERT
 ```
 
-## Pourquoi 2 topics ntfy
+## Un seul topic, depuis l'arrêt de sucre
 
-Voir [Sucre observability](../projet/sucre-observability.md) — c'est lié au callback flow Approve/Deny du drafter sucre. Topic 1 = boring critical, Topic 2 = sucre proposals avec callbacks. Phone subscribe les 2 = un seul inbox unifié pour le user.
+Relevé le 2026-09-25 (`docker exec ntfy ntfy access`) : il n'y a qu'un topic, **`homelab`**.
+
+Cette section en annonçait deux. C'était vrai tant que sucre tournait : le second portait
+ses propositions avec les rappels Approve/Deny, le premier le « boring critical », et le
+téléphone s'abonnait aux deux pour n'avoir qu'une boîte. Sucre est
+[arrêté depuis le 2026-08-25](../projet/sucre.md) et le second topic est parti avec lui.
+
+| Utilisateur | Accès sur `homelab` |
+|---|---|
+| `publisher` | lecture-écriture — ce que les sondes utilisent |
+| `phone` | lecture seule — l'application iOS |
+| `admin` | rôle admin, tous topics |
+| `fish` | **écriture seule — vestige de sucre, voir ci-dessous** |
+
+:::warning[Un jeton d'écriture survit au service qui l'utilisait]
+L'utilisateur `fish` — le nom de sucre avant son renommage du 2026-07-06 — existe
+toujours, avec un jeton `fish-lxc105` **qui n'expire jamais** et un accès en écriture sur
+`homelab`. Dernier usage : le 2026-08-25, le jour de l'arrêt.
+
+Un service décommissionné laisse donc derrière lui une capacité d'écriture valide sur le
+canal d'alerte du homelab. Rien ne l'a signalé, parce qu'un jeton **inutilisé** ne fait
+pas de bruit — le miroir exact de ce que surveille `guardrail-liveness`, qui ne sait
+repérer que ce qui se tait alors qu'il devrait parler.
+
+```bash
+docker exec ntfy ntfy token list fish     # constater
+docker exec ntfy ntfy user del fish       # après avoir verifie que rien ne l'utilise
+```
+:::
 
 ## Réactiver une notification
 
