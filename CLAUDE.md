@@ -1,6 +1,29 @@
 # CLAUDE.md — homelab-doc
 
-Repo **public** : documentation Docusaurus du homelab (migre de MkDocs le 26/08/2026 ; build `bun run build`), publiee sur https://homelab.gabin-simond.fr via GitHub Actions -> GitHub Pages (CNAME). Aucun Cloudflare Pages dans le circuit.
+Repo **public** : documentation Docusaurus du homelab (migre de MkDocs le 26/08/2026 ; voir « Construire le site » plus bas), publiee sur https://homelab.gabin-simond.fr via GitHub Actions -> GitHub Pages (CNAME). Aucun Cloudflare Pages dans le circuit.
+
+## Construire le site
+
+**Ne pas construire localement sans borner la commande.** Le 2026-09-25 a
+09:52, une construction Docusaurus sur penny a pousse la charge 15 min a 13.
+Le demon `watchdog` redemarre la machine au-dela de 12 : il a attendu 61 s,
+puis a coupe tout le homelab — proprement, mais sans preavis. Trois processus
+Node suffisent sur un Raspberry Pi 4 a quatre coeurs.
+
+**La CI construit deja le site** (workflow « Deploy Docusaurus to GitHub
+Pages »). Une construction locale ne sert qu'a verifier avant de pousser, et
+n'est presque jamais necessaire : `onBrokenLinks: 'throw'` fait echouer la CI
+en quelques minutes si un lien casse.
+
+Si elle l'est vraiment, la borner :
+
+```bash
+systemd-run --scope -p CPUQuota=200% -p MemoryMax=2G nice -n 19 bun run build
+```
+
+Deux coeurs sur quatre, 2 Go de plafond : la charge reste sous le seuil et la
+machine continue de servir. Une alerte previent desormais a partir de 8, mais
+c'est une securite, pas une permission.
 
 ## Contenu
 
