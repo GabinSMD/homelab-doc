@@ -26,15 +26,21 @@ Le bouncer est un middleware Traefik : une IP bannie est refusée avant d'attein
 Authelia, donc avant tout traitement applicatif.
 
 :::note[`cscli bouncers list` accumule des inscriptions fantômes]
-Au 2026-09-25 il en affiche **cinq** alors qu'un seul travaille. Chaque recréation du
-conteneur Traefik lui donne une nouvelle IP sur le réseau `proxy`, et le plugin
-s'enregistre sous `traefik-plugin@<nouvelle-ip>` sans que l'ancienne entrée disparaisse.
+Au 2026-09-25 il en affiche **dix-sept** alors qu'**un seul** travaille. Chaque
+recréation du conteneur Traefik lui donne une nouvelle IP sur le réseau `proxy`, et le
+plugin s'enregistre sous `traefik-plugin@<nouvelle-ip>` sans que l'ancienne entrée
+disparaisse.
 
-Les cinq sont marquées `✔️ Valid`, ce qui ne dit donc **rien** de l'état réel. La colonne
-qui compte est `Last API pull` : l'une d'elles datait du 2026-08-22, soit plus d'un mois.
+Les dix-sept sont marquées `✔️ Valid`, ce qui ne dit donc **rien** de l'état réel. La
+colonne qui compte est `Last API pull` : le seul à jour tirait à `14:17` le jour même,
+les autres s'échelonnent jusqu'au 2026-08-22, soit plus d'un mois.
+
+Lire la sortie **en entier**, ou en JSON — le tableau est large et un `head` le tronque
+sans prévenir. C'est d'ailleurs comme ça que cette page a d'abord annoncé « cinq » :
 
 ```bash
-docker exec crowdsec cscli bouncers list    # lire Last API pull, pas Valid
+docker exec crowdsec cscli bouncers list -o json | \
+  python3 -c 'import sys,json;[print(b["name"], b.get("last_pull")) for b in json.load(sys.stdin)]'
 ```
 
 Ne jamais conclure « le bouncer tourne » parce que la liste n'est pas vide. C'est le

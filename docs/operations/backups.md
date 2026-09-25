@@ -85,12 +85,16 @@ nulle part, alors qu'elle décide combien de temps on peut remonter :
 À comparer au `7d/4w/6m` des dépôts restic : **PBS garde trois mois, restic six.** Pour
 une restauration au-delà de trois mois, c'est donc restic qu'il faut viser, pas PBS.
 
-:::note[Le CLI de PBS se plaint d'un jeton ACID invalide à chaque appel]
-Toute commande `proxmox-backup-manager` préfixe sa sortie de
-`user config - ignore invalid acl token 'pulse@pve!pulse'`. C'est une entrée d'ACL qui
-référence un jeton inexistant, laissée par le raccordement de Pulse. Sans effet sur les
-sauvegardes, mais elle pollue toute sortie qu'on voudrait parser — un script qui lit la
-première ligne lira cet avertissement.
+:::tip[Un avertissement du CLI de PBS a disparu le 2026-09-25]
+Jusqu'à ce jour, toute commande `proxmox-backup-manager` préfixait sa sortie de
+`user config - ignore invalid acl token 'pulse@pve!pulse'` — une entrée d'ACL pointant
+un jeton inexistant, laissée par le raccordement de Pulse. Sans effet sur les
+sauvegardes, mais elle polluait toute sortie qu'on voudrait parser : un script lisant la
+première ligne lisait cet avertissement.
+
+Le compte `pulse@pve` a été supprimé, la sortie est propre. Noté ici parce que d'anciennes
+transcriptions et captures montrent encore cette ligne — ce n'est plus un symptôme à
+chercher.
 :::
 
 :::warning[vzdump hook temporaire]
