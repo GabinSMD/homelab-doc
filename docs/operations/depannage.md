@@ -1186,6 +1186,51 @@ Le piège de cette panne n'est pas de la réparer, c'est de **savoir ce qui l'a
 causée** : le reset efface sa propre preuve. Trois obstacles se combinent, et
 ils font mentir le diagnostic dans cet ordre.
 
+:::danger[Le journal persistant de penny n'a jamais été persistant — constaté le 2026-09-25]
+Après l'incident du 2026-04-17, le journal a été passé en persistant
+« pour les analyses futures ». Il ne l'a jamais été. Deux causes se cumulent, et
+chacune suffirait.
+
+**Deux directives `Storage=` se contredisent, la mauvaise gagne :**
+
+```console
+$ grep -rn '^\s*Storage=' /etc/systemd/journald.conf /etc/systemd/journald.conf.d/
+/etc/systemd/journald.conf:18:Storage=persistent
+/etc/systemd/journald.conf.d/10-alloy-sigbus-volatile.conf:20:Storage=volatile
+```
+
+Un drop-in l'emporte sur le fichier principal : la valeur effective est
+**`volatile`**. Elle a été posée exprès — c'est le correctif du SIGBUS journald
+qui tuait `dockerd`. Le correctif d'avril et celui de juillet se sont annulés
+sans que personne ne le voie, parce qu'aucun des deux n'a été vérifié par
+l'effet.
+
+**Et `/var/log` est un tmpfs de 50 Mo.** Même si `persistent` l'emportait, le
+journal « persistant » s'écrirait en RAM et disparaîtrait au redémarrage. La
+destination invalide la promesse indépendamment du réglage.
+
+Preuve par l'effet, en une commande :
+
+```console
+$ journalctl --list-boots --no-pager | wc -l
+2                     # deux, pas des dizaines
+$ du -sh /run/log/journal /var/log/journal
+17M     /run/log/journal        # le vrai journal, volatile
+16K     /var/log/journal        # la coquille vide
+```
+
+**Conséquence pratique** : la cause de chaque redémarrage de penny est
+inconnaissable après coup. Le 2026-09-25, la machine s'est réinitialisée vers
+09:16 — activité parfaitement normale jusqu'à `09:16:38` dans Loki, puis plus
+rien ; `pstore` vide, `bootstatus` du watchdog à `0`, aucune mise à jour en
+cours. Impossible de distinguer un `reboot` propre dont les messages d'arrêt
+n'ont pas eu le temps de partir vers Loki, d'un reset matériel.
+
+Corriger n'est **pas** « remettre `persistent` » : ça ressusciterait le SIGBUS.
+Il faudrait une destination persistante hors du `/var/log` que `dietpi-logclear`
+tronque chaque heure — un répertoire sur le SSD, par exemple. Décision ouverte.
+:::
+
 ### 1. Dater le boot — `journalctl` est faux pendant ~46 min
 
 **Le RPi 4 n'a pas d'horloge temps réel.** Au démarrage, `fake-hwclock`
