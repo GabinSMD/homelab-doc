@@ -72,6 +72,7 @@ const sidebars = {
             { type: 'doc', id: 'services/ci-runner', label: 'Runner Actions (LXC 108)' },
             { type: 'doc', id: 'services/outline', label: 'Outline (wiki)' },
             { type: 'doc', id: 'services/claude-remote', label: 'claude-remote' },
+            { type: 'doc', id: 'services/paperclip', label: 'Paperclip (agents IA)' },
           ],
         },
         {
