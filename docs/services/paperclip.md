@@ -24,9 +24,24 @@ Tailscale de penny ; il a ete retire lors du passage sous Traefik, pour ne pas l
 ouverte une entree qui contourne Authelia.
 
 Double ouverture de session — Authelia, puis le compte Paperclip — assumee pour une
-console qui pilote des agents executant du code et depensant de l'argent. Le forwardAuth
-ne casse aucun battement de cœur : les agents tournent **dans** le conteneur et joignent
-le serveur en local.
+console qui pilote des agents executant du code et depensant de l'argent.
+
+:::danger Les agents n'appellent PAS l'API en local par defaut
+Affirme a tort ici le 2026-09-30 : « le forwardAuth ne casse aucun battement de cœur,
+les agents joignent le serveur en local ». C'etait une supposition. Les agents appellent
+`PAPERCLIP_API_URL`, que le demarrage **derive de `PAPERCLIP_PUBLIC_URL`** quand elle
+n'est pas fixee — donc leurs requetes ressortaient vers Traefik, donc vers Authelia :
+`302` sur tout `/api`, et les deux serveurs MCP tombes en `401`.
+
+Le compose fixe desormais `PAPERCLIP_API_URL: "http://127.0.0.1:3100"`. Les appels
+d'agents ne sortent plus du conteneur et la surface publique garde Authelia entiere —
+plutot que de percer le proxy pour `/api`, ce qui aurait ouvert l'API au LAN.
+
+**Comment distinguer les deux pannes** : un `401` vient de Paperclip, qui a recu la
+requete et refuse faute de jeton. Un `302` vers `auth.home.gabin-simond.fr` vient du
+proxy, qui a intercepte avant. Le second signale un probleme de routage, jamais
+d'authentification applicative.
+:::
 
 Verifie a la bascule : routeur `paperclip@docker` actif avec ses trois intergiciels, et
 backend sonde **depuis Traefik** a `HTTP 200`. Un 302 d'Authelia ne dit rien du backend,
