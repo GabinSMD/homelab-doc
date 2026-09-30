@@ -98,25 +98,30 @@ subscription »**. Deux raisons, mesurees le 2026-09-30 :
 Un troisieme piege : **l'UUID change a chaque tentative de connexion**. Il faut celui que
 l'ecran affiche a cet instant, pas celui d'un essai precedent.
 
-La forme qui marche, depuis penny :
+La forme qui marche, depuis penny — **une seule ligne, rien a remplacer** : elle retient
+le repertoire de connexion le plus recent, donc celui de l'ecran en cours.
 
 ```bash
-docker exec -it -u node paperclip bash -lc '
-  export CLAUDE_CONFIG_DIR=/paperclip/instances/default/ai-local-logins/<UUID-affiche>
-  mkdir -p "$CLAUDE_CONFIG_DIR"
-  claude auth login
-'
+docker exec -it -u node paperclip bash -lc 'd=$(ls -1dt /paperclip/instances/default/ai-local-logins/*/ | head -1); echo "-> $d"; CLAUDE_CONFIG_DIR="${d%/}" claude auth login'
 ```
+
+Cliquer « Connect » dans Paperclip **avant** de la lancer, pour que le repertoire vise
+soit bien celui de la tentative en cours.
+
+:::caution Ne pas recopier un emplacement entre chevrons
+Une commande contenant `<UUID>` collee telle quelle echoue sur
+`syntax error near unexpected token` : bash lit `<` comme une redirection. D'ou la forme
+ci-dessus, qui n'a aucun emplacement a remplacer.
+:::
 
 Le `-it` est indispensable : la CLI affiche un lien puis **attend un code colle**. On
 ouvre le lien dans son navigateur, on autorise, on recolle le code. Ensuite, « Connect »
 dans l'interface Paperclip.
 
-Pour verifier sans deviner :
+Pour verifier sans deviner, meme principe :
 
 ```bash
-docker exec -u node paperclip sh -c \
-  'CLAUDE_CONFIG_DIR=/paperclip/instances/default/ai-local-logins/<UUID> claude auth status'
+docker exec -u node paperclip bash -lc 'd=$(ls -1dt /paperclip/instances/default/ai-local-logins/*/ | head -1); CLAUDE_CONFIG_DIR="${d%/}" claude auth status'
 ```
 
 `"loggedIn": false` avec `"authMethod": "none"` est exactement ce que Paperclip lit avant
