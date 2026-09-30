@@ -8,19 +8,35 @@ couts. Pose le 2026-09-29.
 
 | | |
 |---|---|
-| URL | `http://100.97.239.90:3100` — **adresse Tailscale uniquement** |
+| URL | `https://paperclip.home.gabin-simond.fr` |
 | Host | penny (Docker, reseau dedie `paperclip`) |
 | Image | `ghcr.io/paperclipai/paperclip:latest@sha256:a02ac35a…` (index multi-arch) |
 | Base | `postgres:17-alpine`, conteneur `paperclip-db`, aucun port publie |
-| Auth | compte local Paperclip (`PAPERCLIP_DEPLOYMENT_MODE: authenticated`) |
+| Auth | Authelia (forwardAuth) **puis** compte local Paperclip |
 | Secrets | `PAPERCLIP_AUTH_SECRET`, `PAPERCLIP_DB_PASSWORD` dans `.env.enc` (sops) |
 
-Ni Traefik ni Authelia, donc **pas de sous-domaine**. C'est deliberé : cette console
-pilote des agents qui executent du code et depensent de l'argent, on ne lui donne pas
-d'entree publique derriere une seule couche d'authentification.
+Joignable depuis le LAN sans Tailscale, comme les autres services. Le nom resolvait deja
+vers `192.168.1.28` sans qu'aucune entree DNS soit a creer, et un resolveur public ne rend
+rien : la resolution reste interne.
 
-Verifie a la pose : `HTTP 200` depuis le tailnet, `HTTP 000` depuis `192.168.1.28` — le
-LAN n'y accede pas.
+**Une seule porte.** Le service a d'abord ete pose avec un port brut sur l'adresse
+Tailscale de penny ; il a ete retire lors du passage sous Traefik, pour ne pas laisser
+ouverte une entree qui contourne Authelia.
+
+Double ouverture de session — Authelia, puis le compte Paperclip — assumee pour une
+console qui pilote des agents executant du code et depensant de l'argent. Le forwardAuth
+ne casse aucun battement de cœur : les agents tournent **dans** le conteneur et joignent
+le serveur en local.
+
+Verifie a la bascule : routeur `paperclip@docker` actif avec ses trois intergiciels, et
+backend sonde **depuis Traefik** a `HTTP 200`. Un 302 d'Authelia ne dit rien du backend,
+il vient du middleware.
+
+:::note Un 403 en sondant par IP est normal
+Paperclip verifie l'en-tete `Host` contre son `PAPERCLIP_PUBLIC_URL`. Une sonde par
+adresse IP rend donc `403 Forbidden` — c'est son controle d'origine, pas une panne. Avec
+`--header="Host: paperclip.home.gabin-simond.fr"` il rend `200`.
+:::
 
 ## Pourquoi sur penny et pas dans un LXC
 
@@ -60,10 +76,55 @@ L'epinglage porte sur l'empreinte de l'**index** multi-architecture, verifie com
 avant d'etre fige (`application/vnd.oci.image.index.v1+json`) : il resout arm64 sur penny
 et amd64 ailleurs. Un digest de manifeste de plateforme aurait casse toute reutilisation.
 
+## Connecter un agent Claude a son abonnement
+
+L'interface propose une commande du genre :
+
+```bash
+(export CLAUDE_CONFIG_DIR='/paperclip/instances/default/ai-local-logins/<UUID>' \
+  && mkdir -p "$CLAUDE_CONFIG_DIR" && claude auth login)
+```
+
+Lancee telle quelle sur son poste, elle echoue avec **« Could not verify the local
+subscription »**. Deux raisons, mesurees le 2026-09-30 :
+
+1. **`/paperclip` est un chemin INTERNE au conteneur.** Sur un poste, la commande cree un
+   repertoire local que le serveur ne lira jamais. La CLI `claude` est d'ailleurs deja
+   presente dans l'image, en `/usr/local/bin/claude`.
+2. **Le serveur tourne en `uid 1000` (`node`), pas en root.** Une connexion faite en root
+   depose des fichiers que le serveur ne peut pas lire. `docker exec` sans `-u node`
+   attaque donc le probleme du mauvais cote.
+
+Un troisieme piege : **l'UUID change a chaque tentative de connexion**. Il faut celui que
+l'ecran affiche a cet instant, pas celui d'un essai precedent.
+
+La forme qui marche, depuis penny :
+
+```bash
+docker exec -it -u node paperclip bash -lc '
+  export CLAUDE_CONFIG_DIR=/paperclip/instances/default/ai-local-logins/<UUID-affiche>
+  mkdir -p "$CLAUDE_CONFIG_DIR"
+  claude auth login
+'
+```
+
+Le `-it` est indispensable : la CLI affiche un lien puis **attend un code colle**. On
+ouvre le lien dans son navigateur, on autorise, on recolle le code. Ensuite, « Connect »
+dans l'interface Paperclip.
+
+Pour verifier sans deviner :
+
+```bash
+docker exec -u node paperclip sh -c \
+  'CLAUDE_CONFIG_DIR=/paperclip/instances/default/ai-local-logins/<UUID> claude auth status'
+```
+
+`"loggedIn": false` avec `"authMethod": "none"` est exactement ce que Paperclip lit avant
+de refuser. Le repertoire existe mais reste **vide** tant que la connexion n'a pas abouti.
+
 ## Ce qu'il reste a faire
 
-- **Aucune cle LLM n'est configuree.** En l'etat l'interface fonctionne mais aucun agent ne
-  peut travailler : `api.anthropic.com` repond `401`. La cle se pose depuis l'interface.
+- **Aucun agent n'est connecte** tant que la procedure ci-dessus n'a pas ete menee a bien.
 - **Surveiller la depense.** Le homelab a deja retire un outil d'agents pour cause de bruit
   et de cout. Definir un budget dans Paperclip avant de lancer quoi que ce soit.
 - Pas encore de tuile Homepage ni de sonde de disponibilite.
