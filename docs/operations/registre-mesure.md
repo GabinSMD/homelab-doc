@@ -157,9 +157,13 @@ Le registre doit coûter peu, sinon il meurt en deuxième semaine.
 
 **L'administrateur fait deux choses, rien de plus :**
 
-1. Jeter une ligne brute dans la section « Saisie rapide » de la
-   [fenêtre courante](registre-fenetre-courante.md), au fil de l'eau, dans ce format
-   libre :
+1. **Qualifier.** Les notifications sont relevées toutes seules et déposées en section
+   1 bis de la [fenêtre courante](registre-fenetre-courante.md) — voir
+   [Moissonnage](#moissonnage). Il ne reste qu'à écrire
+   l'issue en bout de ligne : `action`, `correction`, ou `ignorée` + raison.
+
+   Ce qui n'a pas été moissonné — un SMS, un coup d'œil à un écran, une alerte d'un chemin
+   non journalisé — se jette dans la section « Saisie rapide », format libre :
 
    ```text
    2026-10-03 14:22 | homelab_monitor:disk | / a 91% | ignorée | seuil trop bas, a revoir
@@ -168,16 +172,50 @@ Le registre doit coûter peu, sinon il meurt en deuxième semaine.
    Horodatage, contrôle, résumé, issue, raison si `ignorée`. L'ordre compte, le reste non.
 
 2. Remplir le tableau des incidents constatés sans alerte préalable. Celui-là ne se
-   délègue pas.
+   délègue pas, et aucun moissonnage ne le remplira jamais.
 
 **Le reste — mise au propre dans les tableaux, compteurs, point hebdomadaire, bilan — ne
 revient pas à l'administrateur.** La comptabilité est le prix de l'instrument, pas une
 charge à lui ajouter.
 
-**Évolution prévue.** La saisie manuelle des notifications est un palliatif, pas un régime
-permanent : dès que la lecture des journaux Loki est exploitable, les notifications sont
-moissonnées et il ne reste qu'à qualifier l'issue. Le tableau des incidents constatés sans
-alerte préalable, lui, reste manuel pour toujours — c'est le principe.
+## Moissonnage : ce qui se relève tout seul {#moissonnage}
+
+La saisie manuelle des notifications n'a jamais été tenable à ≈ 6,5 notifications par
+jour. Elle n'est plus nécessaire : le réplica Loki est lisible, et **l'émission des
+notifications y est journalisée**. Les lignes sont relevées automatiquement et déposées en
+section 1 bis de la [fenêtre courante](registre-fenetre-courante.md) ; il ne reste qu'à
+écrire l'issue.
+
+Deux requêtes couvrent les deux chemins d'émission du parc :
+
+```logql
+{container="ntfy-relay"} |= "forwarded" or "non livre"
+{job="monitor"} |~ "ALERT|RESOLVED"
+```
+
+La première rend `forwarded ntfy=200 title='[FIRING] <règle>' prio=…` — horodatage, règle
+Grafana émettrice, code de livraison. La seconde rend `ALERT [<étiquette>]: …` et son
+`RESOLVED` — horodatage et contrôle du moniteur.
+
+:::warning[L'émission est auditable, la livraison ne l'est pas]
+Ces requêtes prouvent qu'une notification a été **émise**, et pour le seul chemin Grafana
+qu'elle a été **acceptée** par ntfy. Aucune ne prouve qu'elle est arrivée sur un téléphone.
+Deux traces au dossier : `maintenance active, non livre` — le relais rend 200 sans livrer —
+et `ALERT [docker-down]: ntfy send FAILED, will retry` le 2026-09-25. La colonne qui
+tranche vraiment reste le tableau des incidents constatés sans alerte préalable, rempli à
+la main.
+:::
+
+Deux autres limites, dites d'avance :
+
+- **Le titre sans les étiquettes.** Le relais journalise le titre de la règle, pas son
+  `instance` ni son `mountpoint`. Le moissonnage nomme le contrôle, pas toujours sa cible.
+- **Une ligne non qualifiée compte `ignorée`.** Sinon le moissonnage deviendrait une façon
+  de remplir le registre sans jamais décider, et le critère 2 — zéro notification ignorée —
+  serait satisfait par l'accumulation.
+
+**Ce qui reste manuel pour toujours** : le tableau des incidents constatés sans alerte
+préalable. Aucune requête ne sait ce qui a été vu de visu avant qu'une alerte arrive.
 
 ## Archivage
 
