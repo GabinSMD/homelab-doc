@@ -14,6 +14,11 @@ homelab n'a jamais été une sonde qui ment, c'est l'absence de sonde.
 > cascade de suppression, et **corrige trois affirmations** de la révision 1
 > (R-01, R-13, §2.2). Trois risques ajoutés : R-16 à R-18.
 
+> **Révision 3 — 2026-10-01 (T3).** La [§7](#7-r-14-tranché-par-la-mesure--lauto-réparation-ne-se-tait-pas-elle-nest-jamais-allée-au-bout)
+> tranche **R-14**, qui était la seule question ouverte de la révision 2 : l'auto-réparation
+> **notifie**, et elle n'a **jamais relancé un conteneur** sur toute la rétention. La ligne
+> R-14 est réécrite sur place. Deux risques ajoutés : **R-19** et **R-20**.
+
 ---
 
 ## 0. Méthode, preuves et limites
@@ -417,7 +422,7 @@ Les fréquences observées sur 4 mois, pour situer les priorités :
 | **R-10** | **Le réplica Loki ne contient pas tout ce que contient le primaire.** | Mesuré : `{job="monitor-alerts"}` → **0 stream / 30 j** sur le réplica, alors que la règle `alert-ssd-events` qui l'interroge s'est déclenchée le 2026-09-21. Cause : `homelab_monitor.sh:300` pousse vers `192.168.1.31:3100` uniquement, là où Alloy écrit vers les **deux** writers. | Un contrôle comparant le volume ingéré des deux côtés par `job`. | Le réplica a été ajouté pour les flux Alloy ; le `push` direct n'a jamais été recâblé. Un basculement sur le réplica perdrait le chemin d'alerte SSD **en silence**. |
 | **R-11** | **`loki-replica` tombe sous une requête ordinaire.** | Réel et reproduit deux fois pendant cet inventaire, le 2026-10-01 : une agrégation 29 j puis un filtre de ligne 7 j ont rendu `GET /ready` → 503 pendant ~25 s. | Une sonde de disponibilité sur `loki-replica:3100/ready`, et une limite `max_query_length` plus basse pour échouer franchement au lieu de tomber. | `outillage-health-check.sh` couvre pulse, Grafana, PBS, Portainer — pas `loki-replica`. Un outil d'observabilité qui tombe est une panne d'observabilité. |
 | **R-12** | **La notification part et n'arrive pas sur le téléphone.** Le dernier maillon n'a aucune preuve. | Réel, trois fois pour trois causes différentes, d'après `funnel-public-check.sh:14` : *« fetch anonyme 05/08, NXDOMAIN public 01/09, ingress décroché 21/09 »* — à chaque fois le canal d'alerte était lui-même la victime, et on l'apprenait en n'arrivant plus à lire une notification. | `funnel-public-check.sh` (horaire) a été écrit **exactement pour ça** et il est bien conçu : il teste toutes les adresses anycast, n'alerte que si elles échouent toutes, et résout par un résolveur public. Le trou n'est pas la conception, c'est qu'il tourne **sur penny** et qu'il n'émet aucune trace auditable. | Il hérite du défaut commun : co-localisé, et muet sur son résultat. |
-| **R-14** | **L'auto-réparation silencieuse est un incident non alerté.** L'incident le plus fréquent du homelab (**84 matches en 4 mois**, « conteneurs à l'arrêt après reboot ») est auto-réparé depuis le 2026-08-30 par `check_containers_restart`, 2 min après détection, avec un disjoncteur de 3 relances par conteneur et par 24 h. | Réel et de loin le plus fréquent. Le registre de mesure pose la règle explicitement : *« y compris si le système s'est réparé tout seul — l'auto-réparation silencieuse est un incident non alerté, pas un non-événement. »* | Deux contrôles distincts, et il faut les deux : (a) une notification par relance effectuée, (b) une alerte **urgente** quand le disjoncteur se déclenche — un conteneur relancé 3 fois en 24 h est une panne de fond que la réparation masque. | Je n'ai pas pu vérifier depuis Loki si (a) et (b) notifient : les notifications de `homelab_monitor.sh` passent par un `push` direct vers le primaire (**R-10**) et par ntfy en localhost, deux chemins hors de ma portée. **Question ouverte à trancher en T3, pas un défaut établi.** |
+| **R-14** *(tranché par la mesure le 2026-10-01, cf. §7 — le risque n'est pas celui que la révision 2 décrivait)* | **Ce n'est pas la relance qui est silencieuse — c'est son absence.** `check_containers_restart` notifie bien (a) et (b) : le code et la CI le prouvent. Le risque réel est ailleurs : le compte à rebours de 2 min **s'ouvre dans le journal et ne s'y referme jamais**, et l'événement de relance **n'est poussé dans aucun flux Loki**. | **Mesuré, et la révision 2 surestimait la fréquence.** Sur la rétention pleine (29 j, 2026-09-02 → 2026-10-01) : **3 épisodes** de conteneur arrêté, tous auto-résolus en ≈1 min, **2 comptes à rebours armés, 0 relance effectuée, 0 clôture journalisée**. Le chemin d'auto-réparation n'a jamais été emprunté en production. Les « 84 matches en 4 mois » portent sur une fenêtre hors rétention : non réfutables, mais non reconduits. | **(a) et (b) existent déjà, ne pas les réécrire.** Ce qu'il faut ajouter : **(c)** journaliser la clôture du compte à rebours (`plus d'arretes, annule apres Ns`) pour qu'une résolution spontanée se distingue d'un moniteur mort en plein compte à rebours ; **(d)** un `push_loki` sur la relance réussie, qui passe aujourd'hui par `send_ntfy` seul et reste donc invisible de `{job="monitor-alerts"}` ; **(e)** re-vérifier l'état du conteneur ≥5 s après `docker start` — un `rc=0` prouve que le démon a accepté, pas que le conteneur tient. | Parce que la fonction a été écrite pour **réparer**, et que son observabilité a été calquée sur celle d'une réparation réussie. Lentilles **sonde vide** (l'ensemble vide sort par un `return` muet) et **preuve d'effet** (`docker start` rend 0 pour un conteneur qui meurt 2 s plus tard). Risque résiduel après (c)–(e) : le disjoncteur reste le seul filet si le conteneur reboucle, soit ≈6 min de battement avant l'alerte urgente. |
 | **R-15** | **Un chemin de code jamais emprunté se dégrade en silence.** | Réel, documenté dans [Incidents récurrents](./incidents-recurrents.md#trois-lecons-du-catalogue) : à l'arrêt de sucre, **4 fiches de remède sur 10 pointaient vers un script inexistant** (`<nom>.sh` au lieu de `<nom>-fix.sh`) — pendant **quatre mois**, sans que rien le signale, *« parce que rien n'a jamais tenté de les exécuter »*. Le même bug avait déjà été corrigé une fois sans que personne vérifie les autres. | Un exercice périodique qui **emprunte** le chemin : alerte de test de bout en bout jusqu'au téléphone, et vérification d'existence des cibles référencées. | Appliqué au présent inventaire, c'est le risque le plus transversal : la chaîne de notification complète (relais → Traefik → ntfy → ntfy.sh → iPhone) n'est jamais parcourue volontairement. On n'en découvre les ruptures qu'au moment où on en a besoin — ce qui est exactement ce qui s'est produit trois fois en 2026 (**R-12**). |
 | **R-13** *(réécrit le 2026-10-01, cf. §6.4)* | **Trois étiquettes d'alerte font 57 % du trafic et ne se closent jamais.** | Mesuré sur 30 j : **202 messages publiés par ntfy** (compteur serveur), dont **86 alertes du moniteur pour 31 résolutions**. `pbs-down` 25/1, `docker-down` 14/0, `nfs-export-down` 10/0. Précédent documenté dans `rules.yml:22` : une règle orpheline a produit **38 notifications en 24 h, 60 % du trafic**. | Une alerte qui ré-émet sans jamais se clore doit être traitée comme un défaut de contrôle, pas comme un incident répété : hystérésis sur `pbs-down`, et une ligne de clôture pour `docker-down` / `nfs-export-down`. | La version 1 affirmait que ces notifications n'étaient journalisées nulle part : **c'était faux**, `{job="monitor"}` les porte toutes et le décompte par étiquette est désormais mesurable. Lentille **rapport signal/bruit** : une notification qu'on apprend à ignorer est une panne future qu'on ne verra pas. Reste non mesurable : les sondes en minuteur, qui publient sur ntfy sans journaliser (~81 messages sur les 202). |
 
@@ -462,7 +467,7 @@ Conversion type, telle qu'elle devrait être formulée :
 | **Bruyants** | 2 règles (`Systeme de fichiers > 90 %`, `Latence de lecture disque`) **et 3 étiquettes d'alerte du moniteur** (`pbs-down` 25 émissions / 1 résolution, `docker-down` 14/0, `nfs-export-down` 10/0 — §6.4) | Battent autour d'un seuil sans hystérésis, ou ré-émettent sans jamais se clore. 49 des 86 alertes de 30 j |
 | **Menteurs** | 2 maillons (`ntfy-relay` en maintenance rend 200 sans livrer ; `Systemd — crash-loop` aveugle aux hôtes hors `{job="journald"}`) | Rapportent un succès qui n'a pas eu lieu |
 | **Conformes** | 8 sondes à flux propre, `restic-check-monthly` en modèle, 4 règles Grafana | Prouvent un effet observable |
-| **Risques sans contrôle** | **18** (R-01 → R-18) | Dont 10 adossés à une panne réelle datée, les autres à un angle mort structurel. R-16 à R-18 ajoutés le 2026-10-01 (§6.6) |
+| **Risques sans contrôle** | **21** (R-01 → R-21) | Dont 12 adossés à une panne réelle datée, les autres à un angle mort structurel. R-16 à R-18 ajoutés le 2026-10-01 (§6.6) ; R-19 à R-21 le même jour (§7.5). **R-14 a été requalifié** : ce n'était pas le risque décrit (§7) |
 | **Paris de silence** | 12 lignes de `notif-hygiene.md`, dont **10 tenus**, 2 non instrumentés | La doctrine de silence n'est pas le défaut du parc — §6.2 |
 | **Cascade de suppression** | conforme, **394 suppressions sur 30 j** pour 86 alertes émises | Fait ce que la doc promet, par un mécanisme plus robuste que celui décrit — §6.3 |
 
@@ -663,3 +668,177 @@ externe qui existe pose ses propres questions :
 | **R-17** | **Rien ne prouve que le veilleur externe est encore armé.** Si le check est supprimé, mis en pause ou l'URL perdue, le homelab perd son seul filet hors-pile en silence. | Structurel. `homelab_monitor.sh:2179` : `curl -fsSL ... \|\| true` — l'échec du ping est avalé. Fichier d'URL absent → *« ping skipped silencieusement (no-op) »*. | Journaliser l'échec du ping (le code d'état HTTP suffit) et porter une entrée de fraîcheur dans le registre `guardrail-liveness`. Lentille **sonde vide** et **silence ≠ santé**. | Le `\|\| true` est là pour que le moniteur ne se bloque pas sur un tiers lent — intention juste, effet de bord muet. |
 | **R-18** | **Le dernier maillon — ntfy vers le téléphone — n'est observable par rien.** | Structurel, et mesuré : `subscribers=0` dans **les 43 132 relevés** de 30 j. Le serveur n'a jamais vu d'abonné connecté. La livraison réelle passe par le relais ntfy.sh/APNS, hors de portée du homelab. | Un accusé de réception de bout en bout : message de test périodique dont la lecture sur le téléphone est reconduite vers le homelab. C'est le seul contrôle qui fermerait la chaîne **sonde → règle → routage → livraison → humain**. | Aucun contrôle n'a jamais visé le maillon humain. `funnel-public-check` s'arrête au chemin public ; au-delà, personne. Même angle mort que **R-15**. |
 
+
+---
+
+## 7. R-14 tranché par la mesure — l'auto-réparation ne se tait pas, elle n'est jamais allée au bout
+
+> Instruit le 2026-10-01 dans le cadre de **T3**, à la demande explicite de
+> « trancher R-14 par la mesure **avant** de proposer un contrôle ». Aucune
+> modification de configuration n'a été faite pendant cette instruction.
+
+La révision 2 laissait R-14 ouvert en ces termes : *« Je n'ai pas pu vérifier
+depuis Loki si (a) une notification par relance et (b) une alerte urgente au
+déclenchement du disjoncteur notifient. »* Trois sources permettent de le
+trancher : le code de `check_containers_restart`, sa suite de tests, et
+l'historique Loki sur la rétention pleine.
+
+**La réponse est oui pour (a) et (b) — et la question était mal posée.** Le
+défaut d'observabilité de cette fonction est ailleurs, et la mesure le montre.
+
+### 7.1 (a) et (b) notifient : c'est dans le code, et c'est tenu par la CI
+
+`scripts/homelab_monitor.sh:1350-1364`, en fin de fonction, trois branches
+exclusives :
+
+| Issue | Chemin de notification | Priorité |
+|---|---|---|
+| Au moins un `docker start` en échec | `alert "container-restart-failed"` | **urgent** |
+| Relances toutes réussies | `send_ntfy "Conteneurs relances"` | `default` |
+| Disjoncteur atteint (3 relances / 24 h) | `alert "container-restart-capped"` | **urgent** |
+
+La demande de la révision 2 — *« le disjoncteur mérite une alerte urgente
+propre, pas une ligne de journal »* — **est déjà satisfaite**. Mieux : les trois
+branches sont verrouillées par `scripts/tests/ssd-recovery-docker.test.sh`, qui
+stube `alert` et `send_ntfy` et assert leur appel (cas 7, 13 et 15) :
+
+```
+# 7. Meme conteneur, delai echu -> relance
+assert_eq "delai echu: un ntfy recapitulatif" "1" "$(printf '%s' "$NTFY" | grep -c .)"
+# 13. Disjoncteur
+assert_eq "disjoncteur: le dit en alerte" "1" "$(printf '%s' "$ALERTS" | grep -c 'container-restart-capped')"
+# 15. `docker start` echoue -> alerte urgente, pas un ntfy de succes
+assert_eq "start en echec: alerte levee" "1" "$(printf '%s' "$ALERTS" | grep -c 'container-restart-failed')"
+assert_eq "start en echec: pas de ntfy de succes" "0" "$(printf '%s' "$NTFY" | grep -c .)"
+```
+
+Ni `container-restart-failed` ni `container-restart-capped` ne figurent dans
+`MAINT_SILENCEABLE` (`homelab_monitor.sh:109-112`) : **une fenêtre de maintenance
+ne peut pas les taire.** Et `send_ntfy` n'étant pas routé par `alert()`, la
+notification de succès n'est ni dédupliquée ni suppressible — elle est bornée
+par le disjoncteur à **au plus 3 par conteneur et par 24 h**.
+
+### 7.2 Ce que la mesure dit, et qui change la nature du risque
+
+Requêtes exécutées le 2026-10-01 sur `http://192.168.1.31:3100`, fenêtre
+2026-09-02 → 2026-10-01 (**29 j — voir la limite de rétention en 7.6**) :
+
+| Requête | Résultat |
+|---|---|
+| `{job=~"monitor.*"} \|= "containers-stopped"` | **8 lignes** → 3 épisodes : `homepage` 09-02 16:55, `loki-replica` 09-03 15:13, `adguard` 09-03 15:29. Les trois `RESOLVED` **à la minute suivante** |
+| `{job=~"monitor.*"} \|= "CONTAINER RESTART"` | **2 lignes**, les deux `compte a rebours 2min` (09-03 15:13:03 et 15:29:03) |
+| `{job=~"monitor.*"} \|= "relances="` | **0 ligne** |
+| `{job=~"monitor.*"} \|= "Conteneurs relances"` | **0 ligne** |
+
+Lecture : **l'auto-réparation n'a relancé aucun conteneur en 29 jours.** Les
+trois arrêts se sont résolus seuls en ≈1 min, c'est-à-dire **avant l'échéance du
+délai de confirmation de 120 s**. Le délai de 2 min fait donc exactement ce pour
+quoi il a été écrit — ne pas courir contre un `compose up` — au point que le
+chemin de relance n'a jamais été emprunté en production.
+
+Deux conséquences, et elles tirent dans des directions opposées :
+
+1. **La révision 2 surestimait le risque.** Elle qualifiait R-14 d'« incident le
+   plus fréquent du homelab, 84 matches en 4 mois ». Sur la fenêtre mesurable,
+   c'est **3 épisodes en 29 jours, zéro réparation masquée**. Le chiffre des
+   4 mois porte sur une fenêtre hors rétention : il n'est pas réfuté, il n'est
+   pas reconduit.
+2. **Mais le chemin n'a aucune preuve de terrain.** Ce qui le place sous
+   **R-15** — *« un chemin de code jamais emprunté se dégrade en silence »* —
+   et non sous « l'auto-réparation masque des incidents ». C'est le même
+   diagnostic que les 4 fiches de remède de sucre cassées pendant quatre mois
+   *parce que rien n'avait jamais tenté de les exécuter*.
+
+### 7.3 Le vrai trou : un compte à rebours qui s'ouvre et ne se referme jamais
+
+Le journal porte **2 ouvertures de compte à rebours et 0 clôtures**. Ce n'est
+pas un hasard de la fenêtre : c'est le code. À l'ouverture :
+
+```bash
+echo "$now" > "$stopped_since"
+log "CONTAINER RESTART: arretes=[$targets] compte a rebours 2min"
+```
+
+À la résolution spontanée — le cas qui s'est produit deux fois sur deux :
+
+```bash
+if [ -z "$targets" ]; then
+    rm -f "$stopped_since"
+    return          # aucune ligne de journal
+fi
+```
+
+**Lentille sonde vide**, dans sa forme la plus pure : l'ensemble vide sort par un
+`return` muet. Conséquence vérifiable sur les deux événements du 2026-09-03 : en
+lisant Loki, **rien ne distingue « les conteneurs sont revenus seuls » de « le
+moniteur est mort pendant le compte à rebours »**. Les deux produisent
+exactement une ligne d'ouverture suivie de silence.
+
+Correction concrète, et c'est la conversion que R-14 appelle vraiment :
+
+```
+log "CONTAINER RESTART: plus d'arretes, compte a rebours annule apres ${age}s"
+```
+
+**Le cas concret où l'actuel réussit et où le converti échoue** : tuer
+`homelab_monitor.sh` 30 s après l'ouverture d'un compte à rebours. Aujourd'hui,
+le journal est **identique**, caractère pour caractère, à celui d'une
+auto-résolution normale. Avec la ligne de clôture, l'absence de clôture devient
+une absence détectable — et exploitable par la règle de fraîcheur `{job="monitor"}`
+muet > 5 min du **lot 2 (R-04)**.
+
+### 7.4 La relance réussie n'existe dans aucun flux que Grafana observe
+
+`send_ntfy` ne passe pas par `alert()`, donc **pas par `push_loki`**. Vérifié :
+
+| Requête | Résultat |
+|---|---|
+| `{job="monitor-alerts"}` sur 29 j | **47 lignes**, aucune portant `container-restart` |
+| valeurs de l'étiquette `alert_tag` | aucune valeur `container-restart-*` |
+
+Une relance automatique est donc visible dans `ntfy` et dans la ligne de log
+`{job="monitor"}` — mais **invisible du flux `{job="monitor-alerts"}`**, celui
+que sucre classifie et sur lequel les règles Grafana s'accrochent. Aucun tableau
+de bord, aucune règle, aucune série temporelle ne peut aujourd'hui compter les
+auto-réparations. C'est précisément ce qui rend la phrase du registre de mesure
+— *« l'auto-réparation silencieuse est un incident non alerté, pas un
+non-événement »* — **non instrumentable en l'état**.
+
+Correction : ajouter un `push_loki "container-restart-done" ...` à côté du
+`send_ntfy`, **sans** router par `alert()` — passer par `alert()` imposerait le
+verrou de 30 min de `STALE_MINUTES` et dédupliquerait deux réparations
+distinctes du même conteneur en une seule.
+
+Troisième écart, de la même famille : `docker start` rend 0 dès que le démon a
+**accepté** la commande. Un conteneur qui meurt deux secondes plus tard est
+annoncé « relancé » avec une clé à molette. **Preuve d'intention, pas d'effet.**
+Correction : relire l'état ≥5 s après et n'annoncer que ce qui tourne encore.
+Risque résiduel : le disjoncteur reste le seul filet si le conteneur reboucle,
+soit ≈6 min de battement avant l'alerte urgente.
+
+### 7.5 Trois risques sans contrôle ajoutés (R-19 → R-21)
+
+| # | Risque | Panne réelle, ou angle mort structurel | Contrôle qui l'aurait vu | Pourquoi il n'existe pas |
+|---|---|---|---|---|
+| **R-19** | **Renommer une règle Grafana change silencieusement son comportement en maintenance.** `ntfy-relay` décide de taire une alerte en cherchant une **sous-chaîne dans le titre** de la règle (`est_silencable`). | Structurel, rencontré pendant le **lot 1** de T3 : retitrer `Lancelot — silence Loki` pour qu'il soit honnête lui aurait fait perdre le motif `silence loki`, donc sonner à chaque redémarrage planifié. Seule la `description` a été touchée pour cette raison. | Un test qui assert que chaque motif de `est_silencable` matche au moins une règle réellement provisionnée — **lentille sonde vide** appliquée à une liste de motifs : une liste qui ne matche plus rien ne lève aucune erreur. | Le couplage titre → comportement n'est écrit nulle part et n'a pas de garde. Il attend le prochain renommage. |
+| **R-20** | **`send_ntfy` ne distingue pas un refus HTTP d'une livraison réussie**, donc le repli hors-pile ne s'arme pas. `rc=$?` capture le code de sortie de `curl`, pas le `%{http_code}` qu'il imprime (`homelab_monitor.sh:266-290`). | Structurel. Reproduit le 2026-10-01 : `curl -s -o /dev/null -w '%{http_code}' <url-404>` → imprime `404`, **rend `rc=0`**. Portée bornée par `NTFY_SERVER="http://127.0.0.1:8090"` en direct : un conteneur arrêté donne un refus de connexion (`rc=7`), correctement attrapé. Un ntfy **vivant mais refusant** (401 jeton expiré, 507 disque plein) est compté comme livré. | Tester le code HTTP et non le code de sortie : `[ "$code" -ge 200 ] && [ "$code" -lt 300 ]`. | Le `%{http_code}` est bien demandé à `curl` mais sa sortie n'est capturée par rien. Conséquence en chaîne : `NTFY_UNDELIVERED` n'est pas armé → **pas de bascule healthchecks.io**, et `alert()` crée le fichier d'état → **pas de ré-essai pendant 30 min**. Lentille **chaîne de notification complète**. |
+| **R-21** | **Une alerte peut ne jamais atteindre le flux que sucre et Grafana observent, sans que rien ne le dise.** `push_loki` se termine par `\|\| true` (`homelab_monitor.sh:357`). | **Mesuré, 1 cas sur 3 dans la fenêtre.** L'alerte `containers-stopped` du 2026-09-02 14:55:03 existe dans `{job="monitor"}` (`ALERT [containers-stopped]: Containers arretes: homepage`) mais **n'a aucune contrepartie** dans `{job="monitor-alerts"}` ni dans `{job="monitor-alerts-maintenance"}` sur 2026-09-02 10:00 → 2026-09-04 00:00. Les deux alertes du 09-03 y sont, elles. La ligne de log ne porte pas `SUPPRIME` : la maintenance n'est pas l'explication. | Journaliser l'échec du push (le code HTTP suffit), et un contrôle de cohérence : tout `ALERT [tag]` de `{job="monitor"}` doit avoir son jumeau dans `{job="monitor-alerts"}` sous 1 min. | Le `\|\| true` est volontaire et documenté — *« l'alerte ntfy est la source de vérité primaire, Loki est observabilité secondaire »*. L'intention est juste ; l'effet est qu'un maillon d'observabilité peut tomber **sans laisser de trace de sa propre chute**. Même famille que **R-17**. |
+
+### 7.6 Limites de cette instruction, dites explicitement
+
+- **Rétention Loki = 30 j, `max_query_length` = `30d1h`** (relevé sur
+  `/config` : `retention_period: 30d`, `max_query_length: 30d1h`). Une requête à
+  45 j est **refusée** avec `HTTP 400 — the query time range exceeds the limit`,
+  elle ne renvoie pas silencieusement moins. `check_containers_restart` est
+  déployée depuis le **2026-08-30** : **2 jours de son existence sont hors de
+  portée**. Les « 84 matches en 4 mois » de la révision 2 ne sont donc ni
+  confirmés ni réfutés ici.
+- **Les notifications `ntfy` elles-mêmes ne sont pas lisibles depuis ce poste.**
+  Ce qui est établi, c'est que l'appel est émis (code + CI) et qu'il part vers
+  `127.0.0.1:8090`. Que l'administrateur ait vu la notification sur son
+  téléphone reste du ressort de **R-18**, qui n'a toujours aucun observable.
+- **Aucune relance réelle n'a eu lieu pendant la fenêtre**, donc aucune des
+  branches (a)/(b) n'a de preuve de terrain. La preuve est de laboratoire — ce
+  qui est la définition même de **R-15**.
+- **Aucun fichier scellé par sops n'a été déchiffré**, et aucune valeur de secret
+  n'a été lue ni reproduite ici.
