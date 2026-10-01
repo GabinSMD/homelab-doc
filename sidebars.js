@@ -116,11 +116,25 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'operations/monitoring', label: 'Monitoring' },
         { type: 'doc', id: 'operations/notif-hygiene', label: 'Notif hygiene' },
+        {
+          // Trois pages, pas une : la page du format ne bouge presque jamais,
+          // la fenetre courante change en continu. Les melanger ferait relire
+          // les regles a chaque saisie — et un registre qui coute cher meurt.
+          type: 'category',
+          label: 'Registre de mesure',
+          collapsed: true,
+          link: { type: 'doc', id: 'operations/registre-mesure' },
+          items: [
+            { type: 'doc', id: 'operations/registre-fenetre-courante', label: 'Fenetre courante' },
+            { type: 'doc', id: 'operations/registre-modeles', label: 'Modeles' },
+          ],
+        },
         { type: 'doc', id: 'operations/backups', label: 'Backups' },
         { type: 'doc', id: 'operations/break-glass', label: 'Break-glass' },
         { type: 'doc', id: 'operations/depannage', label: 'Depannage' },
         { type: 'doc', id: 'operations/derive-configuration', label: 'Derive de configuration' },
         { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents recurrents' },
+        { type: 'doc', id: 'operations/inventaire-controles', label: 'Inventaire des controles' },
         { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (acces urgence)' },
         { type: 'doc', id: 'operations/dr-drill-scenario-1', label: 'DR drill scenario 1' },
         { type: 'doc', id: 'operations/doctrine-manager', label: 'Doctrine du Manager' },
