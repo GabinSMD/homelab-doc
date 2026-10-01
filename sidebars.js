@@ -121,6 +121,7 @@ const sidebars = {
         { type: 'doc', id: 'operations/depannage', label: 'Depannage' },
         { type: 'doc', id: 'operations/derive-configuration', label: 'Derive de configuration' },
         { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents recurrents' },
+        { type: 'doc', id: 'operations/inventaire-controles', label: 'Inventaire des controles' },
         { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (acces urgence)' },
         { type: 'doc', id: 'operations/dr-drill-scenario-1', label: 'DR drill scenario 1' },
       ],
