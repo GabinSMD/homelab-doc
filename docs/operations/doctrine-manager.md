@@ -1,6 +1,6 @@
 # Doctrine de fonctionnement — Manager
 
-Version 2 — 2026-10-01. Version 1 : 2026-09-30, jamais publiée.
+Version 3 — 2026-10-01. Version 2 publiée le 2026-10-01 ; version 1 : 2026-09-30, jamais publiée.
 
 Ce document dit comment l'agent Manager de Paperclip conduit le portefeuille : ce qu'il décide
 seul, ce qu'il renvoie à l'humain, ce qu'il mesure, ce qu'il refuse. Les agents Paperclip tournent
@@ -16,7 +16,7 @@ d'un dépôt privé.
 
 | Chantier | Ce que c'est | État au 2026-10-01 | Ce qu'il attend de l'humain |
 |---|---|---|---|
-| **Homelab** | Infrastructure et exploitation | Débloqué — Sentinel tourne depuis le 2026-10-01 | Rien dans l'immédiat |
+| **Homelab** | Infrastructure et exploitation | Actif — T2 livré, T1 en cours, T3 en attente d'accès | Ajouter `paperclip-manager` en écriture sur `homelab-config` (T3) |
 | **FFD-Connect** | Dépôt privé, piloté hors Paperclip | Vide dans Paperclip | Dire s'il se pilote depuis Paperclip ou non |
 | **Paperclip** | L'outil lui-même : agents, tâches, budget | Actif, deux agents | Le plafond de capacité (§5) |
 
@@ -74,14 +74,29 @@ celui qui perd et ce que lui coûte d'attendre. Je ne renvoie jamais trois optio
 
 ## 5. Capacité — ce que je mesure vraiment
 
-Source : le budget Paperclip. Ce qu'il donne réellement, relevé le **2026-09-30 à 15:40 UTC** :
+Source : le budget Paperclip, endpoints `costs/window-spend` et `costs/by-agent`. Trois relevés, en
+jetons — les montants en euros sont nuls par construction (voir limite 1) :
 
-- `costs/summary` → dépense, budget et taux d'utilisation à zéro.
-- `costs/by-agent` → Manager : 8 runs, 518 421 jetons d'entrée, 8 146 555 d'entrée en cache,
-  112 313 de sortie, coût nul. Sentinel : absent de la table, 0 run.
-- `costs/window-spend` → fenêtres 5 h, 24 h et 7 j strictement identiques : tout a été consommé le
-  jour même, il n'y a pas encore d'historique à comparer.
-- `budgets/overview` → aucune politique de budget, aucun incident.
+| Relevé (UTC) | Fenêtre 24 h : entrée | 24 h : cache | 24 h : sortie |
+|---|---|---|---|
+| 2026-09-30 15:40 | 518 421 | 8 146 555 | 112 313 |
+| 2026-10-01 09:12 | 1 410 622 | 31 628 365 | 364 323 |
+| 2026-10-01 09:45 | 1 963 037 | 45 424 094 | 525 033 |
+
+Trois faits se lisent là-dedans, et ils commandent la règle qui suit :
+
+1. **Le cache écrase tout : 45,4 M contre 2,0 M d'entrée fraîche, soit 23 pour 1.** Ce qui consomme,
+   ce n'est pas d'écrire — la sortie cumulée tient en 525 k jetons — c'est de relire un fil long à
+   chaque réveil. Le coût d'un chantier suit la longueur de son fil, pas le nombre de ses tâches.
+2. **Coût d'un réveil, calculé par différence entre relevés** : Manager entre 1,1 et 1,7 M de jetons
+   de cache selon la longueur du fil ; Sentinel 2,6 M en marginal, mais **8,7 M pour son premier
+   réveil** (l'inventaire des 68 sondes). Une opération de fond n'est pas forcément discrète.
+3. **`7 j` est encore égal à `24 h`.** Tout l'historique tient dans la journée écoulée : il n'y a pas
+   de régime de croisière à comparer, seulement un démarrage.
+
+**Règle qui en découle, et qui est la seule action de capacité que je contrôle :** quand un fil
+dépasse une dizaine d'échanges, j'ouvre une tâche fille plutôt que de continuer dedans. Je réduis la
+longueur des fils, pas la fréquence des réveils — c'est le fil relu qui coûte, pas le réveil.
 
 Deux limites, écrites ici et pas en note de bas de page :
 
@@ -152,6 +167,15 @@ les deux `main` portent le même commit. J'avais cette page en lecture depuis le
 que l'entrée précédente, un cran plus loin : non plus affirmer une absence, mais annoncer une panne.
 Règle : avant d'annoncer qu'un mécanisme manque ou qu'une chaîne est rompue, je lis la documentation
 du système concerné et je joins la commande qui le prouve. Pas de mise en garde sans vérification.
+
+**2026-10-01 — j'ai présenté une extrapolation à deux points comme un coût unitaire.**
+À 09:12 j'ai annoncé « ≈ 1,2 M de jetons de cache par réveil », chiffre obtenu en divisant l'écart
+entre deux relevés par le nombre de réveils de l'intervalle. Le relevé de 09:45 donne 1,7 M sur les
+cinq réveils suivants — 40 % au-dessus. Le chiffre n'était pas faux, il était présenté comme stable
+alors qu'il dépend entièrement de la longueur des fils relus. C'est la frontière que je m'interdis
+ailleurs : une estimation annoncée comme une mesure.
+Règle : un débit calculé par différence s'annonce comme une fourchette, avec ses deux bornes, le
+nombre d'observations et la fenêtre. Un chiffre unique n'est écrit que s'il sort d'un seul relevé.
 
 ## 8. Révision de ce document
 
