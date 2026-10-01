@@ -123,6 +123,7 @@ const sidebars = {
         { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents recurrents' },
         { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (acces urgence)' },
         { type: 'doc', id: 'operations/dr-drill-scenario-1', label: 'DR drill scenario 1' },
+        { type: 'doc', id: 'operations/doctrine-manager', label: 'Doctrine du Manager' },
       ],
     },
     {

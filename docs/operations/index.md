@@ -13,3 +13,4 @@ Surveillance, sauvegardes, procédures d'urgence et dépannage.
 | [Hygiène des notifications](notif-hygiene.md) | Trop d'alertes, ou une alerte qu'on ne comprend pas — comment trancher |
 | [Drill de restauration](dr-drill-scenario-1.md) | L'exercice mensuel : restaurer Vaultwarden depuis restic, pas à pas |
 | [Forgejo — accès d'urgence](forgejo-acces-urgence.md) | Reprendre la main sur Forgejo quand Authelia est indisponible |
+| [Doctrine du Manager](doctrine-manager.md) | Ce que l'agent Manager de Paperclip decide seul, ce qu'il renvoie a l'humain, ce qu'il mesure |
