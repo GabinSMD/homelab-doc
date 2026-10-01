@@ -103,6 +103,12 @@ RETIRES = [
             "docs/operations/derive-configuration.md",
             # Post-mortem d'une nuit de notifications ou Firefly etait en cause.
             "docs/operations/depannage.md",
+            # Inventaire des controles : cite `alert-firefly-remote-user-missing`
+            # (un `deleteRules` qui existe toujours dans rules.yml) et compte les
+            # declenchements mesures de l'etiquette `firefly-down` sur 30 j. Deux
+            # constats de mesure, aucune instruction : rien n'y dit d'utiliser
+            # Firefly. Blanchi le 2026-10-01.
+            "docs/operations/inventaire-controles.md",
         },
     },
     {
