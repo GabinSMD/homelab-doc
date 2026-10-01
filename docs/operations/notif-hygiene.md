@@ -4,6 +4,14 @@ Pas un sujet glamour mais critique : **un homelab qui bipe trop = un homelab don
 
 Cette page documenté le mode opérationnel actuel (depuis 2026-05-04) : **silence sur les success, signal uniquement sur les pannes**, avec un canary externe pour distinguer "tout va bien" de "penny est mort".
 
+:::note[Ce mode se mesure, il ne se décrète pas]
+Le silence est l'état normal ici. Ce qui le rend acceptable n'est pas la doctrine mais
+la preuve qu'aucune panne n'est passée dessous : c'est l'objet du
+[registre de mesure](registre-mesure.md), qui compte le rapport signal/bruit et les
+pannes vues avant toute alerte. Tout contrôle silencié ci-dessous doit figurer dans son
+tableau `ΔC` — un bruit qui baisse parce qu'on a coupé une sonde n'est pas un progrès.
+:::
+
 ## Principe
 
 ```mermaid

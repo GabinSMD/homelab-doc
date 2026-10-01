@@ -11,5 +11,8 @@ Surveillance, sauvegardes, procédures d'urgence et dépannage.
 | [Incidents recurrents](incidents-recurrents.md) | Les pannes déjà vues, avec leur remède — à ouvrir en premier |
 | [Dépannage](depannage.md) | Diagnostiquer un problème connu (DNS, OIDC, SSD, containers) |
 | [Hygiène des notifications](notif-hygiene.md) | Trop d'alertes, ou une alerte qu'on ne comprend pas — comment trancher |
+| [Registre de mesure](registre-mesure.md) | Le format qui rend « 30 jours sans incident silencieux » réfutable |
+| [Registre — fenêtre courante](registre-fenetre-courante.md) | **Y écrire** : une alerte reçue, ou une panne vue avant toute alerte |
+| [Registre — modèles](registre-modeles.md) | Point hebdomadaire et bilan de fenêtre, à copier |
 | [Drill de restauration](dr-drill-scenario-1.md) | L'exercice mensuel : restaurer Vaultwarden depuis restic, pas à pas |
 | [Forgejo — accès d'urgence](forgejo-acces-urgence.md) | Reprendre la main sur Forgejo quand Authelia est indisponible |
