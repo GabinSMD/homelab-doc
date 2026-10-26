@@ -88,6 +88,14 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: 'Medias',
+          collapsed: true,
+          items: [
+            { type: 'doc', id: 'services/iptv', label: 'IPTV (LXC 109)' },
+          ],
+        },
+        {
+          type: 'category',
           label: 'Jeux',
           collapsed: true,
           items: [

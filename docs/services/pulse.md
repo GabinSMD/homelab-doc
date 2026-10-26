@@ -33,6 +33,13 @@ for e in ev: agg[e["use_case"]] += e["input_tokens"]*5/1e6 + e["output_tokens"]*
 for k, v in agg.most_common(): print(f"{k:12} {v:6.2f} $")
 PY
 ```
+
+:::warning[Plus valable depuis la v6]
+Constaté le 2026-10-26 : `ai_usage_history.json` et `ai_patrol_runs.json` sont désormais
+**chiffrés** (comme `ai.enc` et `sso.enc`) — le script ci-dessus échoue sur des octets
+non UTF-8. Mesurer le coût dans la page **Cost** de la Console Anthropic, ou dans l'écran
+IA de Pulse.
+:::
 :::
 
 ## Un seuil franchi en permanence n'informe plus
@@ -53,6 +60,22 @@ par défaut du binaire, donc un seuil ne se change que par l'interface.
 `investigation failed: provider error: stream error from Anthropic` et
 `context deadline exceeded` sont des **échecs amont transitoires**, autour de 3 à
 4 % des appels. Le réessai passe. Ce ne sont pas des erreurs de configuration.
+
+## Le compte SSO n'est pas administrateur
+
+Constaté le 2026-10-26 : se connecter par Authelia ouvre une session sous une identité
+**distincte** du compte local `admin` — `sso:oidc:legacy-oidc:<id>` dans
+`/opt/pulse/data/rbac/rbac.db` — et cette identité n'a **aucun rôle** depuis sa création
+le 2026-09-24. Chaque écran de réglages renvoie alors un 403 (« Session user missing
+admin privileges »), ce qui se vit comme « Pulse ne répond plus ».
+
+Correctif : se connecter avec le compte local `admin`, puis donner le rôle
+**Administrator** à l'utilisateur SSO (ou associer le groupe admin d'Authelia à ce rôle).
+La base se lit sans risque en lecture seule :
+
+```bash
+python3 -c 'import sqlite3; c=sqlite3.connect("file:/opt/pulse/data/rbac/rbac.db?mode=ro", uri=True); print(c.execute("select * from rbac_user_assignments").fetchall())'
+```
 
 ## Le SSO ne marche pas sous la v6, et pourquoi
 
