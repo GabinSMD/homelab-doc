@@ -92,7 +92,7 @@
 
 ### Quality of life développement
 
-- [x] **Renovate** sur homelab-config repo (auto-PR deps ; Dependency Dashboard issue #19)
+- [ ] **Renovate** sur homelab-config — **suspendu depuis le 2026-08-16** (incompatible avec le miroir Forgejo → GitHub, qui efface ses branches). À relancer en auto-hébergé, branché sur Forgejo (phase 2 de la migration). Tant qu'il est coupé, aucune image ne se met à jour seule : le scan Trivy hebdomadaire est le seul filet.
 - [x] **CI/CD GitHub Actions** sur homelab-config (sucre lint+tests, scripts bash+shellcheck, yaml+compose, secret scan — gate avant merge)
 - [ ] Synthetic monitoring externe (healthchecks par service public — homelab.gabin-simond.fr etc)
 

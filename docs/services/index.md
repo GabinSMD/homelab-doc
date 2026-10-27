@@ -59,6 +59,7 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[Vaultwarden](vaultwarden.md)** | `vault.home…` | LXC 102 `vault` / galahad |
 | **[PBS](pbs.md)** | `backup.home…` | LXC 103 `pbs` / lancelot |
 | **[Pulse](pulse.md)** | `pulse.home…` | LXC 106 `pulse` / galahad |
+| **[IPTV](iptv.md)** | `iptv.home…` | LXC 109 `iptv` / galahad — depuis le 2026-10-26 |
 | **[AdGuard secondaire](dns-failover.md)** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
 | **Securo** | `securo.home…` | LXC 110 `securo` / lancelot — en évaluation depuis le 2026-09 |
@@ -181,6 +182,7 @@ Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surfac
 | 106 | [`pulse`](pulse.md) | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
 | 107 | [`waterline`](waterline.md) | galahad | DHCP | Serveur de test du mod Waterline |
 | 108 | [`ci-runner`](ci-runner.md) | lancelot | DHCP | Runner Forgejo Actions (aarch64) |
+| 109 | [`iptv`](iptv.md) | galahad | `192.168.1.37` | IPTVnator + passerelle Freebox → HLS (GPU passé au LXC) |
 | 110 | `securo` | lancelot | `192.168.1.38` | Securo — agrégateur financier, **en évaluation**. 6 conteneurs (backend, frontend, 2 workers Celery, Redis, Postgres+pgvector) |
 
 `securo` n'a pas de page dédiée : il est cité ici et dans la
