@@ -1,4 +1,14 @@
-# Project Zomboid — serveur dédié B42.20
+# Project Zomboid — serveur dédié B42.20 (archivé)
+
+:::warning[Serveur démantelé le 2026-11-01]
+Inutilisé, le serveur a été arrêté et le **LXC 104 détruit** sur galahad. Cette page est
+gardée comme archive : la procédure et les pièges restent valables si on le recrée.
+
+- Sauvegarde finale du conteneur sur PBS : `ct/104/2026-11-01T20:35:56Z`, **protégée**.
+- Sauvegarde de la partie : `/mnt/ssd/data/pz-backups/pz-save-final-20261101-2135.tar.gz` sur penny.
+- Retirés en même temps : la déclaration IaC, les minuteurs `pz-backup` et
+  `pz-disk-check` de penny, la collecte Alloy, la tuile Homepage.
+:::
 
 Serveur Project Zomboid **Build 42.20** hébergé dans le LXC 104 `zomboid` sur galahad, monde restauré depuis une sauvegarde. Accès réservé au cercle d'amis via Tailscale, aucun port ouvert sur la box.
 
