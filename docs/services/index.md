@@ -177,7 +177,7 @@ Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surfac
 | 101 | [`logs`](logs-stack.md) | lancelot | `192.168.1.31` | Loki + Grafana + Prometheus + relais ntfy |
 | 102 | [`vault`](vaultwarden.md) | galahad | `192.168.1.32` | Vaultwarden |
 | 103 | [`pbs`](pbs.md) | lancelot | `192.168.1.33` | Proxmox Backup Server |
-| 104 | [`zomboid`](zomboid.md) | galahad | DHCP | Serveur Project Zomboid |
+| 104 | [`zomboid`](zomboid.md) | galahad | — | **Détruit** le 2026-11-01 (serveur Project Zomboid inutilisé, sauvegarde finale protégée sur PBS) |
 | 105 | `sucre` | lancelot | DHCP | **Arrêté** depuis le 2026-08-25 — voir [Bilan et arrêt](../projet/sucre.md#bilan-et-arrêt) |
 | 106 | [`pulse`](pulse.md) | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
 | 107 | [`waterline`](waterline.md) | galahad | DHCP | Serveur de test du mod Waterline |

@@ -99,7 +99,7 @@ const sidebars = {
           label: 'Jeux',
           collapsed: true,
           items: [
-            { type: 'doc', id: 'services/zomboid', label: 'Project Zomboid (LXC 104)' },
+            { type: 'doc', id: 'services/zomboid', label: 'Project Zomboid (archivé)' },
             { type: 'doc', id: 'services/waterline', label: 'Waterline (LXC 107)' },
           ],
         },
