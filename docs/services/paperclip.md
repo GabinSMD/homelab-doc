@@ -1,4 +1,24 @@
-# Paperclip
+# Paperclip (retiré)
+
+:::warning[Retiré le 2026-11-02]
+Ses agents échouaient en 5 s sans rien produire depuis le **2026-10-02** : le jeton
+d'abonnement Claude qu'il utilisait avait expiré, et Paperclip ne sait pas le
+renouveler. Personne ne l'a remarqué pendant un mois, alors qu'il coûtait sur penny
+~700 Mo de RAM, 20-30 % de CPU et **52 000 lignes de journal par jour**. La
+surveillance qu'il assurait est couverte par [Pulse Patrol](pulse.md).
+
+- **Données conservées** : volumes Docker `config_paperclip-db` et
+  `config_paperclip-data`, et un dump final de la base
+  (`/mnt/ssd/backups/paperclip/paperclip-final-20261102-2046.sql.gz`, 211 tables).
+- **Compte hôte `paperclip-agent` neutralisé** : il gardait une clé SSH autorisée et
+  une règle `sudo` `NOPASSWD: ALL`, soit un accès root complet. Règle retirée, clé
+  retirée, compte expiré, shell `nologin`.
+- **Pour le relancer** : reprendre son bloc dans l'historique de
+  `docker/docker-compose.yml` et donner à ses agents une **clé API** (couverte par
+  les crédits mensuels du plan Team) plutôt qu'un jeton d'abonnement.
+
+La suite de la page décrit le service tel qu'il était.
+:::
 
 Orchestration d'agents IA : serveur Node.js et interface React qui pilotent une equipe
 d'agents (Claude Code, Codex, Bash, HTTP) avec des objectifs, des budgets et un suivi de
