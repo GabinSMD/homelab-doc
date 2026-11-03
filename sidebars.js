@@ -81,8 +81,8 @@ const sidebars = {
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/homepage', label: 'Homepage (dashboard)' },
-            { type: 'doc', id: 'services/portainer', label: 'Portainer' },
-            { type: 'doc', id: 'services/homelable', label: 'Homelable (cartographie)' },
+            { type: 'doc', id: 'services/portainer', label: 'Portainer (retiré)' },
+            { type: 'doc', id: 'services/homelable', label: 'Homelable (retiré)' },
             { type: 'doc', id: 'services/boite-a-outils', label: 'Boite a outils' },
           ],
         },
