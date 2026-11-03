@@ -105,7 +105,6 @@ répond au ping.
 | `penny` | `100.97.239.90` | Serveur principal, **resolveur DNS n°1**, annonce `192.168.1.28/32`, porte le Funnel |
 | `guardian` | `100.74.145.26` | LXC 100 `dns-failover` — **resolveur DNS n°2** |
 | `galahad` / `lancelot` | `100.98.58.121` / `100.69.6.13` | Les deux nœuds Proxmox (Tailscale SSH) |
-| `sucre` | `100.119.15.67` | LXC 105 (`tagged-devices`) |
 | `zomboid` / `waterline` | `100.118.152.0` / `100.93.179.106` | Serveurs de jeu (LXC 104 et 107) |
 | `macbook-pro-de-gabin` | `100.68.165.36` | Le Mac (`192.168.1.173` quand il est à la maison) |
 | `A00783` | `100.64.114.40` | PC Windows |

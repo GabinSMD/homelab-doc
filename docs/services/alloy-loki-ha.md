@@ -51,12 +51,12 @@ Neuf sur dix expédient. Relevé par `pct exec <id> -- systemctl is-active alloy
 | 101 logs | lancelot | journald + Docker (sauf le conteneur `loki`) |
 | 102 vault | galahad | journald + Docker (`vaultwarden`) |
 | 103 pbs | lancelot | journald |
-| 104 zomboid | galahad | journald |
-| 105 sucre | lancelot | journald (antérieur) |
+| ~~104 zomboid~~ | galahad | détruit le 2026-11-01 |
+| ~~105 sucre~~ | lancelot | détruit le 2026-11-03 |
 | 106 pulse | galahad | journald + Docker (`pulse`, filtré) |
 | 107 waterline | galahad | journald |
 | 108 ci-runner | lancelot | journald seulement |
-| **110 securo** | lancelot | **aucune — Alloy n'y est pas installé** |
+| ~~110 securo~~ | lancelot | détruit le 2026-11-03 (Alloy n'y a jamais été installé) |
 
 :::warning[La LXC 110 `securo` n'expédie rien, constaté le 2026-09-24]
 Alloy n'y est pas installé : `/etc/alloy/` n'existe pas, l'unité est `inactive`, et aucun

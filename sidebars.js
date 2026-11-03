@@ -166,7 +166,7 @@ const sidebars = {
         { type: 'doc', id: 'projet/decisions', label: 'Decisions techniques' },
         { type: 'doc', id: 'projet/gestion-des-issues', label: 'Gestion des issues' },
         { type: 'doc', id: 'projet/roadmap', label: 'Roadmap (4 phases hardware)' },
-        { type: 'doc', id: 'projet/sucre', label: 'sucre (SRE perso, arrete)' },
+        { type: 'doc', id: 'projet/sucre', label: 'sucre (SRE perso, retiré)' },
         { type: 'doc', id: 'projet/sucre-observability', label: 'sucre — observabilite' },
         { type: 'doc', id: 'projet/about', label: 'A propos' },
         {

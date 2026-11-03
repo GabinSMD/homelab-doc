@@ -1,5 +1,12 @@
 # sucre — SRE perso
 
+:::warning[LXC détruit le 2026-11-03]
+Arrêté depuis le 2026-08-25, `sucre` est abandonné au profit de Pulse Patrol. Le LXC 105
+est détruit (sauvegarde finale protégée `ct/105/2026-11-03T09:50:19Z` sur PBS), le
+code `sucre/` est retiré de `homelab-config` (il reste dans l'historique git), le
+compte `sucre` de penny est verrouillé.
+:::
+
 :::note[Renommage 2026-07-06]
 Anciennement **fish**. Renommé **sucre** le 2026-07-06 — le nom « Fish » est réservé au futur assistant général du homelab. Toutes les références (user SSH, services systemd, chemins, labels Loki, node Tailscale) ont été migrées.
 :::
