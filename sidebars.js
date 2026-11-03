@@ -49,7 +49,7 @@ const sidebars = {
             { type: 'doc', id: 'services/logs-stack', label: 'Stack logs (LXC 101)' },
             { type: 'doc', id: 'services/grafana', label: 'Grafana' },
             { type: 'doc', id: 'services/alloy-loki-ha', label: 'Alloy et Loki en HA' },
-            { type: 'doc', id: 'services/beszel', label: 'Beszel (metriques)' },
+            { type: 'doc', id: 'services/beszel', label: 'Beszel (retiré)' },
             { type: 'doc', id: 'services/pulse', label: 'Pulse (LXC 106)' },
             { type: 'doc', id: 'services/ntfy', label: 'ntfy (notifications)' },
           ],
