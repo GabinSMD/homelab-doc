@@ -1,4 +1,18 @@
-# Beszel — métriques d'hôtes
+# Beszel — métriques d'hôtes (retiré)
+
+:::warning[Retiré le 2026-11-03]
+Doublon de [Pulse](pulse.md) (agents sur les quatre machines) et de Prometheus/Grafana.
+La carte **Machines** de Homepage lit désormais l'API de Pulse, avec un jeton en
+lecture seule.
+
+- Données conservées : volume `config_beszel-data` et
+  `/mnt/ssd/backups/beszel/` (dump final, et l'ancien compose de 2025 avec sa clé SSH).
+- Retirés : conteneurs de penny, agents de galahad et lancelot (désactivés), port
+  45876 (pare-feu du cluster et de penny), client OIDC Authelia, sauvegarde restic du
+  volume, sonde d'outillage.
+
+La suite décrit le service tel qu'il était.
+:::
 
 Supervision légère des trois machines : CPU, RAM, disque, température, conteneurs.
 Complémentaire de Grafana, qui porte les logs.

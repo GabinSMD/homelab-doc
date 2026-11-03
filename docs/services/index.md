@@ -19,7 +19,7 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[AdGuard Home](adguard.md)** | `adguard/adguardhome:latest` | `dns.home…` | penny (host net) | host |
 | **[Homepage](homepage.md)** | `ghcr.io/gethomepage/homepage:latest` | `home.gabin-simond.fr` | penny | proxy, socket |
 | **[Portainer EE](portainer.md)** | `portainer/portainer-ee:latest` | `portainer.home…` | penny | proxy |
-| **[Beszel](beszel.md)** | `henrygd/beszel:latest` | `monitor.home…` | penny | proxy |
+| ~~[Beszel](beszel.md)~~ | — | — | — | **Retiré le 2026-11-03** (doublon de Pulse) |
 | **[Forgejo](forgejo.md)** | `codeberg.org/forgejo/forgejo:13-rootless` | `git.home…` | penny | proxy |
 | **[Outline](outline.md)** | `outlinewiki/outline:latest` | `wiki.home…` | penny | outline, proxy |
 | **[ntfy](ntfy.md)** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
@@ -35,7 +35,7 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **socket-proxy** | `lscr.io/linuxserver/socket-proxy:3.4.2-r0-ls88` | Filtre l'API Docker pour Traefik, Homepage, Dozzle, autoheal |
 | **autoheal** | `willfarrell/autoheal:latest` | Redémarre les conteneurs `unhealthy` |
 | **[CrowdSec](crowdsec.md)** | `crowdsecurity/crowdsec:latest` | Détection + bouncer Traefik |
-| **beszel-agent** | `henrygd/beszel-agent:latest` | Agent de métriques (réseau host) |
+| ~~beszel-agent~~ | — | Retiré le 2026-11-03 avec Beszel |
 | **[loki-replica](alloy-loki-ha.md)** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
 | **[status](boite-a-outils.md)** | `busybox:1.38` | Page d'état statique |
 | **outline-db** / **outline-redis** | `postgres:16-alpine` / `redis:7-alpine` | Base et cache d'Outline |
@@ -113,7 +113,6 @@ graph TB
         Traefik --> Authelia
         Traefik --> Portainer
         Traefik --> Homepage
-        Traefik --> Beszel
     end
 
     subgraph Network socket
@@ -125,7 +124,6 @@ graph TB
 
     subgraph Host network
         AdGuard
-        BeszelAgent
         Tailscale[Tailscale host]
     end
 
@@ -213,7 +211,6 @@ nœuds PVE qui concernent leurs propres pare-feux.
 | SSH galahad | 2807 | TCP | Tous (clé obligatoire, pare-feu de galahad) |
 | SSH lancelot | 2808 | TCP | Tous (clé obligatoire, pare-feu de lancelot) |
 | AdGuard UI | 3000 | TCP | LAN + Tailscale |
-| Beszel Agent | 45876 | TCP | LAN + Tailscale |
 | node-exporter | 9100 | TCP | LAN (scrape par le Prometheus de la LXC 101) |
 | NFS rpcbind | 111 | TCP/UDP | LAN + Tailscale (export du datastore PBS) |
 | NFS | 2049 | TCP | LAN + Tailscale (export du datastore PBS) |
