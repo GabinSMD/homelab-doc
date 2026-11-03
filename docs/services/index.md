@@ -62,7 +62,6 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[IPTV](iptv.md)** | `iptv.home…` | LXC 109 `iptv` / galahad — depuis le 2026-10-26 |
 | **[AdGuard secondaire](dns-failover.md)** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
-| **Securo** | `securo.home…` | LXC 110 `securo` / lancelot — en évaluation depuis le 2026-09 |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
 | **Docs** | `homelab.gabin-simond.fr` | GitHub Pages, hors infra — seul service public sans Authelia |
 
@@ -132,7 +131,6 @@ graph TB
         Traefik -->|dynamic/| Vault[Vaultwarden LXC 102]
         Traefik -->|dynamic/| PBS[PBS LXC 103]
         Traefik -->|dynamic/| Pulse[Pulse LXC 106]
-        Traefik -->|dynamic/| Securo[Securo LXC 110]
         Traefik -->|dynamic/| DnsFO[AdGuard secondaire LXC 100]
     end
 ```
@@ -174,16 +172,17 @@ Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surfac
 | 102 | [`vault`](vaultwarden.md) | galahad | `192.168.1.32` | Vaultwarden |
 | 103 | [`pbs`](pbs.md) | lancelot | `192.168.1.33` | Proxmox Backup Server |
 | 104 | [`zomboid`](zomboid.md) | galahad | — | **Détruit** le 2026-11-01 (serveur Project Zomboid inutilisé, sauvegarde finale protégée sur PBS) |
-| 105 | `sucre` | lancelot | DHCP | **Arrêté** depuis le 2026-08-25 — voir [Bilan et arrêt](../projet/sucre.md#bilan-et-arrêt) |
+| 105 | `sucre` | lancelot | — | **Détruit** le 2026-11-03 (arrêté depuis le 2026-08-25, remplacé par Pulse Patrol) — voir [Bilan et arrêt](../projet/sucre.md#bilan-et-arrêt) |
 | 106 | [`pulse`](pulse.md) | galahad | `192.168.1.34` | Pulse (supervision Proxmox + Docker) |
 | 107 | [`waterline`](waterline.md) | galahad | DHCP | Serveur de test du mod Waterline |
 | 108 | [`ci-runner`](ci-runner.md) | lancelot | DHCP | Runner Forgejo Actions (aarch64) |
 | 109 | [`iptv`](iptv.md) | galahad | `192.168.1.37` | IPTVnator + passerelle Freebox → HLS (GPU passé au LXC) |
-| 110 | `securo` | lancelot | `192.168.1.38` | Securo — agrégateur financier, **en évaluation**. 6 conteneurs (backend, frontend, 2 workers Celery, Redis, Postgres+pgvector) |
+| 110 | `securo` | lancelot | — | **Détruit** le 2026-11-03 : évaluation de Securo (agrégateur financier) abandonnée pour le moment |
 
-`securo` n'a pas de page dédiée : il est cité ici et dans la
-[dérive de configuration](../operations/derive-configuration.md), et l'inventaire reste
-son seul domicile tant que l'évaluation n'est pas tranchée.
+Les LXC `105` et `110` ont chacun une **sauvegarde finale protégée** sur PBS
+(`ct/105/2026-11-03T09:50:19Z`, `ct/110/2026-11-03T09:50:44Z`) : les relancer,
+c'est restaurer cette sauvegarde et reprendre leur déclaration Terraform dans
+l'historique de `homelab-config`.
 
 Note d'isolement : `vault` et `logs` sont sur des hosts différents (galahad vs lancelot) — si un node tombe, on ne perd pas simultanement les secrets ET les logs.
 
