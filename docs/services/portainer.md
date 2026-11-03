@@ -1,4 +1,16 @@
-# Portainer
+# Portainer (retiré)
+
+:::warning[Retiré le 2026-11-03]
+Doublon de [Dozzle](boite-a-outils.md) pour les logs et du CLI `docker compose`, dont
+le dépôt git est la source de vérité, pour le prix d'un socket Docker monté en direct.
+
+- Données conservées : volume `config_portainer-data` et
+  `/mnt/ssd/backups/portainer/` (archive finale).
+- Retirés : conteneur, tuile Homepage, client OIDC Authelia, sauvegarde restic du
+  volume ; Dozzle remplace Portainer comme témoin local de la sonde d'outillage.
+
+La suite décrit le service tel qu'il était.
+:::
 
 Interface d'administration Docker. Pratique pour inspecter, mauvaise idée pour
 déployer : la source de vérité des conteneurs de penny reste

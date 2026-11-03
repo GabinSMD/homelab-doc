@@ -18,13 +18,13 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[Authelia](authelia.md)** | `authelia/authelia:latest` | `auth.home…` | penny | proxy |
 | **[AdGuard Home](adguard.md)** | `adguard/adguardhome:latest` | `dns.home…` | penny (host net) | host |
 | **[Homepage](homepage.md)** | `ghcr.io/gethomepage/homepage:latest` | `home.gabin-simond.fr` | penny | proxy, socket |
-| **[Portainer EE](portainer.md)** | `portainer/portainer-ee:latest` | `portainer.home…` | penny | proxy |
+| ~~[Portainer EE](portainer.md)~~ | — | — | — | **Retiré le 2026-11-03** (doublon de Dozzle et du CLI) |
 | ~~[Beszel](beszel.md)~~ | — | — | — | **Retiré le 2026-11-03** (doublon de Pulse) |
 | **[Forgejo](forgejo.md)** | `codeberg.org/forgejo/forgejo:13-rootless` | `git.home…` | penny | proxy |
 | **[Outline](outline.md)** | `outlinewiki/outline:latest` | `wiki.home…` | penny | outline, proxy |
 | **[ntfy](ntfy.md)** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
 | **[Dozzle](boite-a-outils.md)** | `amir20/dozzle:latest` | `dozzle.home…` | penny | proxy, socket |
-| **[Homelable](homelable.md)** | `ghcr.io/pouzor/homelable-frontend:latest` | `homelable.home…` | penny | homelable, proxy |
+| ~~[Homelable](homelable.md)~~ | — | — | — | **Retiré le 2026-11-03** (cartographie jamais complétée) |
 | **[CyberChef](boite-a-outils.md)** | `ghcr.io/gchq/cyberchef:latest` | `cyberchef.home…` | penny | proxy |
 | **[Stirling PDF](boite-a-outils.md)** | `ghcr.io/stirling-tools/s-pdf:latest-ultra-lite` | `pdf.home…` | penny | proxy |
 
@@ -39,7 +39,7 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[loki-replica](alloy-loki-ha.md)** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
 | **[status](boite-a-outils.md)** | `busybox:1.38` | Page d'état statique |
 | **outline-db** / **outline-redis** | `postgres:16-alpine` / `redis:7-alpine` | Base et cache d'Outline |
-| **homelable-backend** | `ghcr.io/pouzor/homelable-backend:latest` | API de Homelable |
+| ~~homelable-backend~~ | — | Retiré le 2026-11-03 avec Homelable |
 
 ### Sur l'hôte penny, hors Docker
 
@@ -111,7 +111,6 @@ registres. Voir [comparer les ID d'image, jamais les digests](../securite/roadma
 graph TB
     subgraph Network proxy
         Traefik --> Authelia
-        Traefik --> Portainer
         Traefik --> Homepage
     end
 
@@ -144,7 +143,7 @@ middlewares partagés : `crowdsec-bouncer.yml`, `rate-limit.yml`, `security-head
 
 ### DNS interne
 
-Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage, Portainer, Beszel. Voir [dépannage](../operations/depannage.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
+Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour contacter Authelia OIDC) utilisent `dns: 192.168.1.28` (AdGuard) : Homepage. Voir [dépannage](../operations/depannage.md#docker-containers--dns-interne-et-oidc) si un container ne resout pas les domaines locaux.
 
 ## Réseaux Docker
 
@@ -152,18 +151,17 @@ Les containers sur `proxy` qui doivent résoudre `*.home.gabin-simond.fr` (pour 
 |---|---|---|
 | `proxy` | bridge | Services reverse-proxies par Traefik |
 | `socket` | bridge (internal) | Clients de socket-proxy (Traefik, Homepage, autoheal) |
-| `host` | host | AdGuard, Beszel Agent (Tailscale est sur l'host natif, pas Docker) |
+| `host` | host | AdGuard (Tailscale est sur l'host natif, pas Docker) |
 | `outline` | bridge | Outline avec sa base Postgres et son Redis |
-| `homelable` | bridge | Homelable et son API |
 
 Pour les implications sécurité (ICC, surface d'attaque inter-containers), voir [hardening — réseaux Docker](../securite/hardening.md#réseaux-docker--isolation-et-icc).
 
 ## Socket proxy — isolation Docker API
 
 Presque tout passe par `socket-proxy` sur le réseau `socket` (internal, pas d'internet).
-**Deux** conteneurs montent encore `/var/run/docker.sock` en direct, relevés le
-2026-09-24 : `portainer` (nécessité admin) et `beszel-agent` (métriques par conteneur).
-Les deux en `ro`. Voir [portainer](portainer.md#la-seule-exception-au-socket-proxy).
+Plus aucun conteneur ne monte `/var/run/docker.sock` en direct depuis le 2026-11-03 :
+les deux exceptions relevées le 2026-09-24, `portainer` et `beszel-agent`, ont été
+retirées avec leurs services.
 
 Pour la liste détaillée des endpoints autorises/bloques et l'analyse de surface d'attaque, voir [hardening — socket proxy](../securite/hardening.md#socket-proxy).
 
@@ -250,13 +248,10 @@ en croyant viser la config touche les deux.
 Docker volumes (données) réellement montés :
 ```text
 traefik-certs / traefik-data  — Certificats + logs d'acces (lus aussi par CrowdSec)
-portainer-data                — Donnees Portainer
 adguard-data                  — Donnees AdGuard
-beszel-data                   — Donnees Beszel
 crowdsec-data                 — Base des decisions CrowdSec
 ntfy-data                     — Messages et jetons ntfy
 loki-replica-data             — Replica du Loki de la LXC 101
-homelable-data                — Donnees de Homelable
 ```
 
 :::warning[Deux jeux de volumes coexistent, un seul sert]
@@ -301,6 +296,6 @@ bcrypt y perd un segment **en silence** — doubler les `$`.
 
 Ce que le fichier porte : les identifiants Cloudflare du challenge DNS de Traefik,
 la clé d'enrôlement Tailscale, et les jetons de lecture des widgets Homepage
-(Portainer, Beszel, AdGuard, Proxmox). L'inventaire nominatif est dans la
+(AdGuard, Proxmox, Pulse). L'inventaire nominatif est dans la
 [politique de sécurité](../securite/politique.md#inventaire-des-secrets-a-stocker-dans-vaultwarden)
 — cette page ne le duplique pas, pour n'avoir qu'un seul endroit à tenir à jour.

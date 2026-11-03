@@ -1,4 +1,18 @@
-# Homelable — cartographie réseau
+# Homelable — cartographie réseau (retiré)
+
+:::warning[Retiré le 2026-11-03]
+La cartographie n'a jamais été complétée : depuis un bridge Docker, aucune machine
+n'était identifiée. Le service a fait deux OOM, et [Pulse](pulse.md) couvre déjà
+l'inventaire des machines.
+
+- Données conservées : volume `config_homelable-data` et
+  `/mnt/ssd/backups/homelable/` (archive finale).
+- Retirés : conteneurs `homelable` et `homelable-backend`, réseau `homelable`,
+  client OIDC Authelia, utilisateur PVE `homelable@pve` et son jeton, sauvegarde
+  restic du volume.
+
+La suite décrit le service tel qu'il était.
+:::
 
 Découverte et cartographie automatique du réseau : machines, liens, dépendances.
 Sert de vue d'ensemble à côté de [Comment on accède aux services](../architecture/acces-reseau.md),
