@@ -1,9 +1,8 @@
-<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="G">
-  <!-- Approximation du mark G — remplacer par le SVG original pour pixel-perfect -->
-  <g fill="#155DFC">
-    <rect x="0" y="0" width="160" height="36"/>
-    <rect x="0" y="0" width="36" height="160"/>
-    <rect x="0" y="124" width="160" height="36"/>
-    <rect x="86" y="70" width="74" height="34"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 392" role="img" aria-labelledby="title">
+  <title id="title">Monogramme de Gabin Simond</title>
+  <!-- Reconstitution vectorielle du monogramme fourni pour la refonte. -->
+  <g fill="#0062fe">
+    <path d="M60 0H381Q384 0 384 3V65Q384 68 381 68H75Q68 68 68 75V225Q68 228 65 228H3Q0 228 0 225V60Q0 15 60 0Z"/>
+    <path d="M155 160H381Q384 160 384 163V324Q384 375 316 392H3Q0 392 0 389V327Q0 324 3 324H304Q316 324 316 312V231Q316 228 313 228H155Q152 228 152 225V163Q152 160 155 160Z"/>
   </g>
 </svg>

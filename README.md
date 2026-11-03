@@ -164,6 +164,30 @@ on the mirror.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Documentation interface
+
+The default reading surface is white, with the logo blue (`#0062FE`) for navigation and actions.
+The existing dark-mode switch remains available. Local full-text search is generated from the
+published HTML at build time; it includes code, MDX and tab panels, and sends no query to a third party.
+Use `bun run build` followed by `bun run serve` to check search; the development server does not
+produce the search index. Follow the resource limits in `CLAUDE.md` for local builds.
+Run `bun run test` for search extraction, ranking and metadata validation.
+
+Start a new page from `templates/service.md`, `templates/guide.md` or `templates/runbook.md`.
+The optional `doc_type` field accepts `service`, `guide`, `runbook`, `reference` or `journal`;
+existing pages have a type inferred from their location.
+
+“Last updated” is the Git modification date, not proof that a procedure works.
+Only after an actual operational check, add a quoted `verified_at: "YYYY-MM-DD"` and a
+`verification_note` describing what was checked. Both fields are validated during the build.
+Optional `related_docs` entries are `[label, /internal/path/]` pairs. Their destinations are
+checked by Docusaurus. Four core pages have default related links.
+
+The **Imprimer / PDF** action uses the browser print dialog. Print styles expose collapsed
+sections and rendered inactive tab panels, wrap commands and hide navigation. Verify the preview
+before saving a long procedure: browser pagination and unusually large diagrams can vary.
+This creates a PDF of the current page, not an offline copy of the entire site.
+
 <!-- DEPLOYMENT -->
 ## Deployment
 

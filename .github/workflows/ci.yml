@@ -130,6 +130,9 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Tests UX et recherche
+        run: bun run test
+
       # `onBrokenLinks` et `onBrokenAnchors` sont sur `throw` dans
       # docusaurus.config.js : un lien ou une ancre morte fait echouer ce job,
       # ce qui remplace le `--strict` de mkdocs.

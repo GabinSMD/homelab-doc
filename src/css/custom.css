@@ -1,39 +1,287 @@
-/* Feuille globale.
- *
- * VOLONTAIREMENT NUE. La personnalisation heritee du theme MkDocs (polices
- * Instrument Serif / Inter Tight / JetBrains Mono chargees depuis Google Fonts,
- * palette verte, titres en serif, bloc hero de l'accueil) a ete retiree le
- * 2026-08-26 : elle avait ete portee telle quelle pendant la migration, sans
- * etre retravaillee pour Docusaurus, et le resultat ne tenait pas.
- *
- * On repart donc du theme `classic` par defaut. Un habillage propre sera concu
- * plus tard, a partir de zero plutot qu'en recyclant l'ancien.
- *
- * Ne pas remettre de chargement de polices distant sans y penser : c'etait deux
- * `preconnect` plus une feuille Google Fonts sur chaque page du site public.
- */
-
+/* White reading surfaces, the supplied monogram's blue, no remote fonts. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-color-primary: #0062fe;
+  --ifm-color-primary-dark: #0058e5;
+  --ifm-color-primary-darker: #0053d8;
+  --ifm-color-primary-darkest: #0044b2;
+  --ifm-color-primary-light: #1a72ff;
+  --ifm-color-primary-lighter: #337fff;
+  --ifm-color-primary-lightest: #669fff;
+  --ifm-background-color: #fff;
+  --ifm-background-surface-color: #fff;
+  --ifm-navbar-background-color: #fff;
+  --ifm-footer-background-color: #fff;
+  --ifm-font-color-base: #142b50;
+  --ifm-heading-color: #142b50;
+  --ifm-font-color-secondary: #486387;
+  --ifm-color-emphasis-200: #e1ebfb;
+  --ifm-color-emphasis-300: #cbdcf5;
+  --ifm-color-emphasis-600: #486387;
+  --ifm-color-emphasis-700: #314b70;
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.75;
+  --ifm-heading-font-weight: 600;
+  --ifm-code-font-size: 88%;
+  --ifm-code-background: #fff;
+  --ifm-navbar-height: 4.5rem;
+  --ifm-navbar-shadow: none;
+  --ifm-menu-color: #486387;
+  --ifm-menu-color-active: #0062fe;
+  --ifm-menu-color-background-active: transparent;
+  --ifm-menu-color-background-hover: transparent;
+  --ifm-toc-border-color: #e1ebfb;
+  --ifm-table-border-color: #e1ebfb;
+  --ifm-table-stripe-background: transparent;
+  --ifm-table-head-background: transparent;
+  --ifm-global-radius: 6px;
+  --ifm-container-width: 1280px;
+  --ifm-container-width-xl: 1440px;
+  --doc-sidebar-width: 245px;
+  --homelab-border: #e1ebfb;
+  --homelab-muted: #486387;
+  --docusaurus-highlighted-code-line-bg: #edf4ff;
 }
 
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-color-primary: #83b3ff;
+  --ifm-color-primary-dark: #66a1ff;
+  --ifm-color-primary-darker: #4c91ff;
+  --ifm-color-primary-darkest: #2b7dff;
+  --ifm-color-primary-light: #a3c7ff;
+  --ifm-color-primary-lighter: #bed7ff;
+  --ifm-color-primary-lightest: #e0ecff;
+  --ifm-background-color: #0b1426;
+  --ifm-background-surface-color: #0b1426;
+  --ifm-navbar-background-color: #0b1426;
+  --ifm-footer-background-color: #0b1426;
+  --ifm-font-color-base: #eaf2ff;
+  --ifm-heading-color: #eaf2ff;
+  --ifm-font-color-secondary: #a7bedf;
+  --ifm-color-emphasis-200: #263c5d;
+  --ifm-color-emphasis-300: #385276;
+  --ifm-color-emphasis-600: #a7bedf;
+  --ifm-color-emphasis-700: #c7d9f3;
+  --ifm-menu-color: #a7bedf;
+  --ifm-menu-color-active: #83b3ff;
+  --ifm-code-background: #0b1426;
+  --ifm-toc-border-color: #263c5d;
+  --ifm-table-border-color: #263c5d;
+  --homelab-border: #263c5d;
+  --homelab-muted: #a7bedf;
+  --docusaurus-highlighted-code-line-bg: #173258;
+}
 
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+html {scroll-padding-top: 6rem;}
+body {letter-spacing: -.01em;}
+:focus-visible {outline: 2px solid var(--ifm-color-primary); outline-offset: 4px;}
+.sr-only {position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;}
+.navbar {border-bottom: 1px solid var(--homelab-border); padding-inline: 2rem;}
+.navbar__brand {gap: .5rem; margin-right: 1.7rem;}
+.navbar__logo {height: 30px;}
+.navbar__title {font-size: 19px; font-weight: 600; letter-spacing: -.04em;}
+.navbar__link {font-size: 13px; font-weight: 400; padding-inline: .75rem;}
+.navbar__link--active {text-decoration: underline; text-underline-offset: 10px;}
+.navbar-sidebar {background: var(--ifm-background-color);}
+.theme-doc-sidebar-container {border-right-color: var(--homelab-border)!important;}
+.menu {padding: 1.8rem .8rem!important; font-size: 13px;}
+.menu__link {padding: .55rem .8rem; line-height: 1.5;}
+.menu__link--active {font-weight: 600;}
+.menu__list .menu__list {border-left: 1px solid var(--homelab-border); margin-left: 1rem; padding-left: .4rem;}
+.theme-doc-breadcrumbs {margin: .7rem 0 1.4rem; font-size: 12px;}
+.breadcrumbs__item--active .breadcrumbs__link {background: transparent; color: var(--homelab-muted);}
+.theme-doc-markdown h1 {font-size: clamp(2rem, 3.2vw, 2.75rem); letter-spacing: -.045em; line-height: 1.18; margin-bottom: 1.25rem;}
+.theme-doc-markdown h2 {font-size: 1.45rem; letter-spacing: -.025em; margin-top: 2.8rem; margin-bottom: 1rem;}
+.theme-doc-markdown h3 {font-size: 1.1rem; margin-top: 2rem;}
+.theme-doc-markdown > p, .theme-doc-markdown > ul, .theme-doc-markdown > ol {max-width: 72ch;}
+.theme-doc-markdown p {overflow-wrap: anywhere;}
+.theme-doc-markdown code {overflow-wrap: anywhere;}
+.theme-doc-markdown pre code {overflow-wrap: normal;}
+.theme-doc-markdown hr {height: 1px; background: var(--homelab-border); margin-block: 2.4rem;}
+.theme-doc-markdown table {font-size: 14px; width: 100%; margin: 0;}
+.theme-doc-markdown table th, .theme-doc-markdown table td {border: 0; border-bottom: 1px solid var(--homelab-border); padding: .8rem 1rem; text-align: left;}
+.theme-doc-markdown table tr {border: 0; background: transparent;}
+.homelab-table-scroll {max-width: 100%; overflow-x: auto; margin: 1.5rem 0;}
+.theme-code-block {border: 1px solid var(--homelab-border); box-shadow: none!important;}
+[data-theme='light'] .theme-code-block, [data-theme='light'] .theme-code-block pre {background: #fff!important;}
+.theme-admonition {box-shadow: none; background: var(--ifm-background-color); border: 1px solid var(--homelab-border); border-left: 3px solid var(--ifm-alert-border-color); border-radius: 3px; margin: 1.6rem 0;}
+.table-of-contents {font-size: 12px; line-height: 1.65; padding-left: 1.2rem;}
+.table-of-contents li {margin: .65rem 0;}
+.table-of-contents__link {color: var(--homelab-muted);}
+.table-of-contents__link--active {color: var(--ifm-color-primary); font-weight: 600;}
+.theme-doc-toc-mobile {background: var(--ifm-background-color)!important; border: 1px solid var(--homelab-border); font-size: 13px;}
+.homelab-doc-toolbar {display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; font-size: 12px; color: var(--homelab-muted);}
+.homelab-doc-toolbar button, .homelab-diagram button {font: inherit; background: var(--ifm-background-color); color: var(--ifm-color-primary); border: 1px solid var(--homelab-border); border-radius: 4px; padding: .4rem .7rem; cursor: pointer;}
+.homelab-doc-toolbar > span {letter-spacing: .04em;}
+.homelab-doc-content[data-doc-kind='runbook'] .homelab-doc-toolbar > span {color: var(--ifm-color-primary); font-weight: 600;}
+.homelab-doc-content[data-doc-kind='guide'] .markdown > h2 {padding-top: .7rem; border-top: 1px solid var(--homelab-border);}
+.homelab-verification {font-size: 13px; color: var(--homelab-muted);}
+.homelab-related {border-top: 1px solid var(--homelab-border); margin-top: 3rem; padding-top: 1.5rem;}
+.homelab-related h2 {font-size: 1.1rem;}
+.homelab-related ul {display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem 1.5rem; list-style: none; padding: 0; font-size: 14px;}
+.theme-doc-footer {font-size: 12px; color: var(--homelab-muted);}
+.pagination-nav {margin-top: 2.5rem;}
+.pagination-nav__link {border-color: var(--homelab-border); border-radius: 5px; padding: 1rem;}
+.pagination-nav__label {font-size: 14px;}
+.pagination-nav__sublabel {font-size: 12px;}
+.footer {border-top: 1px solid var(--homelab-border); color: var(--homelab-muted); padding: 1.7rem; font-size: 12px;}
+.button {font-size: 13px; font-weight: 500; padding: .65rem 1rem; border-radius: 5px; line-height: 1.5;}
+.button--primary {background: #0062fe; border-color: #0062fe; color: #fff;}
+.button--primary:hover {background: #0053d8; border-color: #0053d8; color: #fff;}
+.brand-dot {color: var(--ifm-color-primary);}
+
+/* The landing is still the existing / document; all old anchors are retained. */
+.homelab-home-main {width: 100%; padding: 2.2rem 1.5rem 2.5rem;}
+.homelab-home-main > .container {max-width: 1120px;}
+.docs-doc-id-index .theme-doc-breadcrumbs, .docs-doc-id-index .theme-doc-footer, .docs-doc-id-index .pagination-nav {display: none;}
+.homelab-home-intro {display: flex; justify-content: space-between; align-items: center; gap: 2rem;}
+.homelab-eyebrow {font-size: 11px; font-weight: 500; letter-spacing: .1em; color: var(--homelab-muted); margin: 0 0 .7rem;}
+.homelab-home .homelab-home-intro h1 {font-size: clamp(2.2rem, 4vw, 3rem); margin: 0 0 .7rem;}
+.homelab-lead {font-size: 16px; color: var(--homelab-muted); margin: 0;}
+.homelab-home-actions {display: flex; flex-direction: column; align-items: flex-start; gap: .8rem; flex-shrink: 0; font-size: 13px;}
+.homelab-home-actions span {margin-left: 1rem;}
+.homelab-shortcuts {display: flex; flex-wrap: wrap; gap: .8rem 1.8rem; padding: 1.1rem 0; margin: 1.7rem 0 1.4rem; border-top: 1px solid var(--homelab-border); font-size: 13px;}
+.homelab-infra {display: grid; grid-template-columns: 1fr 1.8fr; border: 1px solid var(--homelab-border); border-radius: 6px; margin: 0 0 2.7rem; overflow: hidden;}
+.homelab-infra-intro {padding: 1.8rem; border-right: 1px solid var(--homelab-border);}
+.homelab-home .homelab-infra h2 {font-size: 1.7rem; margin: .8rem 0;}
+.homelab-infra-intro > p:not(.homelab-eyebrow) {font-size: 14px; color: var(--homelab-muted); max-width: 26ch; margin-bottom: 1rem;}
+.homelab-infra-intro > a {font-size: 13px;}
+.homelab-hosts {padding: 1.3rem 1.7rem; align-content: center;}
+.homelab-host-caption {display: flex; justify-content: space-between; gap: 1rem; font-size: 11px; color: var(--homelab-muted); padding-bottom: .8rem; border-bottom: 1px solid var(--homelab-border);}
+.homelab-host {display: grid; grid-template-columns: 125px 1fr; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--homelab-border);}
+.homelab-host:last-child {border-bottom: 0;}
+.homelab-host strong {font-size: 14px; font-weight: 600;}
+.homelab-host small {display: block; font-size: 11px; color: var(--homelab-muted);}
+.homelab-host-services {display: flex; flex-wrap: wrap; gap: .5rem;}
+.homelab-host-services a {font-size: 12px; color: var(--ifm-font-color-base); border: 1px solid var(--homelab-border); border-radius: 4px; padding: .2rem .5rem;}
+.homelab-host-services a:hover {color: var(--ifm-color-primary); border-color: var(--ifm-color-primary); text-decoration: none;}
+.homelab-section-heading {display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;}
+.homelab-home .homelab-section-heading h2 {font-size: 1.3rem; margin: 0;}
+.homelab-section-heading > span {font-size: 12px; color: var(--homelab-muted);}
+.homelab-resource-grid {display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2rem;}
+.homelab-home .homelab-resource-grid h3 {font-size: 14px; margin: 0 0 .7rem;}
+.homelab-resource-grid ul {list-style: none; padding: 0; margin: 0;}
+.homelab-resource-grid li {margin: 0!important;}
+.homelab-resource-grid a {display: flex; justify-content: space-between; gap: .7rem; font-size: 13px; padding: .7rem 0; border-bottom: 1px solid var(--homelab-border);}
+.homelab-recovery {display: flex; align-items: center; gap: 1.5rem; border-top: 1px solid var(--homelab-border); margin-top: 2.3rem; padding: 1.4rem 0; font-size: 13px;}
+.homelab-recovery strong {color: var(--ifm-font-color-base); font-weight: 600;}
+.homelab-recovery > span:nth-child(2) {color: var(--homelab-muted);}
+.homelab-recovery > span:last-child {margin-left: auto;}
+.homelab-home-reference {border: 0; border-top: 1px solid var(--homelab-border); background: var(--ifm-background-color); box-shadow: none!important; margin-top: 1rem; padding: 1rem 0;}
+.homelab-home-reference > summary {font-size: 13px; color: var(--homelab-muted);}
+
+/* Search runs locally over the generated index, including tabbed content. */
+.homelab-search {display: flex; align-items: center; width: 200px; border: 1px solid var(--homelab-border); border-radius: 5px; background: var(--ifm-background-color);}
+.homelab-search input {min-width: 0; width: 100%; border: 0; background: transparent; color: var(--ifm-font-color-base); font: inherit; font-size: 13px; padding: .45rem .65rem;}
+.homelab-search button {border: 0; background: transparent; color: var(--ifm-color-primary); min-width: 36px; font-size: 24px; line-height: 1; cursor: pointer; padding: .3rem;}
+.homelab-search-page {max-width: 900px; padding: 2.5rem 1.5rem 4rem;}
+.homelab-search-page > a {font-size: 13px;}
+.homelab-search-page h1 {font-size: clamp(2rem,4vw,2.7rem); letter-spacing: -.045em; line-height: 1.2; margin: 1.5rem 0 2rem;}
+.homelab-search-page label {display: block; font-size: 13px; margin-bottom: .7rem; color: var(--homelab-muted);}
+.homelab-search-field {display: flex; gap: .7rem;}
+.homelab-search-field input {min-width: 0; flex: 1; font: inherit; border: 1px solid var(--homelab-border); color: var(--ifm-font-color-base); background: var(--ifm-background-color); border-radius: 5px; padding: .65rem .9rem;}
+.homelab-search-count {color: var(--homelab-muted); font-size: 13px; margin: 1.5rem 0;}
+.homelab-search-results {list-style: none; padding: 0;}
+.homelab-search-results > li {border-bottom: 1px solid var(--homelab-border);}
+.homelab-search-results a {display: block; padding: 1.4rem 0; text-decoration: none;}
+.homelab-result-category {font-size: 12px; color: var(--homelab-muted);}
+.homelab-search-results h2 {font-size: 1.1rem; margin: .4rem 0;}
+.homelab-search-results p {font-size: 14px; line-height: 1.7; color: var(--ifm-font-color-base); margin: 0; overflow-wrap: anywhere;}
+
+/* Native dialogs keep Escape, focus trapping and keyboard access. */
+.homelab-diagram {margin: 1.6rem 0; border: 1px solid var(--homelab-border); border-radius: 5px; padding: .9rem;}
+.homelab-diagram figcaption {text-align: right; margin-top: .5rem; font-size: 12px;}
+.homelab-diagram-dialog {width: min(95vw,1500px); max-width: 95vw; max-height: 92vh; padding: 0; border: 1px solid var(--homelab-border); border-radius: 8px; background: var(--ifm-background-color); color: var(--ifm-font-color-base);}
+.homelab-diagram-dialog::backdrop {background: rgb(10 25 50 / 60%);}
+.homelab-diagram-controls {display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: .8rem 1rem; border-bottom: 1px solid var(--homelab-border); font-size: 13px;}
+.homelab-diagram-controls > div {display: flex; align-items: center; gap: .7rem;}
+.homelab-diagram-controls button:disabled {opacity: .4; cursor: default;}
+.homelab-diagram-scroll {overflow: auto; max-height: 77vh; padding: 1.5rem;}
+.homelab-diagram-dialog .mermaid svg {width: 100%!important; max-width: none!important; height: auto;}
+
+@media (min-width: 997px) {
+  .theme-doc-markdown {padding-right: .5rem;}
+  .homelab-doc-content {padding-top: .3rem;}
+  .container.padding-top--md {padding-top: 1.4rem!important;}
+}
+@media (max-width: 1150px) and (min-width: 997px) {
+  .navbar {padding-inline: 1rem;}
+  .navbar__link {padding-inline: .45rem; font-size: 12px;}
+  .navbar__brand {margin-right: .5rem;}
+  .homelab-search {width: 170px;}
+}
+@media (max-width: 996px) {
+  .navbar {padding-inline: 1rem;}
+  .navbar__brand {margin-right: .5rem;}
+  .homelab-search {width: min(40vw,250px);}
+  .homelab-search input {font-size: 16px;}
+  .theme-doc-markdown h1 {font-size: 2.1rem;}
+  .theme-doc-toc-mobile {position: sticky; top: var(--ifm-navbar-height); z-index: 3;}
+  html {scroll-padding-top: 8.5rem;}
+  .homelab-home-main {padding: 1.5rem .5rem;}
+  .homelab-home-intro {align-items: flex-start; flex-direction: column; gap: 1.4rem;}
+  .homelab-home-actions {flex-direction: row; align-items: center; flex-wrap: wrap; gap: 1.2rem;}
+}
+@media (max-width: 640px) {
+  .navbar__title {font-size: 17px;}
+  .navbar__logo {height: 26px;}
+  .homelab-search {width: 135px;}
+  .homelab-search input {padding-inline: .4rem;}
+  .homelab-infra {grid-template-columns: 1fr;}
+  .homelab-infra-intro {border-right: 0; border-bottom: 1px solid var(--homelab-border); padding: 1.3rem;}
+  .homelab-infra-intro > p:not(.homelab-eyebrow) {max-width: none;}
+  .homelab-hosts {padding: 1rem 1.3rem;}
+  .homelab-host {grid-template-columns: 1fr; gap: .6rem;}
+  .homelab-host-caption {align-items: baseline; font-size: 11px;}
+  .homelab-host-caption > span:last-child {text-align: right; max-width: 160px;}
+  .homelab-resource-grid {grid-template-columns: 1fr; gap: 1.8rem;}
+  .homelab-section-heading > span {display: none;}
+  .homelab-recovery {flex-wrap: wrap; gap: .4rem 1rem;}
+  .homelab-recovery > span:nth-child(2) {width: 85%; order: 3;}
+  .homelab-related ul {grid-template-columns: 1fr;}
+  .homelab-search-field {flex-direction: column;}
+  .homelab-search-field button {align-self: flex-start;}
+  .theme-doc-markdown table th, .theme-doc-markdown table td {padding: .7rem;}
+}
+@media (max-width: 380px) {
+  .navbar__title {display: none;}
+}
+@media (pointer: coarse) {
+  .homelab-doc-toolbar button, .homelab-diagram button, .homelab-search button {min-height: 44px;}
+  .homelab-host-services a, .homelab-shortcuts a, .homelab-related a {display: inline-flex; align-items: center; min-height: 44px;}
+}
+@media (prefers-reduced-motion: reduce) {
+  html {scroll-behavior: auto!important;}
+  *, *::before, *::after {animation-duration: .01ms!important; transition-duration: .01ms!important;}
+}
+
+/* Print all procedure variants, including the currently inactive Tabs. */
+@media print {
+  @page {margin: 15mm 12mm;}
+  :root, [data-theme='dark'] {--ifm-font-color-base: #142b50; --ifm-heading-color: #142b50; --ifm-background-color: #fff; --ifm-color-primary: #0044b2; --homelab-muted: #314b70; --homelab-border: #cbdcf5; color-scheme: light;}
+  html, body, .main-wrapper {background: #fff!important; color: #142b50!important; font-size: 10pt;}
+  .navbar, .footer, .theme-doc-sidebar-container, .theme-doc-toc-desktop, .theme-doc-toc-mobile, .theme-doc-breadcrumbs, .pagination-nav, .homelab-doc-toolbar button, .homelab-diagram figcaption, .homelab-diagram-dialog, .homelab-related, .theme-back-to-top-button, .theme-edit-this-page, .theme-code-block button, .tabs, .homelab-search {display: none!important;}
+  .main-wrapper, [class*='docRoot'], [class*='docMainContainer'], [class*='docItemContainer'], .container, .row, .col {display: block!important; width: 100%!important; max-width: none!important; min-width: 0!important; margin: 0!important; padding: 0!important; border: 0!important;}
+  article {width: 100%!important;}
+  .theme-doc-markdown h1 {font-size: 24pt;}
+  .theme-doc-markdown h2 {font-size: 16pt; margin-top: 1.5rem; break-after: avoid;}
+  .theme-doc-markdown h3 {font-size: 12pt; break-after: avoid;}
+  p, li {orphans: 3; widows: 3;}
+  .theme-doc-markdown pre, .theme-doc-markdown code {white-space: pre-wrap!important; overflow-wrap: anywhere!important; color: #142b50!important; background: #fff!important;}
+  .theme-code-block pre, .theme-code-block div {height: auto!important; max-height: none!important; overflow: visible!important; background: #fff!important;}
+  .theme-code-block {break-inside: auto; box-shadow: none!important;}
+  .token {color: #142b50!important;}
+  .homelab-table-scroll {overflow: visible;}
+  .theme-doc-markdown table {display: table; width: 100%; font-size: 9pt; table-layout: fixed;}
+  .theme-doc-markdown td, .theme-doc-markdown th {overflow-wrap: anywhere; padding: .35rem!important;}
+  thead {display: table-header-group;}
+  tr {break-inside: avoid;}
+  .theme-doc-markdown .tabs-container [role='tabpanel'][hidden] {display: block!important;}
+  .theme-doc-markdown [role='tabpanel']::before {content: attr(data-print-label); display: block; font-weight: bold; margin: 1rem 0 .5rem;}
+  .theme-doc-markdown details {display: block;}
+  .homelab-diagram {break-inside: avoid; border: 0; padding: 0;}
+  .mermaid svg {max-width: 100%!important; height: auto!important;}
+  .theme-admonition {background: #fff!important; color: #142b50!important; box-shadow: none!important;}
+  .theme-doc-footer {font-size: 8pt; margin-top: 1rem;}
 }

@@ -44,6 +44,7 @@ const config = {
   },
 
   plugins: [
+    require.resolve('./plugins/search-index'),
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -109,6 +110,7 @@ const config = {
           // verite mais git.home.gabin-simond.fr est injoignable depuis le web
           // public : un lien d'edition mort serait pire que l'actuel.
           editUrl: 'https://github.com/GabinSMD/homelab-doc/edit/main/',
+          showLastUpdateTime: true,
         },
         blog: false,
         theme: {
@@ -128,14 +130,17 @@ const config = {
     ({
       image: 'img/logo.svg',
       colorMode: {
-        defaultMode: 'dark',
-        respectPrefersColorScheme: true,
+        defaultMode: 'light',
+        respectPrefersColorScheme: false,
       },
       navbar: {
         title: 'Homelab',
         logo: { alt: 'Homelab', src: 'img/logo.svg' },
         items: [
-          { type: 'docSidebar', sidebarId: 'main', position: 'left', label: 'Documentation' },
+          { to: '/', label: 'Documentation', position: 'left', activeBaseRegex: '^/$' },
+          { to: '/architecture/', label: 'Infrastructure', position: 'left' },
+          { to: '/services/', label: 'Services', position: 'left' },
+          { to: '/operations/', label: 'Exploitation', position: 'left' },
           { href: 'https://github.com/GabinSMD/homelab-doc', label: 'GitHub', position: 'right' },
         ],
       },
@@ -145,7 +150,7 @@ const config = {
       // redirection (voir le bloc `redirects`), conformement au principe zero
       // URL cassee — mais plus rien ne pointe dessus.
       footer: {
-        style: 'dark',
+        style: 'light',
         links: [],
         copyright: `Homelab — GabinSMD`,
       },
