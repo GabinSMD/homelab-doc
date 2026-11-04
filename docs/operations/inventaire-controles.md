@@ -462,7 +462,7 @@ Conversion type, telle qu'elle devrait être formulée :
 | **Bruyants** | 2 règles (`Systeme de fichiers > 90 %`, `Latence de lecture disque`) **et 3 étiquettes d'alerte du moniteur** (`pbs-down` 25 émissions / 1 résolution, `docker-down` 14/0, `nfs-export-down` 10/0 — §6.4) | Battent autour d'un seuil sans hystérésis, ou ré-émettent sans jamais se clore. 49 des 86 alertes de 30 j |
 | **Menteurs** | 2 maillons (`ntfy-relay` en maintenance rend 200 sans livrer ; `Systemd — crash-loop` aveugle aux hôtes hors `{job="journald"}`) | Rapportent un succès qui n'a pas eu lieu |
 | **Conformes** | 8 sondes à flux propre, `restic-check-monthly` en modèle, 4 règles Grafana | Prouvent un effet observable |
-| **Risques sans contrôle** | **18** (R-01 → R-18) | Dont 10 adossés à une panne réelle datée, les autres à un angle mort structurel. R-16 à R-18 ajoutés le 2026-10-01 (§6.6) |
+| **Risques sans contrôle** | **18** (R-01 → R-18) | Dont 10 adossés à une panne réelle datée, les autres à un angle mort structurel. R-16 à R-18 ajoutés le 2026-10-01 (§6.6). Contrôle Tailscale ajouté le 2026-11-04 (§7) |
 | **Paris de silence** | 12 lignes de `notif-hygiene.md`, dont **10 tenus**, 2 non instrumentés | La doctrine de silence n'est pas le défaut du parc — §6.2 |
 | **Cascade de suppression** | conforme, **394 suppressions sur 30 j** pour 86 alertes émises | Fait ce que la doc promet, par un mécanisme plus robuste que celui décrit — §6.3 |
 
@@ -663,3 +663,42 @@ externe qui existe pose ses propres questions :
 | **R-17** | **Rien ne prouve que le veilleur externe est encore armé.** Si le check est supprimé, mis en pause ou l'URL perdue, le homelab perd son seul filet hors-pile en silence. | Structurel. `homelab_monitor.sh:2179` : `curl -fsSL ... \|\| true` — l'échec du ping est avalé. Fichier d'URL absent → *« ping skipped silencieusement (no-op) »*. | Journaliser l'échec du ping (le code d'état HTTP suffit) et porter une entrée de fraîcheur dans le registre `guardrail-liveness`. Lentille **sonde vide** et **silence ≠ santé**. | Le `\|\| true` est là pour que le moniteur ne se bloque pas sur un tiers lent — intention juste, effet de bord muet. |
 | **R-18** | **Le dernier maillon — ntfy vers le téléphone — n'est observable par rien.** | Structurel, et mesuré : `subscribers=0` dans **les 43 132 relevés** de 30 j. Le serveur n'a jamais vu d'abonné connecté. La livraison réelle passe par le relais ntfy.sh/APNS, hors de portée du homelab. | Un accusé de réception de bout en bout : message de test périodique dont la lecture sur le téléphone est reconduite vers le homelab. C'est le seul contrôle qui fermerait la chaîne **sonde → règle → routage → livraison → humain**. | Aucun contrôle n'a jamais visé le maillon humain. `funnel-public-check` s'arrête au chemin public ; au-delà, personne. Même angle mort que **R-15**. |
 
+
+## 7. Addendum du 2026-11-04 — le résolveur DNS n°2 sorti du tailnet
+
+### 7.1 Le constat
+
+Le 2026-11-03, `guardian` (LXC 100 `dns-failover`), **deuxième résolveur DNS du
+tailnet** après penny, était hors ligne depuis le **2026-10-07** : sa clé de nœud
+Tailscale avait expiré (180 jours par défaut), et le client attendait une
+reconnexion (`NeedsLogin`). Pendant 26 jours, le secours DNS hors LAN n'existait
+plus : penny à terre, le Mac et le téléphone n'auraient rien résolu hors de la
+maison.
+
+Aucun contrôle ne l'a vu, et c'est exactement le motif du §1.1. La supervision de
+`dns-failover` interroge AdGuard **par le LAN** (`192.168.1.30`), où il répondait
+parfaitement. Le service tournait ; il ne servait plus **là où on comptait sur
+lui**. penny, galahad et lancelot avaient l'expiration de clé désactivée, guardian
+et waterline non : rien ne vérifiait cette différence.
+
+### 7.2 Le contrôle ajouté — `check_tailscale_mesh`
+
+Dans `homelab_monitor.sh`, chaque minute (PR config #192, issue #191) :
+
+| Vérification | Seuil | Tag d'alerte |
+|---|---|---|
+| galahad, lancelot, guardian présents et en ligne | hors ligne depuis ≥ 15 min ; cascade sur l'hôte PVE à terre | `ts-<nœud>-offline` |
+| Clé de nœud (tous les serveurs, waterline compris) | expire dans moins de 14 jours (rappel quotidien), ou expirée | `ts-<nœud>-key` |
+| Résolveurs **par leur adresse Tailscale** (`100.97.239.90`, `100.74.145.26`) | aucune réponse A à `forgejo.home…` | `ts-dns-<nœud>` |
+| Client Tailscale de penny | `BackendState` ≠ `Running`, ou statut illisible | `ts-penny-down` |
+
+waterline n'est surveillé que pour l'expiration : serveur de test, il peut être
+éteint exprès, et une alerte à chaque arrêt serait un seuil « toujours ».
+
+La décision est une fonction pure extraite du fichier de production par
+`scripts/tests/tailscale-mesh.test.sh` (9 cas, dont la situation réelle du 03/11),
+exécutée en CI. Un statut illisible rend une **alerte**, jamais « ok ».
+
+**Non couvert :** la version des clients (guardian était en 1.96.4, sans aucune
+mise à jour automatique ; le dépôt Tailscale n'est dans les `Origins-Pattern`
+d'unattended-upgrades d'aucune machine). Suivi dans l'issue #191.
