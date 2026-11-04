@@ -1,6 +1,6 @@
 # Ajouter un nouveau service
 
-Guide pas-a-pas pour déployer un nouveau service Docker avec un sous-domaine custom et HTTPS automatique.
+Guide pas-a-pas pour déployer un nouveau service Docker avec un sous-domaine custom et HTTPS automatique. Pour l'opération inverse, voir [Retirer un service](retirer-service.md).
 
 ## Prerequis
 

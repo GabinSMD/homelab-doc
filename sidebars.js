@@ -154,6 +154,7 @@ const sidebars = {
       link: { type: 'doc', id: 'guides/index' },
       items: [
         { type: 'doc', id: 'guides/ajouter-service', label: 'Ajouter un service' },
+        { type: 'doc', id: 'guides/retirer-service', label: 'Retirer un service' },
         { type: 'doc', id: 'guides/proxmox-zimaboard', label: 'Proxmox sur ZimaBoard' },
         { type: 'doc', id: 'guides/tls', label: 'TLS et certificats' },
       ],
