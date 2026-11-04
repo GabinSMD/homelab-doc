@@ -113,8 +113,9 @@ Policy `INPUT DROP`. Ports ouverts uniquement :
 | 3101 (TCP) | loki-replica (HA Loki) | LAN (via Docker bridge, interne) |
 
 Le port 45876 (agent Beszel) a quitté cette liste avec le retrait de Beszel le 2026-11-03.
-Sur **galahad et lancelot**, en revanche, `beszel-agent` tournait encore et écoutait sur
-45876 au 2026-11-04 : un service retiré dont l'agent reste exposé, à désinstaller.
+Sur **galahad et lancelot**, `beszel-agent` a pourtant continué de tourner et d'écouter
+sur 45876 jusqu'au 2026-11-04, date de sa désinstallation (unité, binaire et utilisateur
+`beszel`). Retirer un service, c'est aussi retirer ses agents sur les autres hôtes.
 
 Persistance via `netfilter-persistent`.
 
@@ -131,7 +132,7 @@ Fix systematique : drop-in `PrivateMounts=yes` sur chaque service hardene.
 | Host | Services avec drop-in `PrivateMounts=yes` |
 |------|-------------------------------------------|
 | penny | ssh, fail2ban, systemd-networkd, systemd-timesyncd, auditd, fstrim, systemd-hostnamed, systemd-localed, systemd-logind, systemd-timedated (10 services) |
-| galahad | ssh, fail2ban, postfix, chrony, beszel-agent (Beszel retiré le 2026-11-03, agent à désinstaller), systemd-logind (6 services) |
+| galahad | ssh, fail2ban, postfix, chrony, beszel-agent (désinstallé le 2026-11-04), systemd-logind (6 services au relevé) |
 | lancelot | idem galahad |
 
 ### Pattern drop-in
@@ -354,7 +355,7 @@ Clients socket direct : **aucun** depuis le retrait de Portainer le 2026-11-03 (
 
 | Container | cap_drop | cap_add |
 |---|---|---|
-| Vaultwarden | ALL | `NET_BIND_SERVICE`, `CHOWN`, `DAC_OVERRIDE`, `SETGID`, `SETUID` |
+| Vaultwarden (LXC 102) | ALL | `NET_BIND_SERVICE`, `CHOWN`, `DAC_OVERRIDE`, `SETGID`, `SETUID` |
 | Authelia | ALL | `SETGID`, `SETUID`, `DAC_OVERRIDE` |
 | Traefik | ALL | `NET_BIND_SERVICE` |
 | Homepage | ALL | (aucune, read-only) |
@@ -368,7 +369,7 @@ Clients socket direct : **aucun** depuis le retrait de Portainer le 2026-11-03 (
 | Traefik | ✅ OK | `/tmp`, `/run` | teste 2026-04-13 |
 | Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
 | Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'état |
-| Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
+| Vaultwarden (LXC 102) | ❌ KO | — | SQLite DB + icons cache (design) |
 
 ### Ports directs supprimés
 

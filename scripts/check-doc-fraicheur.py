@@ -64,8 +64,8 @@ AUTORISE_CATALOGUE = {
         "docs/operations/break-glass.mdx",
         # Catalogue d'incidents historiques herite de sucre.
         "docs/operations/incidents-recurrents.md",
-        # Signale l'agent encore actif sur galahad et lancelot : a retirer de la
-        # liste blanche une fois l'agent desinstalle.
+        # Raconte la desinstallation tardive des agents (2026-11-04) et le
+        # releve date des drop-ins PrivateMounts.
         "docs/securite/hardening.md",
         # Liste les secrets a purger du coffre.
         "docs/securite/politique.md",

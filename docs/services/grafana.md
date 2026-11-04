@@ -107,8 +107,8 @@ graph LR
 | galahad | `journald`, `audit`, `fail2ban`, `proxmox` |
 | lancelot | `journald`, `audit`, `fail2ban`, `proxmox` |
 
-Sept des huit LXC expédient aussi. La **LXC 109 `iptv` n'a pas d'Alloy actif** (relevé du
-2026-11-04) et n'apparaît donc dans aucun tableau ni aucune alerte. L'inventaire complet par LXC est sur
+Les huit LXC expédient aussi (relevé du 2026-11-04 ; `iptv` n'expédiait rien avant cette
+date). L'inventaire complet par LXC est sur
 [Alloy + Loki HA](alloy-loki-ha.md) — cette page ne le duplique pas.
 
 Retention Loki : 30 jours.
