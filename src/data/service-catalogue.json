@@ -1,0 +1,314 @@
+[
+  {
+    "id": "adguard",
+    "name": "AdGuard Home",
+    "role": "Résolution DNS et filtrage du réseau",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/adguard/",
+    "status": "active"
+  },
+  {
+    "id": "dns-failover",
+    "name": "AdGuard secondaire",
+    "role": "DNS de secours et sonde de penny",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/dns-failover/",
+    "status": "active"
+  },
+  {
+    "id": "alloy-loki-ha",
+    "name": "Alloy + Loki HA",
+    "role": "Collecte et réplication des logs",
+    "hosts": [
+      "penny",
+      "galahad",
+      "lancelot"
+    ],
+    "href": "/services/alloy-loki-ha/",
+    "status": "active"
+  },
+  {
+    "id": "authelia",
+    "name": "Authelia",
+    "role": "Authentification unique et MFA",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/authelia/",
+    "status": "active"
+  },
+  {
+    "id": "claude-remote",
+    "name": "Claude Remote",
+    "role": "Accès à penny depuis l’application Claude",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/claude-remote/",
+    "status": "active"
+  },
+  {
+    "id": "crowdsec",
+    "name": "CrowdSec",
+    "role": "Détection et blocage à partir des logs Traefik",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/crowdsec/",
+    "status": "active"
+  },
+  {
+    "id": "cyberchef",
+    "name": "CyberChef",
+    "role": "Encodage, hachage et décodage de données",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/boite-a-outils/",
+    "status": "active"
+  },
+  {
+    "id": "dozzle",
+    "name": "Dozzle",
+    "role": "Consultation des logs Docker",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/boite-a-outils/",
+    "status": "active"
+  },
+  {
+    "id": "forgejo",
+    "name": "Forgejo",
+    "role": "Forge Git et gestion des dépôts",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/forgejo/",
+    "status": "active"
+  },
+  {
+    "id": "grafana",
+    "name": "Grafana",
+    "role": "Exploration des logs et tableaux de bord",
+    "hosts": [
+      "lancelot"
+    ],
+    "href": "/services/grafana/",
+    "status": "active"
+  },
+  {
+    "id": "homepage",
+    "name": "Homepage",
+    "role": "Tableau de bord du lab",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/homepage/",
+    "status": "active"
+  },
+  {
+    "id": "iptv",
+    "name": "IPTV",
+    "role": "Télévision dans le navigateur",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/iptv/",
+    "status": "active"
+  },
+  {
+    "id": "ntfy",
+    "name": "ntfy",
+    "role": "Notifications et alertes",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/ntfy/",
+    "status": "active"
+  },
+  {
+    "id": "outline",
+    "name": "Outline",
+    "role": "Rédaction de la documentation",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/outline/",
+    "status": "active"
+  },
+  {
+    "id": "pbs",
+    "name": "Proxmox Backup Server",
+    "role": "Sauvegarde des conteneurs Proxmox",
+    "hosts": [
+      "lancelot"
+    ],
+    "href": "/services/pbs/",
+    "status": "active"
+  },
+  {
+    "id": "pulse",
+    "name": "Pulse",
+    "role": "Supervision Proxmox et Docker, analyse Patrol",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/pulse/",
+    "status": "active"
+  },
+  {
+    "id": "ci-runner",
+    "name": "Runner Forgejo Actions",
+    "role": "Exécution des workflows CI",
+    "hosts": [
+      "lancelot"
+    ],
+    "href": "/services/ci-runner/",
+    "status": "active"
+  },
+  {
+    "id": "logs-stack",
+    "name": "Stack logs",
+    "role": "Loki, Grafana, Prometheus et relais ntfy",
+    "hosts": [
+      "lancelot"
+    ],
+    "href": "/services/logs-stack/",
+    "status": "active"
+  },
+  {
+    "id": "status",
+    "name": "Status",
+    "role": "Page d’état statique",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/boite-a-outils/",
+    "status": "active"
+  },
+  {
+    "id": "stirling-pdf",
+    "name": "Stirling PDF",
+    "role": "Manipulation de fichiers PDF",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/boite-a-outils/",
+    "status": "active"
+  },
+  {
+    "id": "traefik",
+    "name": "Traefik",
+    "role": "Reverse proxy et certificats TLS",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/traefik/",
+    "status": "active"
+  },
+  {
+    "id": "vaultwarden",
+    "name": "Vaultwarden",
+    "role": "Gestionnaire de mots de passe",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/vaultwarden/",
+    "status": "active"
+  },
+  {
+    "id": "waterline",
+    "name": "Waterline",
+    "role": "Serveur de test du mod naval",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/waterline/",
+    "status": "test"
+  },
+  {
+    "id": "beszel",
+    "name": "Beszel",
+    "role": "Ancienne supervision, remplacée par Pulse",
+    "hosts": [
+      "penny",
+      "galahad",
+      "lancelot"
+    ],
+    "href": "/services/beszel/",
+    "status": "retired",
+    "retiredAt": "2026-11-03"
+  },
+  {
+    "id": "homelable",
+    "name": "Homelable",
+    "role": "Ancienne cartographie réseau",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/homelable/",
+    "status": "retired",
+    "retiredAt": "2026-11-03"
+  },
+  {
+    "id": "paperclip",
+    "name": "Paperclip",
+    "role": "Ancienne orchestration d’agents",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/paperclip/",
+    "status": "retired",
+    "retiredAt": "2026-11-02"
+  },
+  {
+    "id": "portainer",
+    "name": "Portainer",
+    "role": "Ancienne interface de gestion Docker",
+    "hosts": [
+      "penny"
+    ],
+    "href": "/services/portainer/",
+    "status": "retired",
+    "retiredAt": "2026-11-03"
+  },
+  {
+    "id": "zomboid",
+    "name": "Project Zomboid",
+    "role": "Ancien serveur de jeu, LXC démantelé",
+    "hosts": [
+      "galahad"
+    ],
+    "href": "/services/zomboid/",
+    "status": "retired",
+    "retiredAt": "2026-11-01"
+  },
+  {
+    "id": "proxmox",
+    "name": "Proxmox VE",
+    "role": "Virtualisation et cluster des deux nœuds",
+    "hosts": [
+      "galahad",
+      "lancelot"
+    ],
+    "href": "/architecture/cluster-qdevice/",
+    "status": "active"
+  },
+  {
+    "id": "tailscale",
+    "name": "Tailscale",
+    "role": "Accès distant au réseau et SSH",
+    "hosts": [
+      "penny",
+      "galahad",
+      "lancelot"
+    ],
+    "href": "/architecture/acces-reseau/",
+    "status": "active"
+  }
+]

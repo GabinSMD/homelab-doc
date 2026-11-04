@@ -1,3 +1,7 @@
+---
+search_status: archive
+---
+
 # Sucre observability
 
 Cette page documenté comment sucre voit le homelab et où il bipe — pas le design sucre (voir [Projet Sucre](sucre.md)) mais l'architecture de l'observation et la delivery.

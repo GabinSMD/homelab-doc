@@ -1,6 +1,6 @@
 # Grafana (logs)
 
-Visualisation des logs centralises (Loki + Alloy). Pas de metriques : c'est [Beszel](index.md) qui s'en occupé, pour éviter le doublon Prometheus + node_exporter.
+Visualisation des logs centralisés (Loki + Alloy), au sein de la [stack logs](logs-stack.md), qui comprend aussi Prometheus. La supervision des hôtes et des conteneurs est assurée par [Pulse](pulse.md). [Beszel](beszel.md) a été retiré le 2026-11-03.
 
 ## Acces
 

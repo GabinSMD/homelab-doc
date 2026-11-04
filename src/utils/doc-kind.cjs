@@ -11,6 +11,7 @@ function validVerificationDate(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 }
 function validateMetadata(frontMatter = {}) {
+  if (frontMatter.search_status != null && !['current', 'archive'].includes(frontMatter.search_status)) throw new Error('search_status must be current or archive');
   if (frontMatter.doc_type != null && !Object.hasOwn(kinds, frontMatter.doc_type)) throw new Error('Unknown doc_type');
   if (frontMatter.verified_at != null && !validVerificationDate(frontMatter.verified_at)) throw new Error('verified_at must be a quoted YYYY-MM-DD date');
   if (frontMatter.verified_at != null && (typeof frontMatter.verification_note !== 'string' || !frontMatter.verification_note.trim())) throw new Error('verified_at requires a verification_note describing the check');

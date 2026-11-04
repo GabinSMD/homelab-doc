@@ -1,13 +1,20 @@
+import ServiceCatalogue from '@site/src/components/ServiceCatalogue';
+
 # Services
 
-Vue d'ensemble de tous les services, leurs acces et l'architecture Docker.
+Retrouvez une fiche par nom, rôle ou machine. Les composants internes, les accès et les détails Docker sont regroupés après le catalogue.
 
 ## Services et acces
 
+<ServiceCatalogue />
+
+<details className="homelab-technical-details">
+<summary>Accès et détails techniques : Docker, LXC, réseaux et configuration</summary>
+
 Tous les conteneurs sur penny tournent depuis un seul `/mnt/ssd/config/docker/docker-compose.yml`. Docker data-root sur le SSD (`/mnt/ssd/docker`).
 
-Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [grafana.md](grafana.md).
-Vaultwarden est **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [vaultwarden.md](vaultwarden.md).
+Grafana + Loki ne sont **pas** sur penny — ils tournent dans le LXC `logs` sur lancelot. Voir [la fiche Grafana](grafana.md).
+Vaultwarden est **migre** sur LXC 102 `vault` (galahad, 192.168.1.32). Voir [la fiche Vaultwarden](vaultwarden.md).
 Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 
 ### Exposés derrière Traefik
@@ -18,13 +25,10 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[Authelia](authelia.md)** | `authelia/authelia:latest` | `auth.home…` | penny | proxy |
 | **[AdGuard Home](adguard.md)** | `adguard/adguardhome:latest` | `dns.home…` | penny (host net) | host |
 | **[Homepage](homepage.md)** | `ghcr.io/gethomepage/homepage:latest` | `home.gabin-simond.fr` | penny | proxy, socket |
-| ~~[Portainer EE](portainer.md)~~ | — | — | — | **Retiré le 2026-11-03** (doublon de Dozzle et du CLI) |
-| ~~[Beszel](beszel.md)~~ | — | — | — | **Retiré le 2026-11-03** (doublon de Pulse) |
 | **[Forgejo](forgejo.md)** | `codeberg.org/forgejo/forgejo:13-rootless` | `git.home…` | penny | proxy |
 | **[Outline](outline.md)** | `outlinewiki/outline:latest` | `wiki.home…` | penny | outline, proxy |
 | **[ntfy](ntfy.md)** | `binwiederhier/ntfy:latest` | `ntfy.home…` + Funnel | penny | proxy |
 | **[Dozzle](boite-a-outils.md)** | `amir20/dozzle:latest` | `dozzle.home…` | penny | proxy, socket |
-| ~~[Homelable](homelable.md)~~ | — | — | — | **Retiré le 2026-11-03** (cartographie jamais complétée) |
 | **[CyberChef](boite-a-outils.md)** | `ghcr.io/gchq/cyberchef:latest` | `cyberchef.home…` | penny | proxy |
 | **[Stirling PDF](boite-a-outils.md)** | `ghcr.io/stirling-tools/s-pdf:latest-ultra-lite` | `pdf.home…` | penny | proxy |
 
@@ -35,11 +39,9 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **socket-proxy** | `lscr.io/linuxserver/socket-proxy:3.4.2-r0-ls88` | Filtre l'API Docker pour Traefik, Homepage, Dozzle, autoheal |
 | **autoheal** | `willfarrell/autoheal:latest` | Redémarre les conteneurs `unhealthy` |
 | **[CrowdSec](crowdsec.md)** | `crowdsecurity/crowdsec:latest` | Détection + bouncer Traefik |
-| ~~beszel-agent~~ | — | Retiré le 2026-11-03 avec Beszel |
 | **[loki-replica](alloy-loki-ha.md)** | `grafana/loki:latest` | Réplica du Loki de la LXC 101 — survit à la perte de lancelot |
 | **[status](boite-a-outils.md)** | `busybox:1.38` | Page d'état statique |
 | **outline-db** / **outline-redis** | `postgres:16-alpine` / `redis:7-alpine` | Base et cache d'Outline |
-| ~~homelable-backend~~ | — | Retiré le 2026-11-03 avec Homelable |
 
 ### Sur l'hôte penny, hors Docker
 
@@ -62,16 +64,20 @@ Tailscale tourne **sur l'host** (pas en container) — SSH natif activé.
 | **[IPTV](iptv.md)** | `iptv.home…` | LXC 109 `iptv` / galahad — depuis le 2026-10-26 |
 | **[AdGuard secondaire](dns-failover.md)** | `dns-failover.home…` | LXC 100 `dns-failover` / galahad |
 | **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
-| **Proxmox** | `galahad.home…` / `lancelot.home…` | Les deux nœuds, bare metal |
 | **Docs** | `homelab.gabin-simond.fr` | GitHub Pages, hors infra — seul service public sans Authelia |
 
-:::note[Inventaire re-vérifié le 2026-09-24]
-Les **22 conteneurs** et **10 LXC** ci-dessus ont été relevés sur les machines, pas
-recopiés. Ils étaient 24 au relevé du 2026-08-26 : `kroki` et `kroki-mermaid` ont été
+:::note[Relevé historique du 2026-09-24]
+Le relevé du 2026-09-24 comptait **22 conteneurs** et **10 LXC**. Ces nombres décrivent
+ce relevé, pas le parc actuel après les retraits de novembre. Le catalogue ci-dessus
+reflète les statuts documentés dans les fiches de services.
+
+Le relevé du 2026-08-26 comptait 24 conteneurs : `kroki` et `kroki-mermaid` ont été
 [retirés le 2026-08-31](../projet/journal/2026-08-31-retrait-kroki.md).
 
-Côté LXC le compte n'a pas bougé mais la composition si : `109` portait Firefly III,
-retiré le 2026-09-19 ; `110` porte Securo depuis le 2026-09.
+À cette date, `109` avait porté Firefly III, retiré le 2026-09-19, et `110` portait
+Securo. Les LXC `104`, `105` et `110` ont depuis été détruits : voir le tableau LXC
+plus bas. Les composants `beszel-agent` et `homelable-backend` ont été retirés avec
+leurs services le 2026-11-03.
 
 Avant le 26/08 le tableau en listait 16 et en oubliait 11 — dont `ntfy`, `forgejo`,
 `outline` et `crowdsec`, tous cités des dizaines de fois ailleurs dans cette
@@ -84,11 +90,12 @@ pct list                                          # sur galahad, puis lancelot
 ```
 :::
 
-Tous les services web sont accessibles via `*.home.gabin-simond.fr` (reverse proxy Traefik). Tous les services sont proteges par [Authelia](authelia.md) (OIDC ou ForwardAuth). Voir [authelia.md](authelia.md) pour les clients OIDC et la configuration.
+Les accès web internes passent par `*.home.gabin-simond.fr` (reverse proxy Traefik). La plupart utilisent [Authelia](authelia.md) (OIDC ou ForwardAuth) ; [Vaultwarden](vaultwarden.md) reste volontairement indépendant du SSO. La documentation publique est hébergée hors du lab sur GitHub Pages. Voir [la configuration Authelia](authelia.md) pour les clients OIDC et la configuration.
 
-:::info[Les tags `:latest` ci-dessus sont tous épinglés par digest]
-Les tableaux donnent le tag pour la lisibilité, mais **les 22 images sont épinglées
-`@sha256:…`** dans le compose — vérifié le 2026-09-24. Aucune ne flotte. `pulse` était la
+:::info[Épinglage par digest — relevé du 2026-09-24]
+Les tableaux donnent le tag pour la lisibilité. Au relevé du 2026-09-24, **les 22
+images étaient épinglées `@sha256:…`** dans le compose. Ce constat est daté ; il ne
+vaut pas nouvelle vérification du parc actuel. `pulse` était la
 dernière exception, épinglée le 2026-09-02.
 
 Conséquence pratique : un `docker compose pull` **ne met rien à jour**, il retélécharge le
@@ -298,3 +305,5 @@ la clé d'enrôlement Tailscale, et les jetons de lecture des widgets Homepage
 (AdGuard, Proxmox, Pulse). L'inventaire nominatif est dans la
 [politique de sécurité](../securite/politique.md#inventaire-des-secrets-a-stocker-dans-vaultwarden)
 — cette page ne le duplique pas, pour n'avoir qu'un seul endroit à tenir à jour.
+
+</details>

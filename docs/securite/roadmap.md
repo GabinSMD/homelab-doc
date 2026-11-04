@@ -162,7 +162,7 @@ sont pas maintenus au présent, et trois d'entre eux induiraient en erreur aujou
   [optimisations OS](../architecture/os.md).
 - Toute mention de **Watchtower** : le conteneur est retiré depuis le 2026-07-06.
 
-Pour l'état réel, lire [hardening](hardening.md) et [services](../services/index.md),
+Pour l'état réel, lire [hardening](hardening.md) et [services](../services/index.mdx),
 pas cette section.
 :::
 

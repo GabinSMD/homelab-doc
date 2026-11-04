@@ -1018,7 +1018,7 @@ docker image prune -a --filter "until=720h"   # non utilisees depuis 30 jours
 
 Et **jamais `--volumes` sans regarder d'abord** : `docker volume ls` rend les mêmes noms
 sous deux préfixes, `config_` et `docker_`, et CrowdSec est la seule exception qui vit
-sur un `docker_*`. Voir [l'inventaire des services](../services/index.md).
+sur un `docker_*`. Voir [l'inventaire des services](../services/index.mdx).
 :::
 
 ### Temperature et alimentation

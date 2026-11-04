@@ -1,13 +1,16 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+import IncidentNavigation from '@site/src/components/IncidentNavigation';
 
 # Procédure Break-Glass
 
 Document de reconstruction du homelab en cas d'incident majeur (incendie, foudre, defaillance materielle, corruption).
 
 :::danger[Ce document doit être imprime et stocké avec la YubiKey hors-domicile (YK2)]
-En cas de destruction totale, l'acces a ce site sera perdu. Garder une copie papier ou PDF a jour.
+Cette documentation est hébergée sur GitHub Pages, hors du lab. Une panne peut néanmoins vous priver du réseau ou des moyens d’accès : garder une copie papier ou PDF à jour avec YK2.
 :::
+
+<IncidentNavigation />
 
 ---
 
@@ -732,6 +735,10 @@ sysctl --system
 ```
 
 #### Phase 4 (repli manuel) — Docker + services (T+45min a T+1h30)
+
+:::warning Liste de volumes historique à revalider
+La boucle `for vol in beszel portainer` ci-dessous concerne deux services retirés le **3 novembre 2026**. Ne l’exécutez pas telle quelle pour reconstruire le lab actuel : confrontez les volumes sauvegardés au Compose courant et aux [fiches des services](../services/index.mdx).
+:::
 
 :::danger[Corrigé le 2026-08-26 — les commandes de restauration ne pouvaient pas s'authentifier]
 Jusqu'à cette date, les blocs de restauration de cette page exportaient

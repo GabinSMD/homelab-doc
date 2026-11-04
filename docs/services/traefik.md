@@ -79,7 +79,7 @@ Les services file provider utilisent un `serversTransport` dedie avec `insecureS
 - **`security-headers`** : HSTS, X-Frame-Options `DENY`, X-Content-Type-Options `nosniff`, Referrer-Policy `strict-origin-when-cross-origin`, Permissions-Policy restrictive
 
 :::warning[Pas de CSP global]
-CSP retire du middleware global — casse les SPA (Beszel, Proxmox, Portainer). Voir [decisions.md](../projet/decisions.md#security-headers--pas-de-csp-global-per-route-headers).
+La CSP a été retirée du middleware global après des incompatibilités avec les SPA, notamment Proxmox et les anciens services Beszel et Portainer. Voir [la décision technique](../projet/decisions.md#security-headers--pas-de-csp-global-per-route-headers).
 :::
 
 ### Spécifiques (par route)
@@ -108,7 +108,7 @@ Pour les détails TLS et certificats, voir le [guide TLS](../guides/tls.md).
 ## Réseau
 
 Tous les services proxifies sont sur le réseau Docker `proxy` (bridge).
-Tailscale et Beszel Agent utilisent le réseau host.
+AdGuard utilise le réseau Docker host. Tailscale est installé nativement sur l’hôte. Les agents Beszel ont été retirés le 2026-11-03 ; voir [la fiche archivée](beszel.md).
 AdGuard (host mode) est route via le file provider.
 
 ## Fichiers

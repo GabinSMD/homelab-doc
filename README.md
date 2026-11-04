@@ -166,6 +166,21 @@ on the mirror.
 
 ### Documentation interface
 
+The service catalogue is maintained in `src/data/service-catalogue.json`: names,
+roles, documented hosts and lifecycle status (`active`, `test`, `retired`).
+It describes documented use, not live availability. Retired entries require an
+ISO `retiredAt` date; their linked service pages are also classified as archives
+in search. Keep these entries aligned with the retirement notice in each page.
+Internal components and detailed Docker/LXC tables remain in the expandable
+technical section of `docs/services/index.mdx`; existing public anchors are kept.
+
+Search defaults to current documentation. The Archives filter includes dated
+journal entries, retired catalogue services and pages explicitly marked
+`search_status: archive`. This classification is separate from operational
+verification dates. Scope and query are carried in the URL. The All view ranks
+current documentation first, then scores relevance within each group.
+
+
 The default reading surface is white, with the logo blue (`#0062FE`) for navigation and actions.
 The existing dark-mode switch remains available. Local full-text search is generated from the
 published HTML at build time; it includes code, MDX and tab panels, and sends no query to a third party.
