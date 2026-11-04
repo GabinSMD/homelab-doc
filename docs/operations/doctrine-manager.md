@@ -1,4 +1,13 @@
+---
+search_status: archive
+---
+
 # Doctrine de fonctionnement — Manager
+
+:::warning[Archive — Paperclip retiré le 2026-11-02]
+Paperclip et ses agents ne tournent plus : voir [la fiche Paperclip](../services/paperclip.md).
+Cette doctrine est conservée pour l'historique ; elle ne décrit plus le fonctionnement du lab.
+:::
 
 Version 4 — 2026-10-01. Versions 2 et 3 publiées le 2026-10-01 ; version 1 : 2026-09-30, jamais
 publiée.

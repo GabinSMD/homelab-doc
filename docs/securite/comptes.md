@@ -34,10 +34,11 @@ La règle était documentée et appliquée **à moitié**. Mesure du jour :
 | PBS | 4 | 2 (`svc-pve-backup`, `svc-homepage-monitor`) |
 | Unix (penny, galahad, lancelot) | 0 | — (l'automatisation tourne en `root`) |
 
-Les sept comptes non conformes sont **déclarés en dérogation datée** dans
-`scripts/comptes-convention-check.sh` : `homepage@pve`, `homelable@pve`,
-`terraform@pve`, `pulse@pve`, `pulse-monitor@pam`, `pulse@pbs`,
-`pulse-monitor@pbs`.
+Les comptes non conformes sont **déclarés en dérogation datée** dans
+`scripts/comptes-convention-check.sh`. Au 2026-11-04, la liste en compte cinq :
+`homepage@pve`, `terraform@pve`, `pulse-monitor@pam`, `pulse@pbs`,
+`pulse-monitor@pbs`. `homelable@pve` (retiré le 2026-11-03 avec Homelable) et
+`pulse@pve` n'y figurent plus.
 
 Ils ne sont pas renommés tout de suite, et c'est délibéré : chaque renommage
 oblige à régénérer un jeton et à mettre à jour son consommateur. Un jeton
@@ -90,7 +91,7 @@ un souhait — la dérive y est invisible et gratuite, et c'est ainsi que
 | Compte | Naming | Auth | Usage |
 |--------|--------|------|-------|
 | Admin/user | `gabins` | Password Argon2id + TOTP + WebAuthn FIDO2 | Source de vérité auth |
-| Clients OIDC | `client_id: <service>` | Client secret (PBKDF2 hash dans config, plain dans Vault) | SSO pour Proxmox, Portainer, Grafana, Beszel |
+| Clients OIDC | `client_id: <service>` | Client secret (PBKDF2 hash dans config, plain dans Vault) | SSO pour Proxmox, Grafana, PBS, Pulse, Forgejo, Outline |
 
 **Pas de root** : Authelia n'a pas de concept root. `gabins` est le seul user, protégé par 2FA.
 **Pas de service account** : les clients OIDC sont des "applications", pas des users.
@@ -112,11 +113,8 @@ un souhait — la dérive y est invisible et gratuite, et c'est ainsi que
 | Compte | Naming | Auth | Usage |
 |--------|--------|------|-------|
 | Service inter-container | N/A | Pas de comptes — Docker socket-proxy limité l'API | — |
-| Portainer admin | `gabins` | OIDC Authelia (fallback: password local Vault) | UI Portainer |
-| Portainer service | N/A | Token API Portainer si besoin automation | — |
 
 **Docker n'a pas de comptes** : l'isolation est au niveau réseau (bridge `proxy` / `socket`) + capabilities (`cap_drop: ALL`).
-**Portainer** : admin via OIDC Authelia. Le compte local `gabins` est un break-glass si Authelia tombe.
 
 ### LXC applicatifs (dns-failover, vault, logs)
 
@@ -129,14 +127,13 @@ un souhait — la dérive y est invisible et gratuite, et c'est ainsi que
 **Unprivileged** : toujours sauf contrainte technique (cf. PBS LXC 103 si le bug tar persiste).
 **SSH dans les LXC** : optionnel. `pct enter` depuis l'hyperviseur est souvent suffisant. SSH direct utile pour penny → LXC (scripts backup, monitoring).
 
-### Services web (Grafana, Beszel, AdGuard)
+### Services web (Grafana, AdGuard, Homepage)
 
 | Service | Admin perso | Service account | Break-glass |
 |---------|-------------|-----------------|-------------|
 | Grafana | `gabins@authelia` (OIDC, GrafanaAdmin) | N/A | Admin désactivé en DB (volontaire) |
-| Beszel | `gabins@authelia` (OIDC, one_factor) | N/A | Superuser `/_/` (PocketBase) |
 | AdGuard | `gabins` (ForwardAuth Authelia) | N/A | bcrypt local `gabins` |
-| Homepage | ForwardAuth Authelia (transparent) | Tokens API (PVE, Beszel, AdGuard) dans `.env` | N/A |
+| Homepage | ForwardAuth Authelia (transparent) | Tokens API (PVE, PBS, Pulse, AdGuard, CrowdSec) dans `.env` | N/A |
 | Vaultwarden | Master password + TOTP | N/A | Hors Authelia (pas de dépendance circulaire) |
 
 ---
@@ -189,7 +186,7 @@ Un user peut avoir **plusieurs tokens** (un par consumer différent, ou un par e
 client_id: <service-name>
 ```
 
-Exemples : `proxmox`, `portainer`, `grafana`, `beszel`
+Exemples : `proxmox`, `grafana`, `pulse`, `forgejo`
 
 Pas de prefix `svc-` : les clients OIDC ne sont pas des "users" mais des "applications" dans le modèle Authelia.
 
@@ -256,7 +253,7 @@ Chaque secret = **1 item Login** dans Vaultwarden avec :
 ```text
 Homelab/
 ├── Authelia/
-│   ├── OIDC/          → client secrets (proxmox, portainer, grafana, beszel)
+│   ├── OIDC/          → client secrets (proxmox, grafana, pbs, pulse, forgejo, outline)
 │   └── Internals/     → jwt, session, storage, hmac secrets
 ├── OS-Infra/
 │   ├── SSH/           → cles SSH par machine

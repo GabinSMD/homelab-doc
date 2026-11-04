@@ -4,7 +4,7 @@ Surveillance, sauvegardes, procédures d'urgence et dépannage.
 
 | Page | Quand l'utiliser |
 |---|---|
-| [Monitoring](monitoring.md) | Comprendre les couches de surveillance (script, Beszel, autoheal, watchdog) |
+| [Monitoring](monitoring.md) | Comprendre les couches de surveillance (script, Pulse, autoheal, watchdog) |
 | [Backups](backups.md) | Vérifier la strategie, les retentions, restaurer des données |
 | [Break-glass](break-glass.mdx) | **Urgence** — reconstruire le homelab après un incident majeur |
 | [Derive de configuration](derive-configuration.md) | Ce qui tourne correspond-il encore au dépôt ? Les sondes de dérive et ce qu'elles couvrent |
@@ -16,4 +16,4 @@ Surveillance, sauvegardes, procédures d'urgence et dépannage.
 | [Registre — modèles](registre-modeles.md) | Point hebdomadaire et bilan de fenêtre, à copier |
 | [Drill de restauration](dr-drill-scenario-1.md) | L'exercice mensuel : restaurer Vaultwarden depuis restic, pas à pas |
 | [Forgejo — accès d'urgence](forgejo-acces-urgence.md) | Reprendre la main sur Forgejo quand Authelia est indisponible |
-| [Doctrine du Manager](doctrine-manager.md) | Ce que l'agent Manager de Paperclip decide seul, ce qu'il renvoie a l'humain, ce qu'il mesure |
+| [Doctrine du Manager](doctrine-manager.md) | Archive : doctrine de l'agent Manager de Paperclip, retiré le 2026-11-02 |

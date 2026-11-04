@@ -171,6 +171,9 @@ roles, documented hosts and lifecycle status (`active`, `test`, `retired`).
 It describes documented use, not live availability. Retired entries require an
 ISO `retiredAt` date; their linked service pages are also classified as archives
 in search. Keep these entries aligned with the retirement notice in each page.
+The same retired entries feed `scripts/check-doc-fraicheur.py`: once a service is
+marked `retired`, any current page that still names it fails CI unless the file is
+whitelisted with a justification in `AUTORISE_CATALOGUE`.
 Internal components and detailed Docker/LXC tables remain in the expandable
 technical section of `docs/services/index.mdx`; existing public anchors are kept.
 

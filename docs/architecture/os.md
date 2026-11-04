@@ -243,10 +243,10 @@ Relevé le 2026-09-24 (`docker inspect --format '{{if .Config.Healthcheck}}…'`
 | Traefik | `wget http://localhost:8080/ping` — endpoint `/ping` activé dans `traefik.yml` |
 | AdGuard | `wget http://localhost:3000` — interface web |
 | Authelia, Homepage, Outline, outline-db, outline-redis | Intégré à l'image |
-| CrowdSec, Portainer, Beszel, beszel-agent, autoheal, socket-proxy | Intégré à l'image |
+| CrowdSec, autoheal, socket-proxy | Intégré à l'image |
 
-Les **10 sans healthcheck** : `ntfy`, `forgejo`, `dozzle`, `cyberchef`, `stirling-pdf`,
-`status`, `homelable`, `homelable-backend`, `loki-replica`, et donc rien ne les fait
+Les **8 sans healthcheck** (relevé du 2026-11-04) : `ntfy`, `forgejo`, `dozzle`, `cyberchef`,
+`stirling-pdf`, `status`, `loki-replica`, `loki-replica-gate`, et donc rien ne les fait
 redémarrer par autoheal. Ils sont couverts par `homelab_monitor.sh` (le conteneur est-il
 là ?) et, pour ceux exposés par Traefik, par `outillage-health-check`.
 
@@ -272,8 +272,8 @@ autoheal:
 
 :::warning[Autoheal ne monte pas `/var/run/docker.sock`]
 Il passe par `socket-proxy` en TCP, comme Traefik, Homepage et Dozzle. Les seuls
-conteneurs qui montent le socket **en direct** sont `portainer` (nécessité admin),
-`beszel-agent` (lecture des métriques de conteneur) et `socket-proxy` lui-même.
+Depuis le retrait de `portainer` et `beszel-agent` le 2026-11-03, le seul conteneur qui
+monte le socket **en direct** est `socket-proxy` lui-même (relevé du 2026-11-04).
 
 ```bash
 # Redériver la liste plutot que la croire
