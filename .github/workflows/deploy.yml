@@ -23,6 +23,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Historique complet : showLastUpdateTime lit la date du dernier commit
+          # de CHAQUE fichier. En clone superficiel (depth 1), toutes les pages
+          # afficheraient la date du deploiement.
+          fetch-depth: 0
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2

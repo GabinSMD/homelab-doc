@@ -1,17 +1,15 @@
 ---
+title: Documentation
+hide_title: true
 hide_table_of_contents: true
 ---
 
-# Un Raspberry Pi, deux ZimaBoards, une obsession du détail
+import DocsHome from '@site/src/components/DocsHome';
 
-Carnet de bord d'un homelab résidentiel : architecture, services auto-hébergés,
-hardening, observabilité, runbooks. Tout ce que je remettrais en place si la
-maison brûlait demain.
+<DocsHome />
 
-- **3 hosts** — penny + galahad + lancelot
-- **SSO Authelia** — 12+ services derrière Traefik
-- **Backups** — Restic vers R2 EU + PBS
-- **Stack** — DietPi, Proxmox, Docker, sops/age
+<details className="homelab-home-reference">
+<summary>Repères techniques détaillés</summary>
 
 ## Architecture actuelle
 
@@ -94,3 +92,5 @@ Chaque machine porte un nom de code du monde de l'espionnage. Voir le [casting c
 │   └── tailscale/          # State tailscale
 └── docker/                 # Docker data-root (images, volumes, overlay2)
 ```
+
+</details>

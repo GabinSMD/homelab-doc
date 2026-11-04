@@ -18,9 +18,9 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'architecture/hardware', label: 'Machines' },
         { type: 'doc', id: 'architecture/os', label: 'Optimisations OS' },
-        { type: 'doc', id: 'architecture/reseau', label: 'Reseau actuel' },
-        { type: 'doc', id: 'architecture/acces-reseau', label: 'Acces aux services' },
-        { type: 'doc', id: 'architecture/reseau-cible', label: 'Reseau cible' },
+        { type: 'doc', id: 'architecture/reseau', label: 'Réseau actuel' },
+        { type: 'doc', id: 'architecture/acces-reseau', label: 'Accès aux services' },
+        { type: 'doc', id: 'architecture/reseau-cible', label: 'Réseau cible' },
         { type: 'doc', id: 'architecture/cluster-qdevice', label: 'Cluster qdevice' },
       ],
     },
@@ -31,7 +31,7 @@ const sidebars = {
       items: [
         {
           type: 'category',
-          label: 'Entree et acces',
+          label: 'Entrée et accès',
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/traefik', label: 'Traefik (reverse proxy)' },
@@ -43,7 +43,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Observabilite',
+          label: 'Observabilité',
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/logs-stack', label: 'Stack logs (LXC 101)' },
@@ -56,7 +56,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Donnees et sauvegarde',
+          label: 'Données et sauvegarde',
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/vaultwarden', label: 'Vaultwarden' },
@@ -65,7 +65,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Developpement et redaction',
+          label: 'Développement et rédaction',
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/forgejo', label: 'Forgejo' },
@@ -83,12 +83,12 @@ const sidebars = {
             { type: 'doc', id: 'services/homepage', label: 'Homepage (dashboard)' },
             { type: 'doc', id: 'services/portainer', label: 'Portainer (retiré)' },
             { type: 'doc', id: 'services/homelable', label: 'Homelable (retiré)' },
-            { type: 'doc', id: 'services/boite-a-outils', label: 'Boite a outils' },
+            { type: 'doc', id: 'services/boite-a-outils', label: 'Boîte à outils' },
           ],
         },
         {
           type: 'category',
-          label: 'Medias',
+          label: 'Médias',
           collapsed: true,
           items: [
             { type: 'doc', id: 'services/iptv', label: 'IPTV (LXC 109)' },
@@ -107,7 +107,7 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Securite',
+      label: 'Sécurité',
       link: { type: 'doc', id: 'securite/index' },
       items: [
         { type: 'doc', id: 'securite/politique', label: 'Politique' },
@@ -119,7 +119,7 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Operations',
+      label: 'Exploitation',
       link: { type: 'doc', id: 'operations/index' },
       items: [
         { type: 'doc', id: 'operations/monitoring', label: 'Monitoring' },
@@ -133,17 +133,17 @@ const sidebars = {
           collapsed: true,
           link: { type: 'doc', id: 'operations/registre-mesure' },
           items: [
-            { type: 'doc', id: 'operations/registre-fenetre-courante', label: 'Fenetre courante' },
-            { type: 'doc', id: 'operations/registre-modeles', label: 'Modeles' },
+            { type: 'doc', id: 'operations/registre-fenetre-courante', label: 'Fenêtre courante' },
+            { type: 'doc', id: 'operations/registre-modeles', label: 'Modèles' },
           ],
         },
         { type: 'doc', id: 'operations/backups', label: 'Backups' },
         { type: 'doc', id: 'operations/break-glass', label: 'Break-glass' },
-        { type: 'doc', id: 'operations/depannage', label: 'Depannage' },
-        { type: 'doc', id: 'operations/derive-configuration', label: 'Derive de configuration' },
-        { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents recurrents' },
-        { type: 'doc', id: 'operations/inventaire-controles', label: 'Inventaire des controles' },
-        { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (acces urgence)' },
+        { type: 'doc', id: 'operations/depannage', label: 'Dépannage' },
+        { type: 'doc', id: 'operations/derive-configuration', label: 'Dérive de configuration' },
+        { type: 'doc', id: 'operations/incidents-recurrents', label: 'Incidents récurrents' },
+        { type: 'doc', id: 'operations/inventaire-controles', label: 'Inventaire des contrôles' },
+        { type: 'doc', id: 'operations/forgejo-acces-urgence', label: 'Forgejo (accès urgence)' },
         { type: 'doc', id: 'operations/dr-drill-scenario-1', label: 'DR drill scenario 1' },
         { type: 'doc', id: 'operations/doctrine-manager', label: 'Doctrine du Manager' },
       ],
@@ -163,12 +163,12 @@ const sidebars = {
       label: 'Projet',
       link: { type: 'doc', id: 'projet/index' },
       items: [
-        { type: 'doc', id: 'projet/decisions', label: 'Decisions techniques' },
+        { type: 'doc', id: 'projet/decisions', label: 'Décisions techniques' },
         { type: 'doc', id: 'projet/gestion-des-issues', label: 'Gestion des issues' },
         { type: 'doc', id: 'projet/roadmap', label: 'Roadmap (4 phases hardware)' },
         { type: 'doc', id: 'projet/sucre', label: 'sucre (SRE perso, retiré)' },
         { type: 'doc', id: 'projet/sucre-observability', label: 'sucre — observabilite' },
-        { type: 'doc', id: 'projet/about', label: 'A propos' },
+        { type: 'doc', id: 'projet/about', label: 'À propos' },
         {
           // Artefacts DATES : specs, plans, rapports, instantanes, post-mortems.
           // On ne les reecrit pas, on les date. Ordre chronologique inverse : le
