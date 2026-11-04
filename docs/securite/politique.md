@@ -50,8 +50,8 @@ Exceptions admises (pas SSO) :
 | Niveau | Services | Longueur | Rotation |
 |---|---|---|---|
 | Critique | Authelia, Vaultwarden master, Proxmox root@pam | 32 chars | A la compromission |
-| Élevé | AdGuard local, Portainer fallback | 32 chars | A la compromission |
-| OIDC clients | Secrets OIDC (Proxmox, Portainer, Beszel, Grafana) | 256 bits | 12 mois max |
+| Élevé | AdGuard local | 32 chars | A la compromission |
+| OIDC clients | Secrets OIDC (Proxmox, Grafana, PBS, Pulse, Forgejo, Outline) | 256 bits | 12 mois max |
 
 Génération : `openssl rand -base64 48 | head -c 32`.
 Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne ou un message.
@@ -62,9 +62,7 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 |---|---|---|---|
 | Authelia | TOTP + WebAuthn FIDO2 YubiKey | — (source de vérité) | — |
 | Proxmox galahad/lancelot | OIDC Authelia (two_factor) | Non (realm selector) | `root@pam` (inevit.) |
-| Portainer | OIDC Authelia (two_factor) | **Oui** (SSO + hide internal) | `gabins` local (break-glass) |
 | Grafana | OIDC Authelia (two_factor) + PKCE S256 | **Oui** (`auto_login=true`) | Admin désactivé en DB |
-| Beszel | OIDC Authelia (one_factor) | Non (PocketBase) | Superuser `/_/` séparé |
 | Homepage / AdGuard | ForwardAuth Authelia | **Oui** (transparent) | AdGuard bcrypt seul |
 | SSH | Clé Ed25519 uniquement | — | — |
 | Vaultwarden | Master password + TOTP | — | — |
@@ -117,16 +115,20 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 ### Clients OIDC (secret en clair — les hash pbkdf2 restent dans `configuration.yml`)
 
 - `proxmox` client secret
-- `portainer` client secret
 - `grafana` client secret
-- `beszel` client secret
+- `pbs` client secret
+- `pulse` client secret
+- `forgejo` client secret
+- `outline` client secret
+
+Les secrets `portainer`, `beszel`, `homelable` et `securo` sont à purger du coffre : leurs
+clients ont été retirés de `configuration.yml` en novembre 2026.
 
 ### OS / Infra
 
 - `root@pam` Proxmox galahad + lancelot
 - Passphrases clés SSH (par machine)
 - bcrypt AdGuard gabins
-- Portainer admin (fallback)
 
 ### Externals
 
@@ -138,9 +140,12 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 ### Homepage widgets (readonly service accounts)
 
 - `HOMEPAGE_VAR_PVE_TOKEN_ID` + `_SECRET`
-- `HOMEPAGE_VAR_PORTAINER_KEY`
-- `HOMEPAGE_VAR_BESZEL_USER` + `_PASS`
+- `HOMEPAGE_VAR_PBS_TOKEN_ID` + `_SECRET`
+- `HOMEPAGE_VAR_PULSE_TOKEN`
 - `HOMEPAGE_VAR_ADGUARD_USER` + `_PASS`
+- `HOMEPAGE_VAR_CROWDSEC_USER` + `_PASS`
+
+(Relevé dans `homepage/services.yaml` le 2026-11-04.)
 
 ### Hors Vault (volontaire — éviter la dépendance circulaire)
 

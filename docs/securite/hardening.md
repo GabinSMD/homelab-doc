@@ -109,9 +109,12 @@ Policy `INPUT DROP`. Ports ouverts uniquement :
 | 3000 | AdGuard web UI | LAN + Tailscale |
 | 2049 (TCP) | NFS (PBS datastore) | LAN + Tailscale |
 | 111 (TCP/UDP) | rpcbind / portmapper (NFS) | LAN + Tailscale |
-| 45876 | Beszel agent | LAN + Tailscale |
 | 5403 (TCP) | corosync-qnetd (qdevice) | LAN + Tailscale |
 | 3101 (TCP) | loki-replica (HA Loki) | LAN (via Docker bridge, interne) |
+
+Le port 45876 (agent Beszel) a quitté cette liste avec le retrait de Beszel le 2026-11-03.
+Sur **galahad et lancelot**, en revanche, `beszel-agent` tournait encore et écoutait sur
+45876 au 2026-11-04 : un service retiré dont l'agent reste exposé, à désinstaller.
 
 Persistance via `netfilter-persistent`.
 
@@ -128,7 +131,7 @@ Fix systematique : drop-in `PrivateMounts=yes` sur chaque service hardene.
 | Host | Services avec drop-in `PrivateMounts=yes` |
 |------|-------------------------------------------|
 | penny | ssh, fail2ban, systemd-networkd, systemd-timesyncd, auditd, fstrim, systemd-hostnamed, systemd-localed, systemd-logind, systemd-timedated (10 services) |
-| galahad | ssh, fail2ban, postfix, chrony, beszel-agent, systemd-logind (6 services) |
+| galahad | ssh, fail2ban, postfix, chrony, beszel-agent (Beszel retiré le 2026-11-03, agent à désinstaller), systemd-logind (6 services) |
 | lancelot | idem galahad |
 
 ### Pattern drop-in
@@ -306,11 +309,13 @@ Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de
 
 ## Réseaux Docker — isolation et ICC
 
+Relevé le 2026-11-04 avec `docker network inspect`.
+
 | Réseau | Type | ICC | Containers | Note |
 |---|---|---|---|---|
-| `proxy` | bridge | enabled | traefik, authelia, portainer, homepage, wud, beszel | ICC enabled by design pour Traefik -> backends. **Implication** : tout container compromis sur ce réseau peut joindre les autres en HTTP interne (ex: homepage -> wud:3001 anonyme, traefik:8080 admin API). |
-| `socket` | bridge `internal: true` | enabled | socket-proxy, traefik, homepage, wud, autoheal | Pas d'acces internet. ICC limité a la API socket-proxy whitelistee. |
-| `host` | host | N/A | adguard, beszel-agent, tailscale | Stack réseau de l'host |
+| `proxy` | bridge | enabled | traefik, authelia, homepage, forgejo, outline, ntfy, dozzle, cyberchef, stirling-pdf, status, crowdsec, loki-replica, loki-replica-gate | ICC enabled by design pour Traefik -> backends. **Implication** : tout container compromis sur ce réseau peut joindre les autres en HTTP interne (ex: traefik:8080 admin API). |
+| `socket` | bridge `internal: true` | enabled | socket-proxy, traefik, homepage, dozzle, autoheal | Pas d'acces internet. ICC limité a la API socket-proxy whitelistee. |
+| `host` | host | N/A | adguard | Stack réseau de l'host (Tailscale tourne nativement, hors Docker) |
 
 ### Mitigations en place
 
@@ -341,9 +346,9 @@ Acces root dans les LXC : `pct enter <VMID>` depuis l'hyperviseur (pas besoin de
 - `POST: 1` (pour autoheal)
 - Bloque : `EXEC`, `SECRETS`, `BUILD`, `VOLUMES`, `CONFIGS`, `SWARM`, `NODES`, `AUTH`, `SYSTEM`
 
-Clients socket-proxy : Traefik, Homepage, autoheal.
+Clients socket-proxy : Traefik, Homepage, Dozzle, autoheal.
 
-Clients socket direct : **Portainer uniquement** (admin tool nécessité acces complet).
+Clients socket direct : **aucun** depuis le retrait de Portainer le 2026-11-03 (seul `socket-proxy` monte le socket).
 
 ### Per-container (`cap_drop` + `cap_add`)
 
@@ -353,10 +358,8 @@ Clients socket direct : **Portainer uniquement** (admin tool nécessité acces c
 | Authelia | ALL | `SETGID`, `SETUID`, `DAC_OVERRIDE` |
 | Traefik | ALL | `NET_BIND_SERVICE` |
 | Homepage | ALL | (aucune, read-only) |
-| Beszel | ALL | (aucune) |
 | socket-proxy | ALL (par design) | (géré par le proxy) |
 | AdGuard | non applicable | DHCP + host network nécessité plus |
-| Portainer | non applicable | admin tool |
 
 ### read_only (rootfs immuable)
 
@@ -366,14 +369,11 @@ Clients socket direct : **Portainer uniquement** (admin tool nécessité acces c
 | Homepage | ✅ OK | `/tmp`, `/app/.next/cache` | teste 2026-04-13 |
 | Authelia | ❌ KO | — | ecrit `/app/.healthcheck.env` au startup (pas seulement healthcheck), impossible en l'état |
 | Vaultwarden | ❌ KO | — | SQLite DB + icons cache (design) |
-| Beszel | ⚠️ non teste | — | candidat potentiel |
 
 ### Ports directs supprimés
 
 Tous les services passent par Traefik HTTPS (443) + Authelia ForwardAuth. Ports directs **supprimés** :
-- Portainer : 8000, 9443
 - Homepage : 3100
-- Beszel : 8090
 - Traefik dashboard : 8080 (accessible uniquement via réseau `socket` pour healthcheck)
 
 ### Healthchecks

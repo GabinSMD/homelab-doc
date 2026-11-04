@@ -165,8 +165,8 @@ lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
 ```
 
 C'est le passthrough TUN dont Tailscale a besoin en LXC non privilégié. Il
-concerne les CT **100** (dns-failover), **104** (zomboid), **105** (sucre) et
-**107** (waterline).
+concerne les CT **100** (dns-failover) et **107** (waterline) ; il concernait aussi
+104 (zomboid) et 105 (sucre), détruits depuis.
 
 Terraform ne les voit pas, donc il ne les détruira pas. Mais une **recréation**
 les perdrait en silence, et Tailscale tomberait sur ces quatre conteneurs sans

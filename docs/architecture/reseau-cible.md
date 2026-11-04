@@ -36,7 +36,7 @@ Si le cluster Proxmox tombe, le réseau continue de fonctionner.
 - **AdGuard Home** — DNS principal + ad-blocking
 - **Traefik** — reverse proxy + TLS auto
 - **Tailscale** — VPN mesh distant
-- **Beszel** — monitoring système
+- **Pulse** — monitoring système (Beszel jusqu'au 2026-11-03)
 - **Homepage** — dashboard
 
 ### Appliance OPNsense — Firewall dedie

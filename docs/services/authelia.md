@@ -17,33 +17,30 @@ graph LR
     Browser --> Traefik
     Traefik -->|ForwardAuth| Authelia
     Authelia -->|OIDC| Proxmox
-    Authelia -->|OIDC| Portainer
-    Authelia -->|OIDC| Beszel
     Authelia -->|OIDC| Grafana
+    Authelia -->|OIDC| PBS
+    Authelia -->|OIDC| Pulse
+    Authelia -->|OIDC| Forgejo
+    Authelia -->|OIDC| Outline
     Authelia -->|ForwardAuth| Traefik_dash[Traefik dashboard]
 ```
 
 ## Clients OIDC configurés
 
-Relevé le 2026-09-24 dans `authelia/configuration.yml`. **Dix** clients — cette page n'en
-listait que quatre.
+Relevé le 2026-11-04 dans `authelia/configuration.yml`. **Six** clients : Portainer,
+Homelable et Beszel ont été retirés le 2026-11-03 ; Securo, abandonné, n'y figure plus non plus.
 
 | Service | Client ID | Policy | PKCE | `token_endpoint_auth_method` |
 |---|---|---|---|---|
 | Proxmox VE (galahad + lancelot) | `proxmox` | `two_factor` | — | défaut (`basic`) |
-| Portainer | `portainer` | `two_factor` | — | défaut (`basic`) |
 | Grafana | `grafana` | `two_factor` | S256 | `client_secret_basic` |
 | PBS | `pbs` | `two_factor` | — | défaut (`basic`) |
-| Homelable | `homelable` | `two_factor` | — | défaut (`basic`) |
-| Beszel | `beszel` | `two_factor` | — | défaut (`basic`) |
 | Pulse | `pulse` | `two_factor` | — | `client_secret_basic` |
 | Forgejo | `forgejo` | `two_factor` | — | `client_secret_basic` |
 | Outline | `outline` | `two_factor` | — | `client_secret_post` |
-| Securo | `securo` | `two_factor` | S256 | `client_secret_post` |
 
 Tous en `consent_mode: pre-configured`, ce qui évite l'écran de consentement à chaque
-login (1 acceptation = 1 an de validité). Beszel était donné en `one_factor` sur cette
-page : il est en `two_factor` comme les neuf autres.
+login (1 acceptation = 1 an de validité). Tous sont en `two_factor`.
 
 :::warning[`invalid_client` veut dire « méthode refusée », pas « mauvais secret »]
 La colonne `token_endpoint_auth_method` est celle qui coûte le plus de temps quand on
@@ -52,16 +49,12 @@ envoient leurs identifiants **dans le corps** de la requête (`client_secret_pos
 serveur répond alors `invalid_client` — et on part chercher une faute de frappe dans un
 secret parfaitement correct.
 
-Deux des dix clients sont en `post` : Outline et Securo.
-:::
-
-:::warning[Beszel OIDC — pre-requis]
-L'image Beszel est scratch (pas de CA certs). Le container DOIT monter `/etc/ssl/certs/ca-certificates.crt:ro` + env `SSL_CERT_FILE` pour que PocketBase puisse faire le token exchange HTTPS vers Authelia. De plus, `auth.home.gabin-simond.fr` doit avoir un rewrite DNS spécifique (non filtre par client) car le wildcard AdGuard ne matche pas les IPs Docker. Voir [dépannage](../operations/depannage.md#beszel--oidc-failed-to-fetch-oauth2-token).
+Un seul des six clients est en `post` : Outline.
 :::
 
 ## ForwardAuth middleware
 
-Relevé le 2026-09-24 : les routers portant `authelia@docker`.
+Relevé le 2026-11-04 : les routers portant `authelia@docker` (labels du compose et fichiers `traefik/dynamic/`).
 
 | Router | Hôte | OIDC aussi ? |
 |---|---|---|
@@ -72,11 +65,10 @@ Relevé le 2026-09-24 : les routers portant `authelia@docker`.
 | CyberChef | `cyberchef.home…` | non |
 | Dozzle | `dozzle.home…` | non |
 | Stirling PDF | `pdf.home…` | non |
-| Portainer | `portainer.home…` | **oui** |
-| Beszel | `monitor.home…` | **oui** |
-| Homelable | `homelable.home…` | **oui** |
+| IPTV | `iptv.home…` | non |
+| Pulse | `pulse.home…` | **oui** |
 
-Trois services portent **les deux couches** : le middleware ForwardAuth devant, et OIDC
+Pulse porte **les deux couches** : le middleware ForwardAuth devant, et OIDC
 dans l'application. Le premier ferme la porte à un non-authentifié avant que la requête
 atteigne le backend ; le second donne l'identité à l'application.
 
@@ -105,7 +97,7 @@ traefik.http.middlewares.authelia.forwardAuth.address=http://authelia:9091/api/a
 | TOTP | Activé (`issuer: Homelab`, period 30s, skew 1) |
 | WebAuthn FIDO2 | Activé — 2 YubiKeys enregistrees (`attachment: cross-platform`) |
 
-Policy par defaut : `two_factor`. Beszel est en `one_factor` car c'est pas un enjeu sécurité critique (monitoring readonly).
+Policy par defaut : `two_factor`.
 
 ## Configuration Proxmox
 
@@ -127,19 +119,6 @@ pveum realm modify authelia --comment 'Authelia'
 # ACL Administrator pour gabins@authelia
 pveum acl modify / --user gabins@authelia --role Administrator
 ```
-
-## Configuration Portainer
-
-**Settings > Authentication > OAuth** :
-
-| Champ | Valeur |
-|---|---|
-| Provider | Custom |
-| Client ID | `portainer` |
-| Authorization URL | `https://auth.home.gabin-simond.fr/api/oidc/authorization` |
-| Access Token URL | `https://auth.home.gabin-simond.fr/api/oidc/token` |
-| Resource URL | `https://auth.home.gabin-simond.fr/api/oidc/userinfo` |
-| User Identifier | `preferred_username` |
 
 ## Configuration Grafana
 
@@ -164,20 +143,6 @@ GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true"
 ```
 
 Voir [grafana.md](grafana.md) pour le détail complet.
-
-## Configuration Beszel
-
-**Settings > Auth providers > OpenID Connect** :
-
-| Champ | Valeur |
-|---|---|
-| Client ID | `beszel` |
-| Display name | `Authelia` |
-| Auth URL | `https://auth.home.gabin-simond.fr/api/oidc/authorization` |
-| Token URL | `https://auth.home.gabin-simond.fr/api/oidc/token` |
-| User API URL | `https://auth.home.gabin-simond.fr/api/oidc/userinfo` |
-
-L'authentification par mot de passe est désactivée via la variable d'environnement `DISABLE_PASSWORD_AUTH=true` dans le docker-compose. Cela empeche PocketBase de reactiver le formulaire email/mot de passe a chaque redémarrage du container.
 
 ## Fichiers
 

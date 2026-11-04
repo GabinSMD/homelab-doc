@@ -70,8 +70,8 @@ La clé age est la racine de confiance. Sans elle, rien ne déchiffré.
 - [ ] `curl -k https://traefik.home.gabin-simond.fr` — Traefik répond
 - [ ] Login Homepage via Authelia — OIDC fonctionne
 - [ ] AdGuard accessible, resolve test
-- [ ] Beszel montre les metriques
-- [ ] Portainer liste les containers
+- [ ] Dozzle liste les conteneurs et affiche leurs logs
+- [ ] Certificat TLS servi par Traefik = celui restauré (`acme.json`), pas un nouveau
 - [ ] `/root/homelab_monitor.sh` — aucune alerte
 
 ### Phase 6 — Cleanup (5 min)

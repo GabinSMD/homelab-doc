@@ -278,7 +278,7 @@ Les containers sur le réseau Docker `proxy` utilisent le DNS Docker interne (`1
 
 ### Fix
 
-Ajouter `dns: 192.168.1.28` dans le `docker-compose.yml` pour chaque container qui a besoin de résoudre des domaines locaux (Portainer, Beszel, Homepage, Vaultwarden).
+Ajouter `dns: 192.168.1.28` dans le `docker-compose.yml` pour chaque container qui a besoin de résoudre des domaines locaux. Au 2026-11-04, seul `homepage` le porte dans le compose.
 
 ```yaml
 services:
@@ -286,28 +286,6 @@ services:
     dns:
       - 192.168.1.28
 ```
-
----
-
-## Beszel — OIDC "Only superusers can perform this action"
-
-### Symptome
-
-Login OIDC via Authelia renvoie `403 — Only superusers can perform this action`.
-
-### Cause
-
-PocketBase (backend de Beszel) bloque la création de comptes via OAuth2 par defaut.
-
-### Workaround
-
-1. Aller dans `/_/#/settings` → désactiver la restriction admin-only création
-2. Editer la collection `users` → API Rules → changer le "Create rule" en : `@request.context = "oauth2"`
-3. Reactiver la restriction admin-only
-4. Se connecter via OIDC (le compte est créé avec le rôle `user`)
-5. Aller dans `/_/#/collections` → `users` → promouvoir le compte en `admin`
-
-Source : [henrygd/beszel#291](https://github.com/henrygd/beszel/issues/291)
 
 ---
 
@@ -337,8 +315,13 @@ Le log indiqué l'URI attendue par le client → copier cette URI exacte dans la
 | Service | redirect_uri |
 |---|---|
 | Proxmox | `https://galahad.home.gabin-simond.fr` (et lancelot) |
-| Portainer | `https://portainer.home.gabin-simond.fr/` (avec slash) |
-| Beszel | `https://monitor.home.gabin-simond.fr/api/oauth2-redirect` |
+| Grafana | `https://logs.home.gabin-simond.fr/login/generic_oauth` |
+| PBS | `https://backup.home.gabin-simond.fr` |
+| Pulse | `https://pulse.home.gabin-simond.fr/api/oidc/callback` (et deux variantes) |
+| Forgejo | `https://git.home.gabin-simond.fr/user/oauth2/authelia/callback` |
+| Outline | `https://wiki.home.gabin-simond.fr/auth/oidc.callback` |
+
+Relevé dans `authelia/configuration.yml` le 2026-11-04 ; c'est ce fichier qui fait foi.
 
 ---
 
@@ -465,113 +448,6 @@ Après correction, les deux méthodes doivent donner le même résultat :
 ```bash
 ssh root@homelab "echo \$SHELL; echo \$PATH"
 ssh -p 2806 root@192.168.1.28 "echo \$SHELL; echo \$PATH"
-```
-
----
-
-## Beszel — OIDC "Failed to fetch OAuth2 token"
-
-### Symptome
-
-Login Authelia fonctionne (popup s'ouvre, auth OK) mais retour sur Beszel = page blanche. Console : `ClientResponseError 401`.
-
-### Causes (3 root causes combinees)
-
-**1. DNS Docker → NXDOMAIN pour `auth.home.gabin-simond.fr`**
-
-Le wildcard AdGuard `||home.gabin-simond.fr^$dnsrewrite=...,client=192.168.1.0/24` ne matche PAS les containers Docker (`172.20.0.x`). PocketBase ne peut pas résoudre `auth.home...` → token exchange échoué silencieusement.
-
-Fix : ajouter un rewrite spécifique (non filtre par client) dans AdGuard :
-```yaml
-rewrites:
-  - domain: auth.home.gabin-simond.fr
-    answer: 192.168.1.28
-    enabled: true
-```
-
-**2. Image scratch Beszel = pas de CA certificates**
-
-Go HTTP client ne peut pas vérifier le cert Let's Encrypt → TLS handshake échoué silencieusement.
-
-Fix dans `docker-compose.yml` :
-```yaml
-beszel:
-  volumes:
-    - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
-  environment:
-    SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
-```
-
-**3. Subject ID mismatch dans PocketBase**
-
-Si les sessions OIDC Authelia sont purgees, le subject ID change. La table `_externalAuths` dans PocketBase garde l'ancien ID → mismatch → 401 après token exchange réussi.
-
-```bash
-# Trouver le nouveau subject dans les logs Authelia (debug) :
-docker logs authelia | grep "beszel.*subject"
-# Mettre a jour PocketBase :
-sqlite3 /path/to/beszel/data.db \
-  "UPDATE _externalAuths SET providerId='<new_subject>' WHERE provider='oidc';"
-```
-
-### Prevention
-
-- Ne JAMAIS purger les sessions OIDC Authelia sans re-aligner les `_externalAuths`
-- Garder les CA certs montes en permanence dans Beszel
-- Tester l'OIDC après chaque rotation de secret
-
----
-
-## Beszel — hostname ancien affiche (pve1, gabin-simond.home)
-
-### Cause
-
-Le beszel-agent cache le hostname au démarrage. Si le hostname système a été renomme APRÈS le démarrage de l'agent, l'ancien nom persiste dans `system_details`.
-
-### Fix
-
-```bash
-# 1. Restart les agents sur chaque host
-ssh galahad "sudo systemctl restart beszel-agent"
-ssh lancelot "sudo systemctl restart beszel-agent"
-docker restart beszel-agent  # penny
-
-# 2. Si le hostname persiste, forcer en DB :
-sqlite3 /path/to/beszel/data.db "UPDATE system_details SET hostname='galahad' WHERE hostname='pve1';"
-```
-
----
-
-## Portainer — mot de passe perdu
-
-### Procédure de reset
-
-```bash
-# Trouver le bon volume
-docker inspect portainer --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
-
-# Reset avec le helper (adapter le nom du volume)
-docker compose stop portainer
-docker run --rm -v config_portainer-data:/data portainer/helper-reset-password
-docker compose up -d portainer
-```
-
-Le helper généré un nouveau mot de passe aléatoire.
-
----
-
-## Portainer — "failed opening store : timeout"
-
-### Cause
-
-Un process Portainer fantome tient le verrou BoltDB. Typiquement après un reset de mot de passe via `--admin-password` qui n'a pas été arrêté proprement.
-
-### Fix
-
-```bash
-fuser /path/to/portainer-data/portainer.db  # trouver le PID
-kill -9 <PID>
-docker start portainer
 ```
 
 ---
@@ -770,7 +646,7 @@ A ne pas confondre avec le SIGBUS *dockerd* ci-dessus (log-driver journald) : ic
 
 ### Fix
 
-1. Journal en RAM, hors perimetre de `dietpi-logclear` — `/etc/systemd/journald.conf.d/10-sucre-alloy-sigbus-volatile.conf` :
+1. Journal en RAM, hors perimetre de `dietpi-logclear` — `/etc/systemd/journald.conf.d/10-alloy-sigbus-volatile.conf` :
 
    ```ini
    [Journal]
@@ -883,7 +759,7 @@ Le restart `ssh.service` appliquant le drop-in risque de kill la session — sch
 
 ### Services concernes (2026-04-19)
 
-beszel-agent, chrony, fail2ban, postfix, ssh, systemd-logind. Tous fixes via drop-ins `/etc/systemd/system/<svc>.service.d/private-mounts.conf`.
+beszel-agent (retiré depuis, le 2026-11-03), chrony, fail2ban, postfix, ssh, systemd-logind. Tous fixes via drop-ins `/etc/systemd/system/<svc>.service.d/private-mounts.conf`.
 
 ---
 

@@ -35,8 +35,8 @@ graph TB
         adguard1[AdGuard Home primaire]
         authelia[Authelia SSO]
         homepage[Homepage]
-        portainer[Portainer]
-        beszel[Beszel]
+        forgejo[Forgejo]
+        ntfy[ntfy]
         autoheal[Autoheal]
         monitor[homelab_monitor.sh]
     end
@@ -155,7 +155,7 @@ seul, donc **YK2, qui est déjà dans ce coffre, suffit**.
 
 **Taille réelle : 4,6 Mo** au 2026-09-24 (3,9 Mo au drill du 26/08), pas les 285 Mo estimés pendant le drill — un `git
 bundle` ne transporte que l'historique versionné, pas les 264 Mo de données
-d'exécution non suivies qui traînent dans l'arborescence (`sucre/`, base
+d'exécution non suivies qui traînaient alors dans l'arborescence (`sucre/` à l'époque, base
 SQLite d'Authelia, journaux). Le script vérifie son propre produit avant de
 rendre la main : déchiffrement réel, clonage des deux bundles, comparaison des
 HEAD, et présence de `.env.enc` dans le clone.
@@ -736,8 +736,13 @@ sysctl --system
 
 #### Phase 4 (repli manuel) — Docker + services (T+45min a T+1h30)
 
-:::warning Liste de volumes historique à revalider
-La boucle `for vol in beszel portainer` ci-dessous concerne deux services retirés le **3 novembre 2026**. Ne l’exécutez pas telle quelle pour reconstruire le lab actuel : confrontez les volumes sauvegardés au Compose courant et aux [fiches des services](../services/index.mdx).
+:::warning[Corrigé le 2026-11-04 — la boucle restaurait des volumes qui n'étaient plus sauvegardés]
+Jusqu'à cette date, la boucle ci-dessous restaurait `beszel` et `portainer`. Or
+`homelab_backup.sh` stage **`crowdsec`, `traefik-certs` et `adguard-runtime`** depuis
+le 2026-04-17, sous des étiquettes qui ne sont pas les noms de volume. Suivie à la
+lettre, la procédure ne restaurait ni les certificats TLS ni l'état CrowdSec.
+La liste fait désormais foi dans `VOLUMES=` de `scripts/homelab_backup.sh` : la
+relire avant d'exécuter, et ajuster la boucle si elle a changé.
 :::
 
 :::danger[Corrigé le 2026-08-26 — les commandes de restauration ne pouvaient pas s'authentifier]
@@ -816,14 +821,20 @@ restic snapshots
 # Restaurer les volumes stages dans le dernier snapshot
 restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging"
 
-# Injecter les donnees dans les volumes Docker
-for vol in beszel portainer; do
-    docker volume create config_${vol}-data 2>/dev/null
+# Injecter les donnees dans les volumes Docker.
+# Paires volume:etiquette, recopiees de VOLUMES= dans scripts/homelab_backup.sh
+# (l'etiquette est le nom du repertoire de staging, PAS le nom du volume).
+grep -A8 '^VOLUMES=(' /mnt/ssd/config/scripts/homelab_backup.sh   # verifier avant
+for entry in docker_crowdsec-data:crowdsec \
+             config_traefik-certs:traefik-certs \
+             config_adguard-data:adguard-runtime; do
+    vol="${entry%%:*}"; label="${entry##*:}"
+    docker volume create "$vol" 2>/dev/null
     docker run --rm \
-        -v config_${vol}-data:/data \
-        -v /tmp/restore/mnt/ssd/.restic-staging/${vol}:/source:ro \
+        -v "$vol":/data \
+        -v "/tmp/restore/mnt/ssd/.restic-staging/$label":/source:ro \
         alpine sh -c "cp -a /source/. /data/"
-    echo "Restored: $vol"
+    echo "Restored: $vol (depuis $label)"
 done
 
 rm -rf /tmp/restore
@@ -851,8 +862,7 @@ else
     openssl rand -hex 32  # hmac_secret
     openssl genrsa -out /mnt/ssd/config/authelia/oidc.pem 4096
     # ATTENTION : si on regenere oidc.pem, il faut reconfigurer
-    # les 10 clients OIDC (Proxmox, Portainer, Grafana, PBS, Homelable,
-    # Beszel, Pulse, Forgejo, Outline, Securo)
+    # les 6 clients OIDC (Proxmox, Grafana, PBS, Pulse, Forgejo, Outline)
     echo "SECRETS REGENERES — mettre a jour configuration.yml manuellement"
 fi
 ```
@@ -1046,9 +1056,6 @@ pveum user add homepage@pve
 pveum aclmod / -user homepage@pve -role PVEAuditor
 pveum user token add homepage@pve homepage --privsep=0
 
-# Installer les agents Beszel sur chaque ZimaBoard
-# (utiliser beszel-agent-compose.yml depuis homelab-config/scripts/)
-
 # Installer Tailscale sur les ZimaBoards
 curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
@@ -1115,9 +1122,9 @@ gantt
 | **T+1h** | Docker up, restauration volumes depuis R2 | galahad : post-install.sh, création cluster |
 | **T+1.5h** | Authelia restaurée, Traefik + DNS UP | lancelot : rejoint le cluster |
 | **T+2h** | — | LXC 100 (dns-failover) UP, LXC 102 (vault) restauré depuis R2 |
-| **T+2.5h** | — | LXC 101 (logs) Grafana + Loki, SSO reconfiguré (OIDC Proxmox/Portainer/Grafana) |
+| **T+2.5h** | — | LXC 101 (logs) Grafana + Loki, SSO reconfiguré (OIDC Proxmox/Grafana/PBS/Pulse) |
 | **T+3h** | Tests end-to-end (voir checklist ci-dessous) | — |
-| **T+3.5h** | Agents Beszel + Tailscale, vérification backup (restic snapshots) | — |
+| **T+3.5h** | Tailscale, vérification backup (restic snapshots) | — |
 | **T+4h** | **OPÉRATIONNEL** | — |
 
 #### Gestion de la dépendance d'amorçage (bootstrap)
@@ -1178,9 +1185,9 @@ docker run --rm --entrypoint authelia authelia/authelia:latest \
 
 # Redemarrer et reconfigurer chaque client OIDC :
 # - Proxmox : pveum realm modify authelia --client-key <NEW_SECRET>
-# - Portainer : Settings > Authentication > OAuth > update secret
 # - Grafana : variable d'environnement GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
-# - Beszel : variable OIDC_SECRET dans l'environnement
+# - PBS, Pulse, Forgejo, Outline : secret client dans la config de chacun
+#   (liste a jour : clients OIDC de services/authelia.md)
 docker compose up -d authelia
 ```
 

@@ -214,10 +214,15 @@ Units : `homelab-config/system/systemd/*.{service,timer}` — penser à
 
 **Volumes Docker (stages puis backup) :**
 
-| Donnée | Volume | Criticite |
-|---|---|---|
-| Beszel (historique monitoring) | `config_beszel-data` | Faible |
-| Portainer (config Docker) | `config_portainer-data` | Moyenne |
+| Donnée | Volume | Répertoire de staging | Criticite |
+|---|---|---|---|
+| CrowdSec (enrôlement des bouncers, cache des décisions) | `docker_crowdsec-data` | `crowdsec` | Moyenne |
+| Certificats Let's Encrypt (`acme.json`) | `config_traefik-certs` | `traefik-certs` | Haute |
+| AdGuard (baux DHCP, cache des filtres) | `config_adguard-data` | `adguard-runtime` | Faible |
+
+La liste fait foi dans `VOLUMES=` de `scripts/homelab_backup.sh`. Le répertoire de
+staging porte l'étiquette, pas le nom du volume. Corrigé le 2026-11-04 : ce tableau
+listait encore deux volumes sortis de la sauvegarde depuis des mois.
 
 **Configs avec secrets :**
 
@@ -423,14 +428,15 @@ systemctl restart vaultwarden
 
 ```bash
 set -a; . /root/.restic-env; set +a   # set -a auto-exporte : immune au prochain changement de backend
-restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/beszel"
+# Exemple : CrowdSec (volume docker_crowdsec-data, etiquette de staging crowdsec)
+restic restore latest --target /tmp/restore --include "/mnt/ssd/.restic-staging/crowdsec"
 
-docker compose stop beszel
+docker compose stop crowdsec
 docker run --rm \
-    -v config_beszel-data:/data \
-    -v /tmp/restore/mnt/ssd/.restic-staging/beszel:/source:ro \
+    -v docker_crowdsec-data:/data \
+    -v /tmp/restore/mnt/ssd/.restic-staging/crowdsec:/source:ro \
     alpine sh -c "rm -rf /data/* && cp -a /source/. /data/"
-docker compose up -d beszel
+docker compose up -d crowdsec
 rm -rf /tmp/restore
 ```
 

@@ -2,8 +2,7 @@
 
 Cette page répond à une seule question : **quand une machine demande
 `grafana.home.gabin-simond.fr`, par où passe la requête ?** Elle complète
-[Réseau actuel](reseau.mdx), qui décrit l'adressage, et sert de légende à la
-cartographie Homelable.
+[Réseau actuel](reseau.mdx), qui décrit l'adressage.
 
 Il n'y a que **trois** chemins d'entrée. Aucun autre n'existe.
 
@@ -105,10 +104,10 @@ répond au ping.
 | `penny` | `100.97.239.90` | Serveur principal, **resolveur DNS n°1**, annonce `192.168.1.28/32`, porte le Funnel |
 | `guardian` | `100.74.145.26` | LXC 100 `dns-failover` — **resolveur DNS n°2** |
 | `galahad` / `lancelot` | `100.98.58.121` / `100.69.6.13` | Les deux nœuds Proxmox (Tailscale SSH) |
-| `zomboid` / `waterline` | `100.118.152.0` / `100.93.179.106` | Serveurs de jeu (LXC 104 et 107) |
+| `waterline` | `100.93.179.106` | Serveur de test du mod Waterline (LXC 107) |
 | `macbook-pro-de-gabin` | `100.68.165.36` | Le Mac (`192.168.1.173` quand il est à la maison) |
 | `A00783` | `100.64.114.40` | PC Windows |
-| `iphone175-1`, `SHADOW-7HAGR4KS` | — | Hors ligne de longue date |
+| `iphone175-1` | — | Hors ligne de longue date |
 
 ## Chemin 3 — le Funnel, seule porte publique
 
@@ -131,23 +130,15 @@ que le chemin 2 passe par la route `/32` et pas par un `tailscale serve`.
 
 - Les services qui n'écoutent que sur un **réseau Docker interne** : `outline-db`
   (PostgreSQL), `outline-redis`, `socket-proxy`, `status`,
-  `autoheal`. Ils sont volontairement sans sonde dans Homelable — un contrôle
+  `autoheal`. Une sonde réseau externe ne leur apprendrait rien : un contrôle
   qui ne peut pas échouer ne renseigne sur rien.
 - Le **reste du LAN depuis le tailnet** : la route annoncée est un `/32`. Pour
   joindre un LXC par son IP privée depuis l'extérieur, on passe par son propre
   nom Tailscale, pas par le LAN.
 
-## Comment lire la cartographie Homelable
+## Câblage
 
-| Type de lien | Ce qu'il représente |
-|---|---|
-| `fibre` | l'arrivée FTTH |
-| `ethernet` (1 Gb/s) | câblage : box → switch → les trois hôtes |
-| `wifi` | clients sans fil rattachés à la box |
-| `virtual` (pointillé) | dépendance logicielle : vhost Traefik, WireGuard, API Docker, base de données, qdevice, NFS |
-| `cluster` | le lien Corosync galahad ↔ lancelot |
-
-Les tuiles portent leurs interfaces en propriétés (`eth0`, `tailscale0`, `vmbr0`,
-réseaux Docker). Le câblage entre le switch et les machines est **déduit, pas
-mesuré** : le switch (`192.168.1.2`, alias DNS `switch.lan.gabin-simond.fr`) ne
-répond pas en SNMP, donc sa table MAC est inaccessible.
+Le câblage entre le switch et les machines est **déduit, pas mesuré** : le switch
+(`192.168.1.2`, alias DNS `switch.lan.gabin-simond.fr`) ne répond pas en SNMP, donc sa
+table MAC est inaccessible. (Cette section servait de légende à la cartographie
+Homelable, retirée le 2026-11-03.)

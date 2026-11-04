@@ -148,9 +148,6 @@ libelles, un nom approximatif ne matcherait rien **en silence**.
 | PBS | Datastore | 75 % | 90 % | |
 | PBS | Taches echouees 24h | — | 1 | il n'y a pas de « un peu echoue » |
 | Machines | En ligne | — | ratio | `"3 / 3"` : des qu'un hote manque, critique |
-| sucre | Incidents | 5 | 20 | |
-| sucre | Attente | 1 | — | une approbation en attente est une action pour l'utilisateur |
-| sucre | Budget | 80 % | 95 % | |
 | galahad / lancelot | CPU, RAM | 85 % | 95 % | |
 | AdGuard / DNS failover | Latence | 80 ms | 200 ms | au-dela de 80 ms la navigation se sent |
 

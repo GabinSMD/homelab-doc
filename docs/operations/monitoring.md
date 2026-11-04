@@ -5,7 +5,7 @@
 ```mermaid
 graph TD
     Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy.sh<br/>Notifications]
-    Beszel[Beszel Server] -->|dashboard| Web[Interface web]
+    Pulse[Pulse<br/>LXC 106 galahad] -->|API Proxmox + agents| Hosts[penny, galahad, lancelot]
     DD[digest-drift-check<br/>timer mensuel] -->|compare digests| Docker[Images Docker]
     
     Script -->|surveille| SSD[SSD]
@@ -15,9 +15,6 @@ graph TD
     Script -->|surveille| Disk[Espace disque]
     Script -->|surveille| RAM[RAM + OOM]
 
-    Agent1[Beszel Agent penny] -->|:45876| Beszel
-    Agent2[Beszel Agent galahad] -->|:45876| Beszel
-    Agent3[Beszel Agent lancelot] -->|:45876| Beszel
 ```
 
 ## homelab_monitor.sh
@@ -216,7 +213,7 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 | Service | Rôle | Acces |
 |---|---|---|
-| **Beszel** + agents | Monitoring système (CPU, RAM, disque, réseau) — penny, galahad, lancelot | Dashboard web |
+| **[Pulse](../services/pulse.md)** | Monitoring système Proxmox et Docker (CPU, RAM, disque, réseau) — remplace Beszel depuis le 2026-11-03 | Dashboard web / ntfy |
 | **digest-drift-check** | Notifie quand l'amont `:latest` dépasse le digest `@sha256` épinglé — n'applique **rien**, la mise à jour reste une décision | Timer mensuel / ntfy |
 | **homelab_monitor.sh** | Alertes critiques push (SSD, power, temp, Docker) | Notifications ntfy |
 | **Watchdog BCM2835** | Reboot auto si kernel freeze (timeout 15s) | Hardware |
@@ -228,21 +225,20 @@ TEMP_CRIT=80                      # Seuil critique °C
 
 Inventaire relevé sur la machine le **2026-09-24**. Tout ce qui tourne en planifié sur
 penny est ici ; les entrées sans lien n'ont pas de page dédiée et le tableau fait
-référence.
+référence. Mis à jour le 2026-11-04 : `pz-disk-check` et `pz-backup` ont disparu avec la
+LXC 104 (Project Zomboid, détruite le 2026-11-01).
 
 | Timer | Cadence | Ce qu'il fait |
 |---|---|---|
 | `claude-remote-watch` | chaque minute | Scrape les évènements de session — voir [claude-remote](../services/claude-remote.md) |
 | `smart-textfile-exporter` | toutes les 15 min | Expose la santé SMART du SSD à Prometheus (collecteur textfile) |
 | `ci-health-check` | toutes les 30 min | Témoin sur l'état de la CI des dépôts homelab — voir [ci-runner](../services/ci-runner.md) |
-| `outillage-health-check` | toutes les 30 min | Disponibilité de l'outillage (Pulse, Grafana, PBS, Portainer…) |
+| `outillage-health-check` | toutes les 30 min | Disponibilité de l'outillage (Pulse, Grafana, PBS, Dozzle…) |
 | `apt-listbugs` | horaire (:20) | Nettoie les préférences apt-listbugs qui bloquaient unattended-upgrades |
 | `funnel-public-check` | horaire | Le chemin **public** de ntfy est-il joignable ? — voir [ntfy](../services/ntfy.md) |
 | `mirror-drift-check` | horaire | Le miroir Forgejo → GitHub prend-il du retard ? — voir [dérive de configuration](derive-configuration.md) |
-| `pz-disk-check` | horaire | Espace disque du serveur Project Zomboid |
 | `control-drift-check` | toutes les 6 h (00:00) | Vérifie que les contrôles homelab sont réellement en place sur les 3 hôtes |
 | `guardrail-liveness` | toutes les 6 h (00:30) | Vérifie que chaque garde-fou a parlé récemment (un garde-fou muet ne se distingue pas d'un garde-fou content) |
-| `pz-backup` | toutes les 6 h (00:00) | Sauvegarde de la save Project Zomboid — voir [zomboid](../services/zomboid.md) |
 | `lxc-disk-check` | toutes les 6 h (02:00) | Remplissage des rootfs LXC sur les deux nœuds PVE |
 | `homelab-backup` | 03:00 | Sauvegarde restic vers R2 — voir [backups](backups.md) |
 | `pbs-datastore-sync` | 03:30 | Sync du datastore PBS vers R2 via rclone — voir [backups](backups.md) |
@@ -371,4 +367,4 @@ Si **lancelot** tombe, Loki primary (LXC 101) tombe aussi → Grafana ne peut pl
 
 1. **Loki replica sur penny** (port 3101) — reçoit toujours les writes Alloy via dual-write Alloy.
 2. **healthchecks.io** sur penny `homelab_monitor.sh` — ping cloud chaque minute, fire ntfy externe à T+5min de silence. Indépendant du cluster.
-3. **sucre canary via Tailscale** (commit `fb56f53`) — `monitor.sh` check `sucre.service` par IP Tailscale, bypass Loki.
+3. ~~**sucre canary via Tailscale**~~ — retiré avec sucre (arrêté le 2026-08-25, LXC détruit le 2026-11-03).

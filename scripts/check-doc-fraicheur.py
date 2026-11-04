@@ -30,13 +30,95 @@ explicite, et pourquoi elle est justifiee ligne par ligne.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import sys
 
 # Les pages qu'on suit en situation. Le reste de `docs/` (specs, decisions,
 # roadmaps, post-mortems) a le droit de parler du passe : c'est son role.
-SURVEILLE = ("docs/operations/", "docs/guides/", "docs/services/", "docs/architecture/")
+SURVEILLE = (
+    "docs/operations/", "docs/guides/", "docs/services/", "docs/architecture/",
+    # Ajoutees le 2026-11-04 : ces trois pages decrivent l'etat COURANT (ports,
+    # comptes, secrets a detenir). Hors perimetre, elles annoncaient encore les
+    # clients OIDC et le socket direct de Portainer le lendemain de son retrait.
+    "docs/securite/hardening.md", "docs/securite/comptes.md", "docs/securite/politique.md",
+)
+
+# Les services retires viennent du catalogue (status "retired" + retiredAt), le meme
+# fichier qui range leurs fiches dans les archives de la recherche. Un retrait
+# declare la-bas est donc verifie ici sans rien recopier : avant le 2026-11-04,
+# cette liste s'arretait a Watchtower et le controle passait au VERT pendant que
+# Beszel et Portainer etaient decrits au present dans une vingtaine de pages.
+# L'`id` de l'entree sert de motif (mot entier, casse ignoree).
+CATALOGUE = pathlib.Path("src/data/service-catalogue.json")
+
+# Liste blanche des services du catalogue, par id. Meme regle que plus bas :
+# chaque fichier est justifie. La fiche du service et les pages archivees
+# (`search_status: archive`) sont exclues d'office.
+AUTORISE_CATALOGUE = {
+    "beszel": {
+        # Constate que portainer et beszel-agent ne montent plus le socket.
+        "docs/architecture/os.md",
+        # Encadre de correction de la boucle de restauration de la phase 4.
+        "docs/operations/break-glass.mdx",
+        # Catalogue d'incidents historiques herite de sucre.
+        "docs/operations/incidents-recurrents.md",
+        # Signale l'agent encore actif sur galahad et lancelot : a retirer de la
+        # liste blanche une fois l'agent desinstalle.
+        "docs/securite/hardening.md",
+        # Liste les secrets a purger du coffre.
+        "docs/securite/politique.md",
+        # Releves d'inventaire dates et tableau des retraits.
+        "docs/services/index.mdx",
+        # Pages qui disent « Pulse remplace Beszel depuis le 2026-11-03 » ou
+        # nomment un ancien service dans une phrase de retrait.
+        "docs/architecture/reseau-cible.md",
+        "docs/operations/monitoring.md",
+        "docs/operations/depannage.md",
+        "docs/services/grafana.md",
+        "docs/services/traefik.md",
+        "docs/services/authelia.md",
+    },
+    "portainer": {
+        "docs/architecture/os.md",
+        "docs/operations/break-glass.mdx",
+        # Mesure de l'inventaire du 2026-10-01 (risque R-11).
+        "docs/operations/inventaire-controles.md",
+        # « Clients socket direct : aucun depuis le retrait de Portainer ».
+        "docs/securite/hardening.md",
+        "docs/securite/politique.md",
+        # Releve des clients OIDC : nomme ceux qui ont ete retires.
+        "docs/services/authelia.md",
+        "docs/services/index.mdx",
+        # Origine de la decision « pas de CSP global » : SPA dont Portainer.
+        "docs/services/traefik.md",
+    },
+    "homelable": {
+        # Explique la disparition de homelable@pve des derogations.
+        "docs/securite/comptes.md",
+        "docs/securite/politique.md",
+        # Dit que la legende de cablage servait la cartographie retiree.
+        "docs/architecture/acces-reseau.md",
+        "docs/services/index.mdx",
+        "docs/services/authelia.md",
+    },
+    "paperclip": {
+        # L'index d'exploitation signale la doctrine comme archive.
+        "docs/operations/index.md",
+    },
+    "zomboid": {
+        # Liste des CT avec passthrough TUN : 104 nomme comme detruit.
+        "docs/operations/derive-configuration.md",
+        # Renvoie vers la fiche archivee du serveur demantele.
+        "docs/services/waterline.md",
+        # Tableau Alloy par LXC (ligne barree) et tableau LXC (ligne « Detruit »).
+        "docs/services/alloy-loki-ha.md",
+        "docs/services/index.mdx",
+        # Note de mise a jour de l'inventaire des timers.
+        "docs/operations/monitoring.md",
+    },
+}
 
 RETIRES = [
     {
@@ -129,6 +211,53 @@ RETIRES = [
                       "donc une boucle for sur *.json n'y trouve aucun fichier",
         "autorise": set(),
     },
+    # ----- Ajoutes le 2026-11-04 : retires sans fiche dans le catalogue -------
+    {
+        "motif": r"(?i)\bsucre\b",
+        "quoi": "sucre, l'agent SRE maison (LXC 105)",
+        "retire": "2026-08-25 (arret), LXC detruit le 2026-11-03",
+        "a_la_place": "Pulse Patrol — voir services/pulse.md",
+        "autorise": {
+            # Taille de l'archive break-glass mesuree quand sucre/ existait.
+            "docs/operations/break-glass.mdx",
+            # Pages d'exploitation qui racontent des mesures datees ou des
+            # incidents ou sucre etait en cause : c'est leur role.
+            "docs/operations/incidents-recurrents.md",
+            "docs/operations/inventaire-controles.md",
+            "docs/operations/notif-hygiene.md",
+            "docs/operations/derive-configuration.md",
+            "docs/operations/monitoring.md",
+            # Regles Grafana supprimees par deleteRules : l'exemple les nomme.
+            "docs/services/grafana.md",
+            # Etat des sources Loki avant la bascule du 2026-09-02, et LXC barree.
+            "docs/services/alloy-loki-ha.md",
+            # Tableau LXC : ligne « Detruit ».
+            "docs/services/index.mdx",
+            # Cas vecu du piege accept-routes.
+            "docs/architecture/reseau.mdx",
+            # « Patrol remplace la detection que faisait sucre ».
+            "docs/services/pulse.md",
+        },
+    },
+    {
+        "motif": r"(?i)\bsecuro\b",
+        "quoi": "Securo, agregateur financier en evaluation (LXC 110)",
+        "retire": "2026-11-03 (LXC detruit, evaluation abandonnee)",
+        "a_la_place": "rien — l'evaluation est close",
+        "autorise": {
+            # LXC non declaree a Terraform, mesuree le 2026-09-04.
+            "docs/operations/derive-configuration.md",
+            # Mesures datees de l'inventaire des controles.
+            "docs/operations/inventaire-controles.md",
+            # LXC barree et encadre « n'expedie rien » du 2026-09-24.
+            "docs/services/alloy-loki-ha.md",
+            # Releve des clients OIDC.
+            "docs/services/authelia.md",
+            # Liste des secrets a purger du coffre.
+            "docs/securite/politique.md",
+            "docs/services/index.mdx",
+        },
+    },
     {
         "motif": r"[Ww]atchtower",
         "quoi": "le conteneur d'auto-mise a jour Watchtower",
@@ -150,6 +279,29 @@ RETIRES = [
 ]
 
 FENCE = re.compile(r"^\s*(```|~~~)")
+ARCHIVE = re.compile(r"\A---\n(?:.*\n)*?search_status:\s*archive\s*\n(?:.*\n)*?---\n")
+
+
+def regles_catalogue() -> tuple[list[dict], set[str], list[str]]:
+    """Regles des services retires, fiches a exclure, et ids orphelins."""
+    entrees = json.loads(CATALOGUE.read_text(encoding="utf-8"))
+    retires = [e for e in entrees if e["status"] == "retired"]
+    regles = [
+        {
+            "motif": rf"(?i)\b{re.escape(e['id'])}\b",
+            "quoi": f"{e['name']} ({e['role'].lower()})",
+            "retire": e["retiredAt"],
+            "a_la_place": f"rien au present — fiche archivee {e['href']}",
+            "autorise": AUTORISE_CATALOGUE.get(e["id"], set()),
+        }
+        for e in retires
+    ]
+    fiches = {f"docs{e['href'].rstrip('/')}{ext}" for e in retires for ext in (".md", ".mdx")}
+    # Une liste blanche sans service retire correspondant est un temoin orphelin :
+    # un id renomme dans le catalogue ferait taire sa regle sans bruit.
+    ids = {e["id"] for e in retires}
+    orphelins = sorted(set(AUTORISE_CATALOGUE) - ids)
+    return regles, fiches, orphelins
 
 
 def main() -> int:
@@ -157,14 +309,21 @@ def main() -> int:
         print("docs/ introuvable — lancer depuis la racine du depot.", file=sys.stderr)
         return 2
 
+    regles, fiches_retirees, orphelins = regles_catalogue()
+    if orphelins:
+        print(f"ECHEC — AUTORISE_CATALOGUE cite des ids absents des services retires : {orphelins}")
+        return 1
+
     pages = [
         p
         for p in [*pathlib.Path("docs").rglob("*.md"), *pathlib.Path("docs").rglob("*.mdx")]
         if p.as_posix().startswith(SURVEILLE)
+        and p.as_posix() not in fiches_retirees
+        and not ARCHIVE.match(p.read_text(encoding="utf-8"))
     ]
 
     echecs = 0
-    for regle in RETIRES:
+    for regle in [*RETIRES, *regles]:
         rx = re.compile(regle["motif"])
         for p in sorted(pages):
             rel = p.as_posix()

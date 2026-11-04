@@ -43,7 +43,7 @@ par machine.
 
 ### Les LXC, depuis le 2026-09-02
 
-Neuf sur dix expédient. Relevé par `pct exec <id> -- systemctl is-active alloy`.
+Sept des huit LXC existantes expédient (relevé du 2026-11-04 par `pct exec <id> -- systemctl is-active alloy`). L'exception est **109 `iptv`** : Alloy y est `inactive` et aucun `iptv.alloy` n'existe dans `system/alloy/`.
 
 | LXC | Hôte | Sources |
 |---|---|---|
@@ -56,6 +56,7 @@ Neuf sur dix expédient. Relevé par `pct exec <id> -- systemctl is-active alloy
 | 106 pulse | galahad | journald + Docker (`pulse`, filtré) |
 | 107 waterline | galahad | journald |
 | 108 ci-runner | lancelot | journald seulement |
+| 109 iptv | galahad | **rien** — Alloy inactif, constaté le 2026-11-04 |
 | ~~110 securo~~ | lancelot | détruit le 2026-11-03 (Alloy n'y a jamais été installé) |
 
 :::warning[La LXC 110 `securo` n'expédie rien, constaté le 2026-09-24]

@@ -15,5 +15,5 @@ développement sur le PC personnel, puis déploiement ici pour tester en conditi
 serveur. Ne pas chercher de chaîne de build sur le homelab, il n'y en a pas.
 :::
 
-Pour le serveur de jeu en service, voir [Project Zomboid](zomboid.md), qui a ses
-propres contraintes de mods et de comptes.
+Le serveur Project Zomboid qui tournait à côté a été démantelé le 2026-11-01 ; sa
+[fiche archivée](zomboid.md) garde ses contraintes de mods et de comptes.
