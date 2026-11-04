@@ -58,6 +58,8 @@ CATALOGUE = pathlib.Path("src/data/service-catalogue.json")
 # (`search_status: archive`) sont exclues d'office.
 AUTORISE_CATALOGUE = {
     "beszel": {
+        # Guide de retrait : ses exemples sont les retraits de novembre 2026.
+        "docs/guides/retirer-service.md",
         # Constate que portainer et beszel-agent ne montent plus le socket.
         "docs/architecture/os.md",
         # Encadre de correction de la boucle de restauration de la phase 4.
@@ -104,10 +106,14 @@ AUTORISE_CATALOGUE = {
         "docs/services/authelia.md",
     },
     "paperclip": {
+        # Guide de retrait : ses exemples sont les retraits de novembre 2026.
+        "docs/guides/retirer-service.md",
         # L'index d'exploitation signale la doctrine comme archive.
         "docs/operations/index.md",
     },
     "zomboid": {
+        # Guide de retrait : ses exemples sont les retraits de novembre 2026.
+        "docs/guides/retirer-service.md",
         # Liste des CT avec passthrough TUN : 104 nomme comme detruit.
         "docs/operations/derive-configuration.md",
         # Renvoie vers la fiche archivee du serveur demantele.
