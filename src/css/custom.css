@@ -190,6 +190,51 @@ body {letter-spacing: -.01em;}
 .homelab-search-results p {font-size: 14px; line-height: 1.7; color: var(--ifm-font-color-base); margin: 0; overflow-wrap: anywhere;}
 
 /* Native dialogs keep Escape, focus trapping and keyboard access. */
+.homelab-search-scopes {border: 0; padding: 0; margin: 1.4rem 0; display: flex; flex-wrap: wrap; gap: .6rem 1.2rem;}
+.homelab-search-scopes legend {font-size: 12px; color: var(--homelab-muted); margin-bottom: .5rem;}
+.homelab-search-scopes label {display: flex; align-items: center; gap: .35rem; font-size: 14px; margin: 0; min-height: 36px; cursor: pointer;}
+.homelab-search-scopes input {accent-color: var(--ifm-color-primary); width: 16px; height: 16px;}
+.homelab-search-results mark {background: #e5f0ff; color: #123d79; padding: 0 .08em; border-radius: 2px;}
+[data-theme='dark'] .homelab-search-results mark {background: #214d82; color: #fff;}
+.homelab-archive-badge {display: inline-block; font-size: 11px; border: 1px solid var(--homelab-border); color: var(--homelab-muted); border-radius: 3px; margin-left: .6rem; padding: 0 .4rem;}
+.homelab-search-help, .homelab-catalogue-note, .homelab-catalogue-count {font-size: 13px; color: var(--homelab-muted);}
+.homelab-text-button {background: none; border: 0; color: var(--ifm-color-primary); font: inherit; cursor: pointer; text-decoration: underline; padding: 0;}
+.homelab-catalogue-filters {display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .5fr); gap: 1rem; margin-bottom: 1rem;}
+.homelab-catalogue-filters label {font-size: 13px; color: var(--homelab-muted);}
+.homelab-catalogue-filters input, .homelab-catalogue-filters select {display: block; width: 100%; min-height: 44px; background: var(--ifm-background-color); border: 1px solid var(--homelab-border); border-radius: 4px; padding: .6rem; color: var(--ifm-font-color-base); font: inherit; margin-top: .4rem;}
+.theme-doc-markdown .homelab-catalogue-table {display: table; table-layout: fixed; font-size: 13px; line-height: 1.65;}
+.theme-doc-markdown .homelab-catalogue-table th, .theme-doc-markdown .homelab-catalogue-table td {padding: .9rem .55rem; vertical-align: top; overflow-wrap: anywhere;}
+.homelab-catalogue-table th:first-child {width: 26%;}
+.homelab-catalogue-table th:nth-child(2) {width: 36%;}
+.homelab-catalogue-table th:nth-child(3) {width: 20%;}
+.homelab-catalogue-table th:nth-child(4) {width: 18%;}
+.homelab-catalogue-table time {display: block; font-size: 11px; color: var(--homelab-muted); margin-top: .2rem;}
+.homelab-service-status {font-size: 11px; color: var(--homelab-muted); border: 1px solid var(--homelab-border); border-radius: 3px; padding: .15rem .3rem; white-space: nowrap;}
+.homelab-mobile-label {display: none;}
+.homelab-technical-details {background: var(--ifm-background-color); border: 1px solid var(--homelab-border); box-shadow: none!important; margin-top: 2rem;}
+.homelab-technical-details > summary {font-size: 14px; color: var(--ifm-color-primary); padding-block: .5rem;}
+.homelab-incidents {margin: 1.7rem 0; padding-top: .1rem;}
+.homelab-incidents h2 {margin-top: .8rem;}
+.homelab-incidents > p {font-size: 14px; color: var(--homelab-muted);}
+.homelab-incidents ul {display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 1.5rem; list-style: none; margin: 1rem 0; padding: 0;}
+.homelab-incidents li {margin: 0; border-bottom: 1px solid var(--homelab-border);}
+.homelab-incidents li a {display: block; padding: .8rem 0; text-decoration: none;}
+.homelab-incidents li a:hover strong {text-decoration: underline;}
+.homelab-incidents strong {display: block; font-size: 14px; font-weight: 600;}
+.homelab-incidents li a > span {display: block; font-size: 12px; color: var(--homelab-muted); margin-top: .2rem;}
+@media (max-width: 640px) {
+  .homelab-catalogue-filters {grid-template-columns: 1fr;}
+  .homelab-catalogue-filters input, .homelab-catalogue-filters select {font-size: 16px;}
+  .homelab-catalogue-table thead {position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);}
+  .theme-doc-markdown .homelab-catalogue-table, .homelab-catalogue-table tbody, .homelab-catalogue-table tr {display: block; width: 100%;}
+  .theme-doc-markdown .homelab-catalogue-table tr {padding: .85rem 0; border-bottom: 1px solid var(--homelab-border);}
+  .theme-doc-markdown .homelab-catalogue-table th, .theme-doc-markdown .homelab-catalogue-table td {display: block; width: 100%; border: 0; padding: .25rem 0;}
+  .homelab-catalogue-table th a {font-size: 15px;}
+  .homelab-catalogue-table time {display: inline; margin-left: .5rem;}
+  .homelab-mobile-label {display: inline; color: var(--homelab-muted);}
+  .homelab-incidents ul {grid-template-columns: 1fr;}
+}
+
 .homelab-diagram {margin: 1.6rem 0; border: 1px solid var(--homelab-border); border-radius: 5px; padding: .9rem;}
 .homelab-diagram figcaption {text-align: right; margin-top: .5rem; font-size: 12px;}
 .homelab-diagram-dialog {width: min(95vw,1500px); max-width: 95vw; max-height: 92vh; padding: 0; border: 1px solid var(--homelab-border); border-radius: 8px; background: var(--ifm-background-color); color: var(--ifm-font-color-base);}
@@ -258,6 +303,7 @@ body {letter-spacing: -.01em;}
 
 /* Print all procedure variants, including the currently inactive Tabs. */
 @media print {
+  .homelab-catalogue, .homelab-incidents {display: none!important;}
   @page {margin: 15mm 12mm;}
   :root, [data-theme='dark'] {--ifm-font-color-base: #142b50; --ifm-heading-color: #142b50; --ifm-background-color: #fff; --ifm-color-primary: #0044b2; --homelab-muted: #314b70; --homelab-border: #cbdcf5; color-scheme: light;}
   html, body, .main-wrapper {background: #fff!important; color: #142b50!important; font-size: 10pt;}

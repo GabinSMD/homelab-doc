@@ -1,3 +1,7 @@
+---
+search_status: archive
+---
+
 # sucre — SRE perso
 
 :::warning[LXC détruit le 2026-11-03]

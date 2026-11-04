@@ -9,7 +9,7 @@ Il est conservé comme **archive datée** — la démarche et les pièges rencon
 de la valeur. Il ne décrit pas l'état du homelab.
 
 Ce qui l'a remplacé est **Securo** (LXC 110), en évaluation — voir
-l'[inventaire des services](../../services/index.md).
+l'[inventaire des services](../../services/index.mdx).
 :::
 
 > **Pour un agent exécutant :** consigne **caduque**, voir l'encadré ci-dessus. Elle

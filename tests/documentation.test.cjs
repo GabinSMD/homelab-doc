@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {extractSections} = require('../plugins/search-index');
-const {searchRecords} = require('../src/utils/search.cjs');
+const {searchRecords, highlightParts} = require('../src/utils/search.cjs');
+const {filterServices} = require('../src/utils/catalogue.cjs');
+const services = require('../src/data/service-catalogue.json');
 const {documentKind, validVerificationDate, validateMetadata} = require('../src/utils/doc-kind.cjs');
 const fs = require('node:fs/promises');
 const os = require('node:os');
@@ -66,4 +68,44 @@ test('operational verification is explicit, dated and explained', () => {
   assert.doesNotThrow(() => validateMetadata({}));
   assert.doesNotThrow(() => validateMetadata({doc_type: 'guide', verified_at: '2024-02-29', verification_note: 'Test sur environnement isolé', related_docs: [['Sauvegardes', '/operations/backups/']]}));
   for (const metadata of [{doc_type: 'invalid'}, {verified_at: '2024-02-29'}, {verification_note: 'Test'}, {related_docs: [['Lien', '//example.org']]}]) assert.throws(() => validateMetadata(metadata));
+});
+
+test('current documentation precedes archives and scopes remain independently searchable', () => {
+  const records = [
+    {title: 'Restic snapshots', heading: 'Restic', text: 'restic snapshots', category: 'Projet', url: '/old/', archived: true},
+    {title: 'Sauvegardes', heading: 'Commandes', text: 'restic snapshots', category: 'Exploitation', url: '/current/', archived: false},
+  ];
+  assert.deepEqual(searchRecords(records, 'restic', 'all').map((r) => r.url), ['/current/', '/old/']);
+  assert.deepEqual(searchRecords(records, 'restic', 'current').map((r) => r.url), ['/current/']);
+  assert.deepEqual(searchRecords(records, 'restic', 'archives').map((r) => r.url), ['/old/']);
+  const html = '<div class="theme-doc-markdown"><h1>Titre</h1><p>Contenu</p></div>';
+  assert.equal(extractSections(html, {id: 'projet/journal/2026-08-26-drill', title: 'Drill', permalink: '/drill/'} )[0].archiveDate, '2026-08-26');
+  const retired = extractSections(html, {id: 'services/beszel', title: 'Beszel', permalink: '/services/beszel/'} )[0];
+  assert.equal(retired.archived, true);
+  assert.equal(retired.archiveDate, '2026-11-03');
+  assert.equal(extractSections(html, {id: 'services/pulse', title: 'Pulse', permalink: '/services/pulse/'} )[0].archived, false);
+  assert.equal(extractSections(html, {id: 'projet/sucre', title: 'Sucre', permalink: '/projet/sucre/', frontMatter: {search_status: 'archive'}})[0].archived, true);
+});
+
+test('highlighting preserves text, accents, combining marks and literal markup', () => {
+  for (const text of ['Réseau et sécurité', 'Re\u0301seau et sécurité', '🔎 <script>réseau</script>']) {
+    const parts = highlightParts(text, 'reseau');
+    assert.equal(parts.map((part) => part.text).join(''), text);
+    assert.match(parts.filter((part) => part.match).map((part) => part.text).join(''), /[Rr][ée]/);
+  }
+  assert.deepEqual(highlightParts('restic snapshots', 'rest restic'), [{text: 'restic', match: true}, {text: ' snapshots', match: false}]);
+  assert.deepEqual(highlightParts('Texte', '   '), [{text: 'Texte', match: false}]);
+});
+
+test('catalogue filters combine machine and accent-insensitive role; retired status feeds search', () => {
+  assert.deepEqual(filterServices(services, {host: 'galahad', query: 'dns'}).map((entry) => entry.id), ['dns-failover']);
+  assert.equal(filterServices(services, {host: 'lancelot', query: 'vaultwarden'}).length, 0);
+  assert.equal(filterServices(services, {query: 'RESEAU'}).some((entry) => entry.id === 'adguard'), true);
+  assert.equal(filterServices(services, {query: 'beszel'})[0].status, 'retired');
+  assert.equal(new Set(services.map((entry) => entry.id)).size, services.length);
+  for (const entry of services) {
+    assert.ok(['active', 'test', 'retired'].includes(entry.status));
+    assert.ok(entry.hosts.length && entry.hosts.every((host) => ['penny', 'galahad', 'lancelot'].includes(host)));
+    if (entry.status === 'retired') assert.ok(validVerificationDate(entry.retiredAt));
+  }
 });

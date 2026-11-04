@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const cheerio = require('cheerio');
 const {validateMetadata} = require('../../src/utils/doc-kind.cjs');
+const catalogue = require('../../src/data/service-catalogue.json');
 
 const categories = {architecture: 'Infrastructure', services: 'Services', operations: 'Exploitation', guides: 'Guides', securite: 'Sécurité', projet: 'Projet'};
 const compact = (text) => text.replace(/\s+/g, ' ').trim();
@@ -13,6 +14,10 @@ function extractSections(html, doc) {
   const article = $('.theme-doc-markdown').first();
   article.find('script, style, button, .hash-link, .homelab-no-search, .mermaid, .homelab-diagram-dialog, .homelab-diagram figcaption').remove();
   const records = [];
+  const retired = catalogue.find((entry) => entry.status === 'retired' && entry.href.replace(/\/$/, '') === `/${doc.id}`);
+  const journalDate = doc.id.match(/^projet\/journal\/(\d{4}-\d{2}-\d{2})/);
+  const archived = Boolean(journalDate || retired || doc.frontMatter?.search_status === 'archive');
+  const archiveDate = retired?.retiredAt || journalDate?.[1] || null;
   let heading = doc.title;
   let anchor = '';
   let fragments = [];
@@ -22,7 +27,7 @@ function extractSections(html, doc) {
       const url = doc.permalink + (anchor ? `#${encodeURIComponent(anchor)}` : '');
       const existing = records.find((record) => record.url === url);
       if (existing) existing.text += ` ${text}`;
-      else records.push({title: doc.title, heading, category: categories[doc.id.split('/')[0]] || 'Documentation', url, text});
+      else records.push({title: doc.title, heading, category: categories[doc.id.split('/')[0]] || 'Documentation', url, text, archived, archiveDate});
     }
     fragments = [];
   }

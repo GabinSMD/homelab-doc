@@ -1,10 +1,12 @@
 import React, {useEffect} from 'react';
 import OriginalContent from '@theme-original/DocItem/Content';
 import {useDoc} from '@docusaurus/plugin-content-docs/client';
+import {useLocation} from '@docusaurus/router';
 import {kinds, documentKind, validVerificationDate} from '../../../utils/doc-kind.cjs';
 
 export default function DocContent(props) {
   const {metadata, frontMatter} = useDoc();
+  const {hash} = useLocation();
   const kind = documentKind(metadata.id, frontMatter);
   useEffect(() => {
     let closedDetails = [];
@@ -22,15 +24,17 @@ export default function DocContent(props) {
       try {id = decodeURIComponent(window.location.hash.slice(1));} catch {return;}
       const target = document.getElementById(id);
       if (!target) return;
+      let revealed = false;
       let parent = target.parentElement;
-      while (parent) {if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement;}
+      while (parent) {if (parent.tagName === 'DETAILS' && !parent.open) {parent.open = true; revealed = true;} parent = parent.parentElement;}
+      if (revealed) requestAnimationFrame(() => target.scrollIntoView());
     };
     revealHash();
     window.addEventListener('hashchange', revealHash);
     window.addEventListener('beforeprint', beforePrint);
     window.addEventListener('afterprint', afterPrint);
     return () => {afterPrint(); window.removeEventListener('hashchange', revealHash); window.removeEventListener('beforeprint', beforePrint); window.removeEventListener('afterprint', afterPrint);};
-  }, [metadata.id]);
+  }, [metadata.id, hash]);
   if (metadata.id === 'index') return <OriginalContent {...props} />;
   return <div className="homelab-doc-content" data-doc-kind={kind}>
     <div className="homelab-doc-toolbar homelab-no-search"><span>{kinds[kind]}</span><button type="button" onClick={() => window.print()}>Imprimer / PDF</button></div>

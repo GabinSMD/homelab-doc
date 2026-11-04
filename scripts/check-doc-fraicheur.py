@@ -86,7 +86,7 @@ RETIRES = [
         "a_la_place": "Mermaid natif de Docusaurus, rien a deployer",
         "autorise": {
             # L'encadre d'inventaire explique la baisse de 24 a 22 conteneurs.
-            "docs/services/index.md",
+            "docs/services/index.mdx",
             # Explique pourquoi la page annonçait quatre outils au lieu de trois.
             "docs/services/boite-a-outils.md",
         },
@@ -95,10 +95,10 @@ RETIRES = [
         "motif": r"[Ff]irefly",
         "quoi": "Firefly III et sa LXC 109",
         "retire": "2026-09-19",
-        "a_la_place": "Securo (LXC 110), en evaluation — voir services/index.md",
+        "a_la_place": "Securo (LXC 110), en evaluation — voir services/index.mdx",
         "autorise": {
-            # Nomme la LXC 109 pour expliquer que le compte de LXC n'a pas bouge.
-            "docs/services/index.md",
+            # Rappelle la composition du releve historique du 24/09, avant les retraits.
+            "docs/services/index.mdx",
             # Recense les secrets a purger, dont ceux de Firefly : c'est son role.
             "docs/operations/derive-configuration.md",
             # Post-mortem d'une nuit de notifications ou Firefly etait en cause.
