@@ -33,11 +33,15 @@ iPad paysage (1194x834) :
 
 | Onglet | Contenu | `z` | Marge avant le plancher |
 |---|---|---|---|
-| Supervision | 956 px | 0.868 | 81 px |
-| Applications | 970 px | 0.855 | 67 px |
+| Supervision | 975 px | 0.851 | 67 px |
+| Applications | 853 px | 0.973 | 190 px |
 
-Le PC (3440x1355) est a `z = 0.988` avec 320 px de marge : il n'est jamais
-contraint, c'est la tablette qui dicte.
+(Mesure du 2026-11-04, apres le rattachement du bandeau Etat au seul onglet
+Supervision ; Applications etait auparavant au plancher.)
+
+Un PC en fenetre non plein ecran peut aussi etre contraint : a 1034x857,
+Supervision est au plancher (`z = 0.80`). C'est la tablette qui dicte, mais
+une fenetre basse de PC n'est pas « jamais contrainte ».
 
 Les cibles tactiles et les planchers typographiques sont ecrits en
 `calc(<valeur> / var(--fit-scale))` : c'est ce qui leur conserve une taille
@@ -86,7 +90,7 @@ lien ; le seul element cliquable est `a.service-title-text`, et l'icone est un
 | Titre de carte | 44–52 px |
 | Icone de carte | 45 px |
 | Favoris | 57 px |
-| Boutons de fond | 45 px |
+| Indicateur de lumiere (haut droite) | 44 px (surface etendue au tactile) |
 | En-tetes de groupe | 25–37 px (**decision assumee**, voir ci-dessous) |
 
 Se mesure par balayage `elementFromPoint`, jamais avec
@@ -143,13 +147,24 @@ libelles, un nom approximatif ne matcherait rien **en silence**.
 
 | Service | Metrique | Avertissement | Critique | Pourquoi |
 |---|---|---|---|---|
-| Sauvegardes | Anciennete h | 26 | 50 | quotidien : 26 h absorbe un decalage, 50 h veut dire deux fenetres sautees |
+| Sauvegardes | Derniere | 48 h | 72 h | texte relatif (« il y a 7 h ») relu en heures ; au-dela de 24 h Intl ne rend que des jours, d'ou des paliers : une nuit sautee avertit, deux alarment |
 | Sauvegardes | Perimes | 1 | 2 | un seul repo perime est deja une anomalie |
 | PBS | Datastore | 75 % | 90 % | |
 | PBS | Taches echouees 24h | — | 1 | il n'y a pas de « un peu echoue » |
 | Machines | En ligne | — | ratio | `"3 / 3"` : des qu'un hote manque, critique |
+| Mises a jour | Retards | 1 | 3 | une machine en retard = une action ; trois = le mecanisme automatique ne tient plus |
+| penny | Conteneurs | — | ratio | `"18 / 18"` : un conteneur arrete, critique |
+| penny | CPU | 90 % | — | penny touche 100 % a chaque scan ou build : pas de critique sur le CPU seul |
+| penny | RAM | 85 % | 95 % | |
 | galahad / lancelot | CPU, RAM | 85 % | 95 % | |
+| Traefik | Erreurs | — | 1 | un routeur en erreur = une route cassee (middleware introuvable, service absent) |
 | AdGuard / DNS failover | Latence | 80 ms | 200 ms | au-dela de 80 ms la navigation se sent |
+
+Les cartes **sans sonde HTTP** (Sauvegardes, penny, Mises a jour) n'ont pas de
+pastille Homepage : `custom.js` en derive une du pire etat de leurs chiffres,
+avec le meme balisage que la pastille native. Les regles d'alarme de carte
+s'appliquent donc sans CSS supplementaire, y compris la pastille grise quand
+le widget n'a plus de donnees.
 
 La ligne **Machines / En ligne** est la plus importante du tableau : c'est le
 seul endroit qui verrait un noeud Proxmox tomber. C'est l'angle mort qui a laisse
@@ -157,6 +172,88 @@ lancelot hors service onze jours en juillet 2026.
 
 Ces seuils sont une calibration, pas une verite : le premier franchissement reel
 dira s'ils crient trop tot. Prevoir une passe de reglage.
+
+## Contenu de la page
+
+| Onglet | Groupes |
+|---|---|
+| Supervision | **Etat** (bandeau, 5 cartes : Sauvegardes, PBS, Machines, Securite, Mises a jour), Infrastructure (penny et les deux noeuds Proxmox), Reseau (Traefik, AdGuard, DNS failover) |
+| Applications | Services, Outils, Liens |
+
+En-tete commun : horloge et accueil, pastille « donnees a jour » (point vert,
+orange puis rouge quand le pipeline gele), metriques de penny, meteo, barre de
+recherche avec un bouton Claude. La recherche est masquee **au tactile**
+(`pointer: coarse`) et non plus selon la hauteur : une fenetre de PC de 939 px
+de haut la perdait.
+
+Quelques choix, et pourquoi :
+
+- **Etat sur Supervision seulement.** Sans `tab`, un groupe s'affiche sur tous
+  les onglets : 256 px de plus sur Applications, qui ne tenait plus. L'etat se
+  lit sur Supervision, Applications sert a ouvrir des services.
+- **Mises a jour en 5e colonne d'Etat**, pas sur une rangee a part : une rangee
+  de plus faisait passer l'iPad sous le plancher, une colonne non. Sous 250 px
+  de largeur de carte, une requete de conteneur reduit les chiffres du bandeau.
+- **Carte penny** : lue sur l'agent Pulse (conteneurs actifs / total, CPU,
+  RAM). La temperature reste dans l'en-tete, avec une jauge bornee a 80 °C,
+  le seuil ou le Pi 4 bride son processeur (libelle « Bridage »).
+- **Meme hauteur par rangee.** La carte remplit la cellule de grille et sa
+  rangee de chiffres descend en bas : les valeurs restent alignees. Fait en
+  CSS par rangee, pas avec `useEqualHeights`, qui egalise toute la page et
+  etirerait les cartes-liens a la hauteur des cartes a metriques. Dans les
+  cartes-liens, la description est toujours sous le nom.
+
+## Lumiere horaire, facon f.lux
+
+Plus de bascule clair/sombre ni de selecteur de fond : la photo est toujours
+affichee, et le theme suit le soleil.
+
+- **Clair du lever au coucher du soleil, sombre ensuite.** Les heures sont
+  calculees dans le navigateur (formule NOAA, precision d'environ une minute)
+  pour les coordonnees de la meteo : un seuil fixe a 18 h serait en pleine nuit
+  en decembre et en plein jour en juin. Aucun appel reseau.
+- **Teinte ambree le soir** : elle monte apres le coucher, est pleine a 22 h et
+  se retire au lever. Le calque n'existe que lorsque la teinte est non nulle.
+- **L'indicateur en haut a droite** annonce le prochain changement
+  (« coucher 17:26 »). Le toucher inverse le theme **jusqu'au changement
+  suivant**, jamais en permanence : un oubli se corrige tout seul.
+
+Homepage garde son propre etat de theme (React), mais ne l'applique au DOM
+qu'au **changement** d'etat, donc au clic sur sa bascule, que l'on masque.
+`custom.js` peut ainsi piloter la classe `dark`/`light` et `theme-mode` dans
+`localStorage` sans etre ecrase.
+
+## Regles de rendu apprises le 2026-11-04
+
+**Jamais d'arrondi « pilule » a 999 px.** Sous Firefox, a 100 % de zoom et
+dans une page qui defile, un rayon geant ramene a la demi-hauteur laissait des
+traits : verticaux a un rayon de chaque bout, horizontal a mi-hauteur, soit
+les jointures du decoupage de la forme en coins et bords. Le `rounded-full` de
+Tailwind (rayon calcule de 3,4·10⁷ px) a le meme defaut. Chaque pilule a donc
+un rayon explicite, juste sous sa demi-hauteur, et les petits elements 12 px.
+Ni Chromium ni Firefox en mode headless ne reproduisent le defaut : la cause a
+ete tranchee **dans le navigateur de l'utilisateur**, par un panneau de cases a
+cocher qui neutralisait un suspect a la fois. Trois correctifs a l'aveugle
+(calque de teinte, ombre, isolation) avaient echoue avant.
+
+**Le bandeau Etat s'identifie par son icone**, pas par sa position. Le style
+du bandeau visait le premier groupe de la page ; or Homepage ne rend que les
+groupes de l'onglet actif, et Services devenait premier sur Applications (puis
+de nouveau quand une tuile a metriques y a ete ajoutee). Le selecteur vise
+desormais le groupe dont l'icone est `mdi-heart-pulse` : changer cette icone
+dans `settings.yaml` impose de changer le CSS.
+
+**`customapi` affiche quatre champs au plus**, en dur (`mappings.slice(0, 4)`
+dans le code de Homepage) ; `fields` ne leve pas la limite. Une valeur
+« actifs / total » se fabrique en mappant les deux champs puis en repliant le
+second dans le premier cote `custom.js`.
+
+**`custom.css` et `custom.js` sont revalides a chaque chargement.** Homepage
+les sert avec un ETag mais sans `Cache-Control` : le navigateur pouvait garder
+l'ancien CSS avec une configuration plus recente (icones disparues jusqu'a un
+Ctrl+Maj+R). Un routeur Traefik dedie a ces deux chemins, derriere la meme
+chaine Authelia, ajoute `Cache-Control: no-cache` (reponse 304 sans corps si
+rien n'a change).
 
 ## Tendance
 
@@ -250,10 +347,22 @@ Deux points qui changent tout :
 --blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2
 ```
 
-`--window-size` n'est pas le viewport : il faut 87 px de plus que la hauteur
-visee (`1194,921` donne `innerHeight=834`). Mesurer `innerHeight` avant de
-conclure : une mesure faite a 747 au lieu de 834 met `z` au plancher et fait
-croire a un debordement inexistant.
+Taille de fenetre : avec `chrome --headless=new`, la page est mise en page a
+`innerHeight` = fenetre − 87 px **mais capturee a la taille de la fenetre** :
+la capture ne montre pas la mise en page mesuree, piege pour tout ce qui
+depend de la hauteur (en-tete compact sous 1000 px). Utiliser le binaire
+`headless_shell` de Playwright, ou fenetre, viewport et image coincident.
+Mesurer `innerHeight` avant de conclure dans tous les cas.
+
+Pour tester une modification des YAML (le relais ne sert que le CSS et le
+JS), lancer un conteneur Homepage jetable sur la configuration de la branche
+et pointer le relais dessus. Sans `#supervision` dans l'URL, seuls les groupes
+sans onglet s'affichent.
+
+Limite connue : les defauts de **composition GPU** (coutures, traits) ne se
+reproduisent pas en rendu logiciel, ni Chromium ni Firefox headless. Pour
+ceux-la, instrumenter le navigateur de l'utilisateur plutot que d'enchainer
+les hypotheses.
 
 ## Historique
 
@@ -263,3 +372,8 @@ croire a un debordement inexistant.
   (ombre carree, cartes qui s'elargissent).
 - **2026-08-05** — lisibilite mesuree (contraste AA, cibles tactiles), seuils
   sur les valeurs, tendance, et decouverte de la panne de page statique.
+- **2026-11-04** — lumiere horaire facon f.lux a la place de la bascule
+  clair/sombre et du selecteur de fond ; carte penny ; Traefik avec ses
+  routeurs en erreur ; pastilles derivees des seuils ; meme hauteur par
+  rangee ; Etat sur Supervision seulement, avec Mises a jour en 5e colonne ;
+  traits Firefox (rayons geants) ; revalidation de `custom.css`/`custom.js`.
