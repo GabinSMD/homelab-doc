@@ -232,6 +232,16 @@
     "status": "test"
   },
   {
+    "id": "n8n",
+    "name": "n8n",
+    "role": "Automatisation : résumé quotidien des notifications (essai)",
+    "hosts": [
+      "galahad"
+    ],
+    "status": "test",
+    "href": "/services/n8n/"
+  },
+  {
     "id": "beszel",
     "name": "Beszel",
     "role": "Ancienne supervision, remplacée par Pulse",
