@@ -80,7 +80,12 @@ Suggestion Lynis BOOT-5122. **Defere** : risque lock boot remote (si patch /etc/
 
 - ~~**Renovate**~~ DONE — actif sur homelab-config (auto-PR deps, Dependency Dashboard issue #19).
 - ~~**CI/CD GitHub Actions**~~ DONE — homelab-config : sucre lint+tests, scripts bash+shellcheck, yaml+compose, secret scan ; gate avant merge (PR workflow).
-- ~~**AIDE (file integrity monitoring)**~~ DONE 2026-07-07 — `aide-check.timer` quotidien à 04:30 sur penny (~20 min de run), baseline `/var/lib/aide/aide.db`, notification ntfy uniquement sur écart et dédupliquée par empreinte du constat. Debian 12 n'a pas `aide.wrapper` et masque `dailyaidecheck` : le timer est maison. Exclusions `/mnt` et `/var/log` dans `aide.conf.d/99_homelab_exclusions`, sinon le run dépasse 3 h.
+- **AIDE retiré le 2026-11-05**, remplacé dans `control-drift-check` (toutes les 6 h) par deux contrôles ciblés :
+  - `dpkg --verify` : un fichier livré par un paquet a-t-il changé de contenu ? Les fichiers de configuration sont exclus, puisque le dépôt les couvre. Durée : 83 s, contre 26 min pour AIDE ;
+  - une référence d'empreintes des portes d'entrée (clés SSH autorisées, sudoers, sshd, crontabs, `ld.so.preload`, comptes), à accepter par `CDC_ACCEPT_SENSIBLES=1` après un changement légitime.
+
+  Bilan d'AIDE de juillet à novembre : 42 notifications, 57 rafraîchissements de référence à la main, 311 lignes d'exclusions et aucune détection réelle, pour 26 min de lecture disque chaque nuit. Penny n'a aucun port ouvert vers Internet, et l'essentiel de ce qu'AIDE surveillait était déjà couvert ailleurs : `/etc` hors paquet, copies déployées, `auditd` vers Loki.
+- ~~**AIDE (file integrity monitoring)**~~ DONE 2026-07-07 (historique) — `aide-check.timer` quotidien à 04:30 sur penny (~20 min de run), baseline `/var/lib/aide/aide.db`, notification ntfy uniquement sur écart et dédupliquée par empreinte du constat. Debian 12 n'a pas `aide.wrapper` et masque `dailyaidecheck` : le timer est maison. Exclusions `/mnt` et `/var/log` dans `aide.conf.d/99_homelab_exclusions`, sinon le run dépasse 3 h.
 
   :::note[Le rebaseline passe par `security-updates.sh`, pas par un hook apt]
   `aide-check.sh` et `aide-refresh.sh` annoncent tous deux un hook `/etc/apt/apt.conf.d/99aide-refresh-baseline`. **Ce hook n'existe pas** — et c'est voulu : `Unattended-Upgrade::Post-Invoke` n'est pas implémenté par unattended-upgrades 2.9.1+nmu3 (`apt-config` le parse, u-u ne le lit jamais), ce qui avait gelé la baseline au 2026-07-07 et fait alerter AIDE chaque jour sur quatre semaines cumulées de paquets.

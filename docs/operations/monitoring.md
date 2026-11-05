@@ -244,7 +244,6 @@ LXC 104 (Project Zomboid, détruite le 2026-11-01).
 | `pbs-datastore-sync` | 03:30 | Sync du datastore PBS vers R2 via rclone — voir [backups](backups.md) |
 | `ansible-drift-check` | 03:40 | Les deux playbooks en `--check` sur les 3 hôtes : le déployé diverge-t-il du manifeste ? |
 | `pbs-snapshot-integrity` | 04:05 | Les snapshots PBS sont-ils **utilisables** (manifeste présent, pas de `.tmp_didx`) — voir [backups](backups.md) |
-| `aide-check` | 04:30 | Intégrité des fichiers système (AIDE) — voir [roadmap sécurité](../securite/roadmap.md) |
 | `security-updates` | 05:40 | Applique les mises à jour de sécurité (politique unattended-upgrades) |
 | `backup-coverage-check` | 06:45 | Quels invités Proxmox n'ont **pas** de sauvegarde récente |
 | `repo-drift-check` | 07:10 | Vérifie que le déployé dans la LXC 101 correspond encore au dépôt |
