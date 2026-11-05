@@ -4,7 +4,7 @@
 
 ```mermaid
 graph TD
-    Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy.sh<br/>Notifications]
+    Script[homelab_monitor.sh<br/>cron 1min] -->|push| Ntfy[ntfy auto-hébergé<br/>penny, sujet homelab]
     Pulse[Pulse<br/>LXC 106 galahad] -->|API Proxmox + agents| Hosts[penny, galahad, lancelot]
     DD[digest-drift-check<br/>timer mensuel] -->|compare digests| Docker[Images Docker]
     
@@ -203,8 +203,8 @@ Le script utilisé des fichiers d'état dans `/var/lib/homelab_monitor/` :
 ### Configuration
 
 ```bash
-NTFY_TOPIC="<topic-randomise>"    # Topic ntfy (hex 32 chars, non public)
-NTFY_SERVER="https://ntfy.sh"
+NTFY_TOPIC="homelab"                 # sujet du ntfy auto-hébergé (accès par jeton)
+NTFY_SERVER="http://127.0.0.1:8090"  # ntfy sur penny ; ntfy.sh public abandonné en juin 2026
 TEMP_WARN=70                      # Seuil warning °C
 TEMP_CRIT=80                      # Seuil critique °C
 ```
