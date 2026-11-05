@@ -105,7 +105,7 @@
 ### Sécurité hardening (paranoia level)
 
 - [x] [Trivy](https://github.com/aquasecurity/trivy) schedule — vuln scan images Docker hebdo (ntfy si CRITICAL) — 2026-06-25
-- [x] **AIDE** — file integrity monitoring, timer quotidien 04:30 sur penny — 2026-07-07
+- [x] **AIDE** — file integrity monitoring, timer quotidien 04:30 sur penny — 2026-07-07 ; **retiré le 2026-11-05** (voir [roadmap sécurité](../securite/roadmap.md))
 - [x] SMTP migration port 25 → 587 auth submission (PVE postfix relay Proton) — 2026-05-11
 - [ ] HIDS (Wazuh / CrowdSec extension)
 

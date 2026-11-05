@@ -318,7 +318,7 @@ Priorité ntfy et refroidissement relevés dans les scripts :
 | `guardrail-liveness` | 6 h | high | oui | **oui** | conforme |
 | `grafana-rules-health` | 6 h | default/high | oui | non | muette¹ |
 | `lxc-disk-check` | 6 h | high | oui | non | muette¹ |
-| `aide-check` | quotidien 04:30 | high | **non** | non (malgré `StandardOutput=journal`) | muette¹ |
+| ~~`aide-check`~~ | — | — | — | — | **retiré le 2026-11-05**, remplacé par `dpkg --verify` et la référence des fichiers sensibles dans `control-drift-check` |
 | `ansible-drift-check` | quotidien 03:40 | default/high | oui | **oui** | conforme |
 | `argon-evidence-archive` | quotidien 07:20 | — | — | **oui** | conforme |
 | `backup-coverage-check` | quotidien 06:45 | high | oui | non | muette¹ |
@@ -355,7 +355,7 @@ pas vide — et le verdict. C'est le modèle à généraliser.
 
 **Cas particuliers relevés, à ne pas corriger ici :**
 
-- `aide-check` consomme **19 min 34 s de CPU** chaque nuit sur un Raspberry Pi 4
+- *(Retiré le 2026-11-05, constat conservé pour l'historique.)* `aide-check` consomme **19 min 34 s de CPU** chaque nuit sur un Raspberry Pi 4
   et n'émet pas une ligne. C'est le contrôle d'intégrité de fichiers du parc, et
   son verdict est invisible. C'est, parmi les 24, celui dont l'écart
   prétendu/prouvé est le plus coûteux.
