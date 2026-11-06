@@ -124,6 +124,7 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'operations/monitoring', label: 'Monitoring' },
         { type: 'doc', id: 'operations/notif-hygiene', label: 'Notif hygiene' },
+        { type: 'doc', id: 'operations/notifications', label: 'Notifications (format et outil)' },
         {
           // Trois pages, pas une : la page du format ne bouge presque jamais,
           // la fenetre courante change en continu. Les melanger ferait relire
