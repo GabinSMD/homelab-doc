@@ -116,7 +116,8 @@ Pour l'allumer le jour où l'appli suit :
 
 Sans cette variable, l'outil n'efface rien : c'est l'unique interrupteur.
 Même allumé, un effacement ntfy ne retire pas le message du cache serveur : le résumé
-quotidien de 19 h voit toujours les incidents de la nuit.
+quotidien de 19 h (workflow n8n `resume-quotidien`, qui lit le cache serveur de 24 h ;
+voir `n8n/workflows/README.md` dans `homelab-config`) voit toujours les incidents de la nuit.
 
 ## Le canal de secours
 
@@ -134,8 +135,12 @@ flowchart LR
 
 - **Dead-man de penny** : réservé à `homelab_monitor.sh`. S'il sonne, penny est muet.
 - **Repli** : check **dédié**, dont l'URL est dans `/etc/homelab/healthchecks-repli-url`
-  (0600 root). `notif purger` le pingue quand ntfy est sain, et `/fail` quand il ne
-  l'est pas. Ne **jamais** utiliser le dead-man pour cela : un `/fail` d'un autre script
+  (0600 root). Tout appel à `notif` qui n'arrive pas à joindre ntfy poste un `/fail`
+  portant le message. Tant que ntfy répond, `notif purger` pingue ce check en succès
+  toutes les 5 minutes, ce qui lève l'alerte. Si le timer `notif-purger` s'arrête
+  (période 1 jour + grâce 1 jour, soit ~2 jours sans ping), le check tombe même avec
+  ntfy sain, avec un message vide : cette alerte-là veut dire « le timer du purgeur est
+  mort ». Ne **jamais** utiliser le dead-man pour cela : un `/fail` d'un autre script
   fait croire que penny est mort, puis le « répare » (fausse alerte réelle du 22/09).
 - **Ne jamais tester en déclenchant** : un `/fail` réel est une vraie alerte 🆘. Tester
   par simulation (`NOTIF_DRY_RUN`, fichier d'URL de test).
