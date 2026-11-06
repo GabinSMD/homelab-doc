@@ -4,6 +4,15 @@ Pas un sujet glamour mais critique : **un homelab qui bipe trop = un homelab don
 
 Cette page documenté le mode opérationnel actuel (depuis 2026-05-04) : **silence sur les success, signal uniquement sur les pannes**, avec un canary externe pour distinguer "tout va bien" de "penny est mort".
 
+:::note[Mis à jour le 2026-11-06 : les résolutions existent]
+Le format, les priorités et l'envoi sont décrits dans [Notifications](notifications.md).
+Ce qui change pour cette page : un problème qui se règle envoie désormais sa **résolution**
+(🟢, après 10 min de stabilité). Elle arrive en **priorité 2, sans sonner** : le silence
+reste la règle pour ce qui ne demande rien. Les lignes « Silent » du tableau ci-dessous
+qui parlent d'un retour à la normale (`clear_alert()`, AdGuard, Loki/Grafana) décrivent
+l'état d'avant ; les succès de sauvegarde, eux, restent muets.
+:::
+
 :::note[Ce mode se mesure, il ne se décrète pas]
 Le silence est l'état normal ici. Ce qui le rend acceptable n'est pas la doctrine mais
 la preuve qu'aucune panne n'est passée dessous : c'est l'objet du
@@ -37,7 +46,7 @@ flowchart LR
 | `restic-check-monthly.sh` | "Restic check OK" mensuel | Silent |
 | `restic-drill-monthly.sh` | "DR drill OK" mensuel | Silent |
 | `lynis-notify.sh` | "Lynis: penny score X/100" pour score >= 70 | Silent (notifie uniquement si échec ou score < 70) — remplace `lynis-weekly.sh`, retiré le 2026-08-03 |
-| `homelab_monitor` `clear_alert()` | "Homelab Resolved : X is back to normal" | Silent (state file disparaît, logge dans `$LOGFILE`) |
+| `homelab_monitor` `clear_alert()` | "Homelab Resolved : X is back to normal" | Résolution 🟢 en priorité 2 (silencieuse) depuis 2026-11-06 ; avant : silent |
 | AdGuard 02:00 desync (faux positif PBS backup window) | "AdGuard desync → Resolved 1 min plus tard" | Silent (whitelist 02:00-02:05) |
 | Loki/Grafana 02:30 | "DOWN → Resolved" pareil | Silent (whitelist 02:30-02:35) |
 | CT log monitor | "134 new cert(s)" hebdo | Silent sauf nouveau sous-domaine jamais vu |
@@ -92,7 +101,7 @@ flowchart TD
 
 Quand penny stoppe de pinger > 10 min :
 - healthchecks.io passe le check de "up" → "down"
-- Notification fire (email + ntfy webhook configurable)
+- Notification fire : webhook vers un topic de ntfy.sh public (voir [Notifications](notifications.md#le-canal-de-secours))
 - Tu sais que penny est mort, pas juste que "rien à signaler"
 
 ## Logs persistents (post-DietPi RAMlog fix)

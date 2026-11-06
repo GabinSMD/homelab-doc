@@ -141,7 +141,7 @@ Master password restic partagé (RESTIC_PASSWORD dans `/root/.restic-env` sur ch
 
 ### DNS-failover / Logs — daily pattern
 
-Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/system/lxc-scripts/`.
+Même script structure, quotidien (nouveau 2026-04-19 pour fermer le SPOF "pas de backup si lancelot down" sur LXC 100 et 101). Scripts versionnes dans `homelab-config/scripts/lxc/`, deployes par `scripts/lxc/deploy.sh` (les definitions cron restent dans `system/lxc-scripts/`).
 
 ### Intégrité : restic-check-monthly.sh multi-repo
 

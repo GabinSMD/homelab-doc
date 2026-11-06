@@ -763,7 +763,7 @@ reprise qui le suit à la lettre.
 Le correctif n'est pas de mettre à jour la liste des variables — ce serait le même
 piège, reporté au prochain changement de backend. C'est `set -a`, qui auto-exporte
 tout ce que le fichier assigne, sans rien coder en dur. C'est déjà ce que fait
-`vault-lxc-backup.sh` en production depuis le début ; la page, elle, ne l'avait
+`scripts/lxc/vault-backup.sh` (ex-`vault-lxc-backup.sh`, fusionné le 2026-11-06) en production depuis le début ; la page, elle, ne l'avait
 jamais repris.
 :::
 
