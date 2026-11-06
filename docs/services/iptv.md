@@ -28,7 +28,9 @@ flowchart LR
 - **IPTVnator** (Docker, digest épinglé) : l'interface. Il lit deux listes servies par
   son propre nginx : `freebox.m3u` (495 chaînes) et `iptv-org-fr.m3u` (376 chaînes).
 - **hls-gateway** (service systemd, Python sans dépendance) : lance un `ffmpeg` par
-  chaîne regardée, l'arrête 30 s après le dernier spectateur. Trois flux au plus.
+  chaîne regardée, l'arrête 30 s après le dernier spectateur. Trois flux au plus. Elle
+  convertit aussi certaines vidéos à la demande illisibles dans un navigateur (voir
+  [plus bas](#videos-a-la-demande)).
 - **gen-playlists** (timer quotidien, 05:15) : régénère les deux listes. Une source en
   échec garde la liste de la veille plutôt que d'écrire une liste vide.
 
@@ -78,6 +80,88 @@ La passerelle joint la box sur **`192.168.1.254`**, pas sur `mafreebox.freebox.f
 2026-10-26 au soir, après un changement de réglages DHCP, la box a cessé de répondre en
 RTSP (port 554) sur l'alias `212.27.38.253`, alors que l'adresse LAN répondait : toutes
 les chaînes Freebox tombaient en 504, iptv-org restant intact.
+
+## Vidéos à la demande : conversion avec navigation {#videos-a-la-demande}
+
+Ajouté le 2026-11-06. Certaines vidéos à la demande sont des **MKV dont le son est en
+E-AC3** (Dolby Digital Plus). Aucun navigateur ne décode l'E-AC3, pour des raisons de
+licence : ni Firefox, ni Chrome. Firefox lit en outre mal le conteneur MKV. Le lecteur
+d'IPTVnator, qui tourne dans le navigateur, échoue donc sur tout le fichier, alors que
+l'image (H.264) serait lisible. Le lecteur MPV intégré, qui décoderait tout, n'existe que
+dans l'application de bureau (issues amont
+[#568](https://github.com/4gray/iptvnator/issues/568) et
+[#1408](https://github.com/4gray/iptvnator/issues/1408)).
+
+La passerelle convertit donc ces vidéos à la volée en **HLS, H.264 + AAC**, que le lecteur
+HLS d'IPTVnator lit dans n'importe quel navigateur.
+
+### Première version : image copiée, fenêtre glissante (abandonnée)
+
+Copier l'image telle quelle et ne convertir que le son est très rapide (**21× le temps
+réel**). Mais les segments sont alors coupés là où la source a ses images clés : on ne
+peut pas annoncer la durée totale à l'avance. La liste HLS grandit au fil de la
+conversion, et le lecteur la traite comme du **direct**, sans barre de progression.
+
+### La technique retenue : liste complète, segments à la demande
+
+C'est le principe de Jellyfin :
+
+1. **La liste annonce toute la vidéo dès le départ** : durée lue par `ffprobe`, segments de
+   6 s, `#EXT-X-PLAYLIST-TYPE:VOD` et `#EXT-X-ENDLIST`. Le lecteur affiche une vraie barre
+   de progression.
+2. **Les segments sont produits à la demande.** Un segment loin de ce que l'encodeur en
+   cours va produire relance `ffmpeg` à cet endroit (`-ss <i × 6>`).
+3. **L'horloge de la vidéo est conservée** après un saut, sinon le lecteur ne sait pas où
+   placer le segment : `-output_ts_offset <i × 6> -muxdelay 0 -muxpreload 0`. Mesuré :
+   début du segment 200 à **1199,98 s** pour 1200 attendues.
+4. **Couper exactement toutes les 6 s impose de réencoder l'image**, avec des images clés
+   forcées. C'est fait sur le GPU du N150, comme pour la TV : **5× le temps réel**. Effet
+   de bord utile : les sources HEVC (même en 10 bits) passent aussi.
+
+```text
+-ss <t> -hwaccel vaapi -hwaccel_output_format vaapi -i <source>
+-vf scale_vaapi=format=nv12 -c:v h264_vaapi -low_power 1 -b:v 6M
+-force_key_frames "expr:gte(t,n_forced*6)" -c:a aac -b:a 160k -ac 2
+-output_ts_offset <t> -muxdelay 0 -muxpreload 0
+-f hls -hls_time 6 -hls_list_size 0 -start_number <i>
+```
+
+5. **Le disque reste borné** (le LXC n'a que quelques Go) : les segments à plus de 6 min
+   derrière le spectateur sont supprimés, et l'encodeur est **suspendu** (`SIGSTOP`) quand
+   il a 15 min d'avance, puis repris à 10 min. Hors rafale de 60 s après un saut, la source
+   est lue à 1,5× le temps réel (`-readrate 1.5 -readrate_initial_burst 60`).
+
+| Mesure | Résultat |
+|---|---|
+| Premier segment | ~3 s |
+| Segments suivants, en lecture | < 1 s chacun |
+| Saut à 20 min | 3 à 6 s avant la reprise de l'image |
+
+### Le piège : le lecteur demande les segments dans le désordre
+
+Après un saut, hls.js a demandé les segments **198, 197 et 200 dans la même seconde**. La
+première version de la logique relançait l'encodeur à chaque demande qui ne tombait pas
+juste à la suite : 197 relançait, puis 200 tuait la conversion du 197, qui n'arrivait
+jamais. Le navigateur abandonnait au bout de 16 s.
+
+Deux règles ont suffi :
+
+- **attendre plutôt que relancer** quand le segment demandé est au plus 4 segments devant
+  l'encodeur en cours (24 s de vidéo, produites en ~5 s, moins cher qu'une relance) ;
+- **relancer un segment avant** celui demandé, puisque le lecteur redemande presque toujours
+  le précédent.
+
+Rejoué à l'identique : **une relance au lieu de trois**, les trois segments servis en 3 à
+6 s.
+
+### Pièges de test
+
+- **Le nom du service pointe vers le LXC lui-même** sur le LXC : Proxmox inscrit le
+  nom d'hôte dans `/etc/hosts`. Un `curl` lancé depuis le LXC boucle sur lui-même. Tester
+  depuis le conteneur IPTVnator, qui résout correctement vers Traefik.
+- **Une unité `systemd-run` relancée sous le même nom garde le journal de l'essai
+  précédent** : `journalctl -u <unité>` mélange les deux. Filtrer par
+  `_SYSTEMD_INVOCATION_ID`, ou changer de nom à chaque essai.
 
 ## Sécurité
 
@@ -144,6 +228,8 @@ renvoyé par la Freebox, et l'analyse reste bloquée sans erreur.
 ## Limites connues
 
 - **Trois chaînes Freebox simultanées** au plus : la box limite le multiposte.
+- **Deux vidéos à la demande converties simultanément** au plus (disque du LXC et GPU), et
+  un saut demande 3 à 6 s avant que l'image reparte.
 - Sur les 495 chaînes Freebox, celles **hors abonnement** ne démarrent pas.
 - **iptv-org** : seuls les flux **HTTPS** sont gardés (un flux `http://` est bloqué comme
   contenu mixte), et une partie tombe régulièrement — c'est la nature de la liste.
