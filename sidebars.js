@@ -112,6 +112,7 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'securite/politique', label: 'Politique' },
         { type: 'doc', id: 'securite/comptes', label: 'Comptes et service accounts' },
+        { type: 'doc', id: 'securite/rotation', label: 'Rotation des secrets' },
         { type: 'doc', id: 'securite/hardening', label: 'Hardening' },
         { type: 'doc', id: 'securite/roadmap', label: 'Roadmap' },
         { type: 'doc', id: 'securite/yubikey-age-setup', label: 'YubiKey age setup' },
