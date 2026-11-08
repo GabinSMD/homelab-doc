@@ -282,13 +282,12 @@ parce que rien ne casse quand il manque.
 
 ## Rotation
 
-| Type | Période | Procédure |
-|------|---------|-----------|
-| Passwords humains | A la compromission | Changer + update Vault |
-| Tokens API | 12 mois max | Delete token + regenerate + update consumer + update Vault |
-| Clients OIDC | 12 mois max | `openssl rand -hex 32` + hash pbkdf2 + update Authelia + update service + update Vault |
-| SSH keys | Par appareil, a la compromission | `ssh-keygen` + deploy + revoke ancienne |
-| Break-glass (root) | 24 mois max | `passwd` + update Vault |
+La politique de rotation — paliers, cadences et critère de classement — est
+maintenue dans **[politique.md](politique.md#rotation--revocation)**, page
+autoritaire. Les procédures pas-à-pas sont dans **[rotation.md](rotation.md)**.
+
+Cette page ne décrit que les **comptes**. Deux tableaux de politique divergents
+ont coexisté ici et dans politique.md, aucun n'étant un sur-ensemble de l'autre.
 
 ---
 

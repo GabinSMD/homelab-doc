@@ -68,16 +68,37 @@ Stockage : **exclusif Vaultwarden**. Jamais dans un script, un `.env` versionne 
 | Vaultwarden | Master password + TOTP | — | — |
 | Tailscale | WireGuard + SSO identity | — | — |
 
-### Rotation / revocation
+### Rotation / revocation {#rotation--revocation}
+
+**Page autoritaire pour la politique de rotation.** Les procédures pas-à-pas sont
+dans [rotation.md](rotation.md) ; [comptes.md](comptes.md#rotation) y renvoie.
+
+Le critère n'est pas l'âge mais **le secret quitte-t-il la machine ?** Une
+rotation coûte (chaque changement d'identifiant a déjà cassé quelque chose en
+silence sur ce parc) : on ne paie ce coût que là où il réduit un risque réel.
+
+| Palier | Critère | Exemples |
+|---|---|---|
+| **Échéance fournisseur** (90 j au plus) | expiration dure imposée par un tiers | clé d'enrôlement Tailscale |
+| **12 mois** | voyage, et un tiers l'accepte | jetons API (Cloudflare, R2, PVE, PBS, Pulse, ntfy, outillage), secrets clients OIDC, relais SMTP |
+| **À la compromission** | ne quitte jamais le fichier scellé | internes Authelia, clés de signature d'application, mots de passe de bases et de services locaux |
+| **24 mois** | matériel et reprise | YubiKeys, mots de passe root de secours, master Vaultwarden, clé age |
+
+Une **date de dernière rotation inconnue compte comme échue** : on ne peut pas
+affirmer qu'un secret est à jour sans savoir quand il a été tourné.
+
+Le respect de ces cadences est **mesuré chaque jour** par un contrôle qui
+notifie les secrets morts, les expirations proches et, le lundi, le
+récapitulatif des échéances ; voir [rotation.md](rotation.md#ce-qui-mesure-la-rotation).
 
 | Element | Rotation | Procédure |
 |---|---|---|
 | Mot de passe gabins (OS) | A la compromission | SSH via Tailscale, `passwd` |
-| Clés SSH | Par appareil | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
-| Tokens API (Cloudflare, Tailscale, B2) | 12 mois max | UI provider -> nouveau token -> `.env` -> restart service |
-| Secrets OIDC | 12 mois max | `openssl rand -base64 32` -> hash pbkdf2 -> update Authelia + service |
-| Authelia internals (jwt/session/storage) | A la compromission uniquement | Migration DB nécessaire si `encryption_key` change |
-| Master Vaultwarden | Au choix | UI Vaultwarden |
+| Clés SSH | Par appareil, à la compromission | `sed -i '/key_pattern/d' ~/.ssh/authorized_keys` sur chaque host |
+| Tokens API | 12 mois max | [rotation.md](rotation.md#methode) |
+| Secrets OIDC | 12 mois max | [rotation.md](rotation.md#secrets-oidc) |
+| Authelia internals (jwt/session/storage/hmac/jwks) | A la compromission uniquement | [rotation.md](rotation.md#internes-authelia) — migration DB si `encryption_key` change |
+| Break-glass root, master Vaultwarden | 24 mois max | [rotation.md](rotation.md#materiel-et-reprise) |
 
 ### Session Authelia
 
