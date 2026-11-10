@@ -5,7 +5,14 @@ const prismThemes = require('prism-react-renderer').themes;
 const config = {
   title: 'Homelab',
   tagline: 'Documentation du homelab',
-  favicon: 'img/logo.svg',
+  // Favicon : .ico 16/32/48 a la racine (les navigateurs le demandent la sans
+  // meme lire le <head>), SVG pour les navigateurs recents, apple-touch-icon
+  // sur fond blanc opaque pour l'ecran d'accueil iOS.
+  favicon: 'favicon.ico',
+  headTags: [
+    { tagName: 'link', attributes: { rel: 'icon', type: 'image/svg+xml', href: '/img/icone.svg' } },
+    { tagName: 'link', attributes: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
+  ],
 
   url: 'https://homelab.gabin-simond.fr',
   baseUrl: '/',
@@ -134,8 +141,8 @@ const config = {
         respectPrefersColorScheme: false,
       },
       navbar: {
-        title: 'Homelab',
-        logo: { alt: 'Homelab', src: 'img/logo.svg' },
+        // Le logo porte deja le mot « Homelab » : pas de titre a cote.
+        logo: { alt: 'Homelab — Gabin Simond', src: 'img/logo.svg', srcDark: 'img/logo-sombre.svg', width: 142, height: 40 },
         items: [
           { to: '/', label: 'Documentation', position: 'left', activeBaseRegex: '^/$' },
           { to: '/architecture/', label: 'Infrastructure', position: 'left' },

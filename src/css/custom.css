@@ -79,7 +79,8 @@ body {letter-spacing: -.01em;}
 .sr-only {position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;}
 .navbar {border-bottom: 1px solid var(--homelab-border); padding-inline: 2rem;}
 .navbar__brand {gap: .5rem; margin-right: 1.7rem;}
-.navbar__logo {height: 30px;}
+.navbar__logo {height: 40px;}
+.navbar__logo img {height: 40px; width: auto;}
 .navbar__title {font-size: 19px; font-weight: 600; letter-spacing: -.04em;}
 .navbar__link {font-size: 13px; font-weight: 400; padding-inline: .75rem;}
 .navbar__link--active {text-decoration: underline; text-underline-offset: 10px;}
@@ -270,7 +271,7 @@ body {letter-spacing: -.01em;}
 }
 @media (max-width: 640px) {
   .navbar__title {font-size: 17px;}
-  .navbar__logo {height: 26px;}
+  .navbar__logo, .navbar__logo img {height: 32px;}
   .homelab-search {width: 135px;}
   .homelab-search input {padding-inline: .4rem;}
   .homelab-infra {grid-template-columns: 1fr;}
