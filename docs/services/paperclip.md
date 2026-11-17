@@ -2,8 +2,9 @@
 
 :::info[Essai de deux semaines depuis le 2026-11-17]
 Paperclip revient pour un essai, **plus sur penny** : dans une VM dédiée de galahad
-(VM 121, Debian 13, 2 cœurs, 3 Go de RAM, disque creux de 12 Go), sur le réseau privé
-`vmbr1` déjà utilisé par la VM 120.
+(VM 121, Debian 13, 2 cœurs, 3 Go de RAM), sur le réseau privé `vmbr1` déjà utilisé par
+la VM 120. Son disque (35 Go, creux) vit **sur le SSD de penny, par NFS** : l'eMMC de
+galahad n'avait que 13 Go libres.
 
 - **Isolement** : le pare-feu Proxmox de la VM interdit toute sortie vers le LAN,
   Tailscale, les plages privées et galahad ; en entrée, seuls le SSH d'administration
@@ -13,16 +14,25 @@ Paperclip revient pour un essai, **plus sur penny** : dans une VM dédiée de ga
 - **Accès** : `https://paperclip.home.gabin-simond.fr`, par Traefik et Authelia (2FA)
   sur penny, qui joint la VM par une route statique via galahad. Paperclip n'a toujours
   pas de SSO : son compte local reste une seconde porte, inscription fermée.
-- **Version épinglée** : 2026.916.1, la même image que la première installation, donc
-  aucune migration de la base restaurée. La 2026.1106.0 a été mesurée : **5,3 Go
-  compressés** pour amd64, elle ne tient pas dans le disque de la VM. Pas de mise à jour
-  automatique (Renovate l'ignore).
+- **Version épinglée** : 2026.1106.0 (dernière stable), depuis le 17/11. L'essai a
+  démarré sur 2026.916.1, l'image de la première installation ; la 2026.1106.0 pèse
+  **5,3 Go compressés, 11,6 Go décompressée** en amd64 (outils d'agents embarqués) et ne
+  tenait pas dans le premier disque de 12 Go. Mise à jour faite après sauvegarde (dump de
+  la base, archive des données, sauvegarde PBS de la VM) : 95 migrations de base,
+  données intactes, agents restés en pause. Pas de mise à jour automatique (Renovate
+  l'ignore).
+- **Disque sur penny** : penny exporte un répertoire dédié à galahad seul ; Proxmox y
+  range le disque de la VM, avec un débit plafonné pour ne pas charger penny. Le revers :
+  **penny qui redémarre fige les écritures de la VM** jusqu'à son retour. La VM tolère
+  dix minutes de silence du disque ; au-delà, un service de penny, lancé à chaque
+  démarrage du serveur NFS, la redémarre (ou la démarre si galahad l'a laissée
+  arrêtée).
 - **Données** : base et volume restaurés (entreprise, agents, secrets), sans les 482 Mo
   de sauvegardes internes ni la clé SSH de l'ancien compte. Les agents ont été remis
   **en pause** avant le premier démarrage.
 - **Sonde quotidienne** : interface, jeton Claude (réponse 200 de l'API), échéance du
   setup-token d'un an (préavis 30 jours), runs aboutis quand des agents sont actifs,
-  disque de la VM et place libre de galahad.
+  disque de la VM, montage NFS vu de galahad et place libre de galahad.
 
 Ne jamais cliquer « Connect » / « Reconnect » pour Claude : cela remplace le setup-token
 d'un an par un jeton de 8 h. Le remplacement se fait par l'outil
