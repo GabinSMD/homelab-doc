@@ -268,13 +268,12 @@
   {
     "id": "paperclip",
     "name": "Paperclip",
-    "role": "Ancienne orchestration d’agents",
+    "role": "Orchestration d’agents IA (essai, VM isolée)",
     "hosts": [
-      "penny"
+      "galahad"
     ],
     "href": "/services/paperclip/",
-    "status": "retired",
-    "retiredAt": "2026-11-02"
+    "status": "test"
   },
   {
     "id": "portainer",

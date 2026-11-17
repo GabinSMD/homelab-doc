@@ -1,4 +1,35 @@
-# Paperclip (retiré)
+# Paperclip (essai)
+
+:::info[Essai de deux semaines depuis le 2026-11-17]
+Paperclip revient pour un essai, **plus sur penny** : dans une VM dédiée de galahad
+(VM 121, Debian 13, 2 cœurs, 3 Go de RAM, disque creux de 12 Go), sur le réseau privé
+`vmbr1` déjà utilisé par la VM 120.
+
+- **Isolement** : le pare-feu Proxmox de la VM interdit toute sortie vers le LAN,
+  Tailscale, les plages privées et galahad ; en entrée, seuls le SSH d'administration
+  (depuis galahad) et le port de l'interface (depuis penny) passent. Aucun compte n'a de
+  `sudo` sans mot de passe, aucune clé ne mène à une autre machine — le compte
+  `paperclip-agent` root de la première installation n'est pas reproduit.
+- **Accès** : `https://paperclip.home.gabin-simond.fr`, par Traefik et Authelia (2FA)
+  sur penny, qui joint la VM par une route statique via galahad. Paperclip n'a toujours
+  pas de SSO : son compte local reste une seconde porte, inscription fermée.
+- **Version épinglée** : 2026.916.1, la même image que la première installation, donc
+  aucune migration de la base restaurée. La 2026.1106.0 a été mesurée : **5,3 Go
+  compressés** pour amd64, elle ne tient pas dans le disque de la VM. Pas de mise à jour
+  automatique (Renovate l'ignore).
+- **Données** : base et volume restaurés (entreprise, agents, secrets), sans les 482 Mo
+  de sauvegardes internes ni la clé SSH de l'ancien compte. Les agents ont été remis
+  **en pause** avant le premier démarrage.
+- **Sonde quotidienne** : interface, jeton Claude (réponse 200 de l'API), échéance du
+  setup-token d'un an (préavis 30 jours), runs aboutis quand des agents sont actifs,
+  disque de la VM et place libre de galahad.
+
+Ne jamais cliquer « Connect » / « Reconnect » pour Claude : cela remplace le setup-token
+d'un an par un jeton de 8 h. Le remplacement se fait par l'outil
+`paperclip-claude-token install` depuis penny.
+
+La suite décrit la première installation (penny, du 29/09 au 02/11) et son retrait.
+:::
 
 :::warning[Retiré le 2026-11-02]
 Ses agents échouaient en 5 s sans rien produire depuis le **2026-10-02** : le jeton
