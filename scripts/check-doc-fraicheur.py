@@ -105,12 +105,7 @@ AUTORISE_CATALOGUE = {
         "docs/services/index.mdx",
         "docs/services/authelia.md",
     },
-    "paperclip": {
-        # Guide de retrait : ses exemples sont les retraits de novembre 2026.
-        "docs/guides/retirer-service.md",
-        # L'index d'exploitation signale la doctrine comme archive.
-        "docs/operations/index.md",
-    },
+    # paperclip : sorti de la liste le 2026-11-17, il revient en essai (VM 121).
     "zomboid": {
         # Guide de retrait : ses exemples sont les retraits de novembre 2026.
         "docs/guides/retirer-service.md",
