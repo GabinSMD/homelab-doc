@@ -47,6 +47,7 @@ graph TB
 | `lancelot` | ZimaBoard (Proxmox) | Hyperviseur (LXC logs) | `192.168.1.19` | `100.69.6.13` |
 | `dns-failover` | LXC 100 (sur galahad) | AdGuard secondaire + healthcheck | `192.168.1.30` | `100.74.145.26` |
 | `vault` | LXC 102 (sur galahad) | Vaultwarden | `192.168.1.32` | — |
+| `entree` | LXC 104 (sur galahad) | **Point d'entrée HTTPS** : Traefik + Authelia + CrowdSec | `192.168.1.40` | `100.81.86.110` |
 | `logs` | LXC 101 (sur lancelot) | Loki + Grafana | `192.168.1.31` | — |
 | `iphone175` | iOS | Mobile | — | `100.84.188.65` |
 | `macbook-pro-de-gabin` | macOS | Laptop | — | `100.68.165.36` |
@@ -80,21 +81,27 @@ graph TB
     end
     
     Client -->|HTTPS| Traefik
-    TSClient -->|HTTPS via route subnet 192.168.1.28/32| Traefik
+    TSClient -->|HTTPS via route subnet 192.168.1.40/32| Traefik
 ```
+
+:::info[Depuis le 2026-11-23 : l'entrée HTTPS n'est plus sur penny]
+Le Traefik qui reçoit les connexions est celui du **LXC 104 « entree »** sur galahad (`192.168.1.40`), avec Authelia et CrowdSec. Une panne de penny ne coupe donc plus l'accès aux services des nœuds (Vaultwarden, Pulse, Grafana, n8n, PBS, Proxmox). Voir [Le point d'entrée](#le-point-dentrée-lxc-104) plus bas.
+:::
 
 ### Les DNS rewrites (la pièce clé)
 
-AdGuard Home utilisé une **règle de reecriture conditionnelle** dans `user_rules` pour rediriger les domaines internes vers le RPi **sans passer par Internet**. **Tous** les clients (LAN, bridges Docker, Tailscale) résolvent `*.home.gabin-simond.fr` vers l'IP LAN de penny `192.168.1.28`, où écoute Traefik :
+AdGuard Home utilisé une **règle de reecriture conditionnelle** dans `user_rules` pour rediriger les domaines internes vers le point d'entrée **sans passer par Internet**. **Tous** les clients (LAN, bridges Docker, Tailscale) résolvent `*.home.gabin-simond.fr` vers `192.168.1.40` (LXC 104 « entree »), où écoute Traefik. La même règle est posée sur les deux AdGuard (penny et `dns-failover`) :
 
 ```text
-||home.gabin-simond.fr^$dnsrewrite=192.168.1.28,client=192.168.1.0/24|172.16.0.0/12|100.64.0.0/10
+||home.gabin-simond.fr^$dnsrewrite=192.168.1.40,client=192.168.1.0/24|172.16.0.0/12|100.64.0.0/10
 ```
 
-| Client vu par AdGuard | Réponse DNS | Comment il atteint 192.168.1.28 |
+| Client vu par AdGuard | Réponse DNS | Comment il atteint 192.168.1.40 |
 |---|---|---|
-| LAN (`192.168.1.0/24`), Docker (`172.16/12`) | `192.168.1.28` | directement sur le LAN |
-| Tailscale (`100.64.0.0/10`) | `192.168.1.28` | via **route subnet** `192.168.1.28/32` advertisée par penny (approuvée console) |
+| LAN (`192.168.1.0/24`), Docker (`172.16/12`) | `192.168.1.40` | directement sur le LAN |
+| Tailscale (`100.64.0.0/10`) | `192.168.1.40` | via **route subnet** `192.168.1.40/32` advertisée par le nœud `entree` lui-même (approuvée console) |
+
+Penny garde sa propre route `192.168.1.28/32`, utile pour l'atteindre directement (SSH, AdGuard).
 
 #### Comment les clients VPN atteignent Traefik
 
@@ -296,3 +303,23 @@ sequenceDiagram
 - Fonctionne pour des domaines internes (pas accessibles depuis Internet)
 - Cloudflare géré la zone DNS `gabin-simond.fr`
 - Traefik utilisé le token API Cloudflare (`CF_DNS_API_TOKEN`) pour créer/supprimer les records TXT automatiquement
+
+## Le point d'entrée (LXC 104)
+
+Mis en service le 2026-11-23. Avant, tout passait par le Traefik de penny : une panne du Raspberry Pi rendait injoignables des services qui tournaient pourtant ailleurs, et l'accès distant passait aussi par penny, seul routeur Tailscale du tailnet.
+
+```mermaid
+graph LR
+    C[Client LAN ou Tailscale] -->|HTTPS| E[entree — LXC 104<br/>Traefik + Authelia + CrowdSec]
+    E -->|HTTP direct| N[Services des nœuds<br/>Vaultwarden, Pulse, Grafana, n8n, PBS, Proxmox, IPTV]
+    E -->|passthrough TLS + PROXY protocol| P[Traefik de penny]
+    P --> S[Services de penny<br/>Forgejo, Outline, Homepage, ntfy, outils]
+    P -.->|forwardAuth| E
+```
+
+- **Services des nœuds** : servis directement par l'entrée. Ils restent joignables penny éteinte.
+- **Services de penny** : l'entrée transmet la connexion chiffrée telle quelle au Traefik de penny, choisi par le nom demandé (SNI). Penny garde son certificat et ses routes Docker. Le **PROXY protocol** lui transmet la vraie IP du client, sans quoi son CrowdSec verrait tout venir de l'entrée.
+- **Authelia** vit sur l'entrée. Le Traefik de penny l'interroge à distance pour ses propres services, et relaie `auth.home` vers elle pour un client qui arriverait encore sur penny avec une vieille réponse DNS en cache.
+- **Ajouter un service sur penny** : l'ajouter aussi à la liste des noms transmis par l'entrée, sinon il répond 404.
+- **Sauvegarde** de l'entrée en mode *suspend* (gel de quelques secondes) et non *stop* : un arrêt nocturne couperait l'accès à tout.
+

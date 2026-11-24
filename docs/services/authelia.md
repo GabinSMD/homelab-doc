@@ -2,6 +2,10 @@
 
 Portail d'authentification unique (SSO) + MFA pour les services du homelab.
 
+:::info[Authelia vit sur le point d'entrée depuis le 2026-11-23]
+Elle tourne sur le **LXC 104 « entree »** (galahad), plus sur penny. C'est là que l'on modifie sa configuration et ses utilisateurs (`/opt/entree/authelia`). Penny l'interroge à distance pour ses propres services, et en garde une **copie rafraîchie toutes les heures** pour la sauvegarde hors site et le kit de secours. Une modification faite dans la copie de penny serait écrasée.
+:::
+
 ## Acces
 
 | | |
