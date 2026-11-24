@@ -2,6 +2,13 @@
 
 Reverse proxy avec TLS automatique via Let's Encrypt et DNS challenge Cloudflare.
 
+:::info[Deux Traefik depuis le 2026-11-23]
+- **Entrée** (LXC 104 « entree », galahad, `192.168.1.40`) : reçoit toutes les connexions `*.home`. Elle sert directement les services des nœuds (provider fichier, `entree/traefik/dynamic/` dans le dépôt de config) et transmet les noms de penny en passthrough TLS avec PROXY protocol.
+- **penny** (décrit ci-dessous) : ne sert plus que les services de penny, qu'il reçoit de l'entrée. Il n'accepte l'en-tête PROXY que de `192.168.1.40`.
+
+Voir [le point d'entrée](../architecture/reseau.mdx#le-point-dentrée-lxc-104).
+:::
+
 ## Acces
 
 | | |

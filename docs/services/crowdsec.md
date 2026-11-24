@@ -3,12 +3,19 @@
 Détection comportementale sur les logs Traefik, avec un bouncer qui bloque au
 niveau du reverse proxy.
 
+:::warning[Deux CrowdSec, et 5 mois et demi d'aveuglement (corrigé le 2026-11-24)]
+- Le **point d'entrée** (LXC 104) a son propre CrowdSec, avec sa LAPI locale, qui lit le journal d'accès de son Traefik.
+- Celui de **penny** lisait un fichier `access.log` figé depuis le 2026-06-08 : Traefik journalisait déjà sur la sortie standard, pour Loki. Il n'analysait donc plus rien, sans aucune erreur, d'où les compteurs toujours à zéro. Il lit maintenant le flux du conteneur `traefik` par l'API Docker.
+
+Leçon : un détecteur à zéro peut être un détecteur aveugle. Vérifier `cscli metrics show acquisition` (lignes lues), pas seulement l'absence d'alertes.
+:::
+
 | | |
 |---|---|
 | Image | `crowdsecurity/crowdsec:latest` |
 | LAPI | `192.168.1.28:6060` |
 | Collections | **six**, voir ci-dessous |
-| Logs lus | `traefik-data:/var/log/traefik:ro` |
+| Logs lus | flux du conteneur `traefik`, par l'API Docker (socket-proxy, lecture seule) |
 | Limite mémoire | 256 Mo |
 
 Relevé le 2026-09-25 par `cscli collections list` — la page n'en listait que trois :
